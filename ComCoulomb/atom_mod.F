@@ -1,0 +1,83 @@
+      module atom_mod
+
+      integer ::
+     $  limlb,
+     &  limlb1,
+     &  limlpb,
+     &  max_e_pb,
+     &  max_rl,
+     &  maxb,
+     &  maxel,
+     &  maxel_loc,
+     &  maxlfpb,
+     &  maxlfun,
+     &  maxnrad,
+     &  maxntle,
+     &  maxpb,
+     &  maxpbr,
+     &  maxwf,
+     &  n_pbmt,
+     &  n_pbmtm,
+     &  n_pbtot,
+     &  nlb2,
+     &  nfun,
+     &  nrmax,
+     $  nwpmax
+      character*3, allocatable :: augm(:,:,:)
+      character*4, allocatable :: txtel(:)
+      integer, allocatable :: 
+     &  ind_pb(:,:),
+     &  ind_prod(:,:,:),
+     &  ind_prod0(:,:,:),
+     &  ind_wf(:,:),
+     &  indfun0(:,:,:,:),
+     &  indbasa(:,:,:,:),
+     &  io_lem(:),
+     &  iob2(:),
+     &  iopb(:),
+     &  iopb0(:),
+     &  lf_isz(:,:),
+     &  lf_pb(:,:),
+     &  lfun(:),
+     &  lfun_pb(:),
+     &  lfunm(:),
+     &  li_val(:,:),
+     &  lim_pb_mt(:,:),
+     &  lm_isz(:,:),
+     &  lm_pbmt(:,:),
+     &  lmb(:),
+     &  lmpb(:),
+     &  lval_pb(:,:),
+     &  n_pbmt0(:),
+     &  nrad(:),
+     &  ntle(:,:),
+     &  ntle_pb(:,:)
+      double precision, allocatable :: 
+     &  d_lll(:,:,:),
+     &  dfun_pb(:,:),
+     &  dr(:,:),
+     &  dr_atom(:),
+     &  fi0(:,:,:,:,:,:),
+     &  fun_pb(:),
+     &  gfun(:,:),
+     &  gfund(:,:),
+     &  h(:),
+     &  lpb_fpb(:,:,:,:),
+     &  mi0(:,:),
+     &  pb_atom_vv(:,:,:),
+     &  pval_atom(:,:,:),
+     &  qval_atom(:,:,:),
+     &  r(:,:),
+     &  r_atom(:,:),
+     &  rl(:,:,:),
+     &  rl_atom(:,:),
+     &  smt(:),
+     &  tmm_pb(:,:,:,:),
+     &  u_rotated_fpb(:,:,:,:) ,
+     &  w_rotated_fpb(:,:,:,:) ,
+     &  v4_atom(:,:,:,:,:)
+
+      
+      end
+
+

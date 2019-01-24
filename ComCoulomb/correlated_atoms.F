@@ -1,0 +1,518 @@
+      subroutine cor_and_iter_wan
+      use atom_mod
+      use manager_mod
+      use solid_mod
+      use parallel_mod
+      use vertex_mod
+      use wannier90_mod
+      implicit none
+      include 'mpif.h'
+      integer :: iatom,isort,l1,i1,ii,i,m,lm,n,lm0,ndim,li,i2,ii2,
+     $  jj,in,i3,lf,iatom_c,i0,kk,l,ind,ind_c,ie1,in1,inn1,inttmp,
+     $  awan,iistart,iorb,ival,lival,iwan,jval,ll,mm,mudim,mval,
+     $  lval,is_bonding,cnt,iat,mind,m1
+      integer, allocatable :: tempmap(:,:,:), tempind(:)
+      integer, external :: find_ind
+
+!      write(100,*)'alimj',alimj,'at_bonding',at_bonding,'at_orb_ciw',
+!     $ at_orb_ciw,'ciw_ind',ciw_ind,'corr_iter',corr_iter,
+!     $ 'corr_iter_rel',corr_iter_rel,'iatom_ciw',iatom_ciw,'irel',irel,
+!     $ 'is',is,'lmb',lmb,'maxb',maxb,'mt2ciw',mt2ciw,'mt2ciw_rel_l',
+!     $ mt2ciw_rel_l,'mt2wan',mt2wan,'n_ciw_atom',n_ciw_atom,'n_ciw_max',
+!     $ n_ciw_max,'nalimj',nalimj,'natom',natom,'natom_ciw',natom_ciw,
+!     $ 'natom_cor',natom_cor,'natom_iter',natom_iter,'nrel',nrel,
+!     $ 'num_orb_cor',num_orb_cor,'num_orb_iter',num_orb_iter,
+!     $ 'num_orb_proj',num_orb_proj,'seed_name',seed_name,
+!     $ 'wan_correlated',wan_correlated,'wan_itinerant',wan_itinerant
+!
+!      call mpi_bcast(nproc_k,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
+
+      write(seed_name,'(a)') 'wannier'      
+      call read_wann_inip
+
+
+!      write(100,*)'alimj',alimj,'at_bonding',at_bonding,'at_orb_ciw',
+!     $ at_orb_ciw,'ciw_ind',ciw_ind,'corr_iter',corr_iter,
+!     $ 'corr_iter_rel',corr_iter_rel,'iatom_ciw',iatom_ciw,'irel',irel,
+!     $ 'is',is,'lmb',lmb,'maxb',maxb,'mt2ciw',mt2ciw,'mt2ciw_rel_l',
+!     $ mt2ciw_rel_l,'mt2wan',mt2wan,'n_ciw_atom',n_ciw_atom,'n_ciw_max',
+!     $ n_ciw_max,'nalimj',nalimj,'natom',natom,'natom_ciw',natom_ciw,
+!     $ 'natom_cor',natom_cor,'natom_iter',natom_iter,'nrel',nrel,
+!     $ 'num_orb_cor',num_orb_cor,'num_orb_iter',num_orb_iter,
+!     $ 'num_orb_proj',num_orb_proj,'seed_name',seed_name,
+!     $ 'wan_correlated',wan_correlated,'wan_itinerant',wan_itinerant,
+!     $ 'num_wann',num_wann
+
+!      call mpi_bcast(nproc_k,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
+
+
+
+      allocate(natom_cor(natom))
+      natom_cor=.false.
+      allocate(natom_iter(natom))
+      natom_iter=.false.      
+      allocate(n_ciw_atom(natom))
+      n_ciw_atom=0
+
+      
+      allocate(mt2wan(2*maxb+nrel,nrel*maxb+1,natom)) ! m, li, atom
+      mt2wan=0
+      allocate(mt2ciw(2*maxb+nrel,nrel*maxb+1,natom)) ! m, li, atom
+      mt2ciw=0
+
+      if (irel .eq. 2) then
+        allocate(mt2ciw_rel_l(4*maxb+2,maxb+1,natom)) ! m, li, atom
+        mt2ciw_rel_l=0
+      endif
+        
+      allocate(corr_iter(0:maxb,natom)) ! l, atom
+      corr_iter=0
+      allocate(at_bonding(0:maxb,natom)) ! l, atom
+      at_bonding=0      
+      if (irel .eq. 2) then
+        allocate(corr_iter_rel(nrel*maxb+1,natom)) ! m, li, atom
+        corr_iter_rel=0
+        allocate(at_bonding_rel(nrel*maxb+1,natom)) ! m, li, atom
+        at_bonding_rel=0        
+      endif
+
+      do awan=1, num_orb_cor
+        iwan=wan_correlated(awan)
+        do iorb=1, nalimj(iwan)
+          if (irel .le. 1) then
+            iatom=alimj(1,iorb,iwan)
+            lval=alimj(2,iorb,iwan)
+            lival=lval+1
+            mval=alimj(3,iorb,iwan) ! 1,2,3,4,5
+          else
+            iatom=alimj(1,iorb,iwan)
+            lval=alimj(2,iorb,iwan)
+            ival=alimj(3,iorb,iwan)           
+            jval=lval+lval+ival ! j
+            lival=lval+lval+(ival+1)/2
+            mval=((alimj(4,iorb,iwan))+lival)/2+1 !from -5, -3, -1, 1, 3, 5 to 1, 2, 3, 4, 5, 6          
+          endif
+          natom_cor(iatom)=.true.
+          mt2wan(mval,lival,iatom)=iwan
+          mt2ciw(mval,lival,iatom)=awan
+          if (irel .eq. 2) then
+            if (lval .eq. 0) then
+              mind=mval
+            else
+              mind=mval+(ival+1)/2*(2*lval)
+            endif
+            mt2ciw_rel_l(mind,lval+1,iatom)=awan
+          endif
+        enddo
+        n_ciw_atom(iatom)=n_ciw_atom(iatom)+1
+      enddo
+
+      do awan=1, num_orb_iter
+        iwan=wan_itinerant(awan)
+        do iorb=1, nalimj(iwan)
+          if (irel .le. 1) then
+            iatom=alimj(1,iorb,iwan)
+            lval=alimj(2,iorb,iwan)
+            lival=lval+1
+            mval=alimj(3,iorb,iwan) ! 1,2,3,4,5
+          else
+            iatom=alimj(1,iorb,iwan)
+            lval=alimj(2,iorb,iwan)
+            ival=alimj(3,iorb,iwan)           
+            jval=lval+lval+ival ! j
+            lival=lval+lval+(ival+1)/2
+            mval=((alimj(4,iorb,iwan))+lival)/2+1 !from -5, -3, -1, 1, 3, 5 to 1, 2, 3, 4, 5, 6          
+          endif
+          natom_iter(iatom)=.true.
+          mt2wan(mval,lival,iatom)=iwan
+          mt2ciw(mval,lival,iatom)=awan+num_orb_cor
+          if (irel .eq. 2) then
+            if (lval .eq. 0) then
+              mind=mval
+            else
+              mind=mval+(ival+1)/2*(2*lval)
+            endif
+            mt2ciw_rel_l(mind,lval+1,iatom)=awan+num_orb_cor
+          endif          
+        enddo
+        n_ciw_atom(iatom)=n_ciw_atom(iatom)+1        
+      enddo      
+
+      do iatom=1, natom
+        isort=is(iatom)
+        do ll=0, lmb(isort)
+          if (irel .eq. 2) then
+            iistart=-1
+            if (ll .eq. 0) iistart=1
+            do ii=iistart, 1, 2
+              li=2*ll+(ii+1)/2
+              mudim=2*ll+ii+1
+              inttmp=0
+              is_bonding=0
+              do mm=1, mudim
+                if (mt2wan(mm,li,iatom) .ne. 0) then
+                  inttmp=inttmp+1
+                  if (nalimj(mt2wan(mm,li,iatom)) .ne. 1) then
+                    is_bonding=is_bonding+1
+                  endif
+                endif
+              enddo
+              if (inttmp .eq. mudim) then
+                corr_iter_rel(li,iatom)=2
+              elseif (inttmp .ne. 0) then
+                corr_iter_rel(li,iatom)=1
+              endif
+              if (is_bonding.eq.0) then
+                at_bonding_rel(li,iatom)=0
+              else
+                at_bonding_rel(li,iatom)=1
+              endif
+            enddo
+            if (ll .eq. 0) then
+              corr_iter(0,iatom)=corr_iter_rel(1,iatom)
+              at_bonding(0,iatom)=at_bonding_rel(1,iatom)              
+            else
+              if ((corr_iter_rel(2*ll,iatom).eq.2)
+     $          .and.
+     $          (corr_iter_rel(2*ll+1,iatom).eq.2)) then
+                corr_iter(ll,iatom)=2
+              elseif ((corr_iter_rel(2*ll,iatom).eq.0)
+     $            .and.
+     $            (corr_iter_rel(2*ll+1,iatom).eq.0)) then
+                corr_iter(ll,iatom)=0
+              else
+                corr_iter(ll,iatom)=1
+              endif
+              if ((at_bonding_rel(2*ll,iatom).eq.0)
+     $          .and.
+     $          (at_bonding_rel(2*ll+1,iatom).eq.0)) then
+                at_bonding(ll,iatom)=0
+              else
+                at_bonding(ll,iatom)=1
+              endif                          
+            endif
+          else
+            li=ll+1
+            mudim=2*ll+1
+            inttmp=0
+            is_bonding=0            
+            do mm=1, mudim
+              if (mt2wan(mm,li,iatom) .ne. 0) then
+                inttmp=inttmp+1
+                if (nalimj(mt2wan(mm,li,iatom)) .ne. 1) then
+                  is_bonding=is_bonding+1
+                endif                
+              endif
+            enddo
+            if (inttmp .eq. mudim) then
+              corr_iter(ll,iatom)=2
+            elseif (inttmp .ne. 0) then
+              corr_iter(ll,iatom)=1
+            endif
+            if (is_bonding .eq.0) then
+              at_bonding(ll,iatom)=0
+            else
+              at_bonding(ll,iatom)=1
+            endif            
+          endif
+        enddo
+      enddo
+      
+
+
+
+      natom_ciw=0
+      do iatom=1, natom
+        if (n_ciw_atom(iatom) .gt. 0) then
+          natom_ciw=natom_ciw+1
+        endif
+      enddo
+      allocate(iatom_ciw(natom_ciw))
+      iatom_ciw=0
+      cnt=1
+      do iatom=1, natom
+        if (n_ciw_atom(iatom) .gt. 0) then
+          iatom_ciw(cnt)=iatom
+          cnt=cnt+1
+        endif
+      enddo
+c$$$      allocate(is_ciw(natom))
+c$$$      is_ciw=0
+c$$$
+c$$$      do iat=1, natom_ciw
+c$$$        is_ciw(iatom_ciw(iat))=iat
+c$$$      enddo      
+
+      n_ciw_max=maxval(n_ciw_atom)
+      allocate(ciw_ind(n_ciw_max,natom_ciw))
+      ciw_ind=0
+      allocate(tempind(natom_ciw))
+      tempind=0
+
+
+      do iwan=1, num_orb_cor
+        iatom=alimj(1,1,wan_correlated(iwan))
+        iat=find_ind(iatom, natom_ciw, iatom_ciw)
+        tempind(iat)=tempind(iat)+1
+        ciw_ind(tempind(iat),iat)=iwan
+      enddo
+
+      if (num_orb_iter .gt. 0) then
+        do iwan=1, num_orb_iter
+          iatom=alimj(1,1,wan_itinerant(iwan))
+          iat=find_ind(iatom, natom_ciw, iatom_ciw)
+          tempind(iat)=tempind(iat)+1
+          ciw_ind(tempind(iat),iat)=iwan+num_orb_cor
+        enddo
+      endif
+      deallocate(tempind)
+
+      allocate(at_orb_ciw(2,num_orb_proj)) ! inverse of ciw_ind
+      at_orb_ciw=0.0d0
+      do iwan=1, num_orb_cor
+        iatom=alimj(1,1,wan_correlated(iwan))
+        at_orb_ciw(1,iwan)=iatom
+        iorb=find_ind(iwan, n_ciw_max, ciw_ind(1,iatom))
+        at_orb_ciw(2,iwan)=iorb        
+      enddo
+
+      if (num_orb_iter .gt. 0) then
+        do iwan=1, num_orb_iter
+          iatom=alimj(1,1,wan_itinerant(iwan))
+          at_orb_ciw(1,iwan+num_orb_cor)=iatom
+          iorb=find_ind(iwan+num_orb_cor, n_ciw_max, ciw_ind(1,iatom))
+          at_orb_ciw(2,iwan+num_orb_cor)=iorb        
+        enddo        
+      endif      
+
+
+      if (maswrk) then
+
+        if (irel .le.1) then
+          
+          write(iun,*) 'mt2wan'
+          do iatom=1, natom
+            isort=is(iatom)            
+            do li=1, lmb(isort)+1
+              write(iun,'(2i4,4x,1000i4)') iatom,li,
+     $          (mt2wan(mm,li,iatom),mm=1,2*li-1)
+            enddo
+          enddo
+          write(iun,*) 'mt2ciw'
+          do iatom=1, natom
+            isort=is(iatom)            
+            do li=1, lmb(isort)+1
+              write(iun,'(2i4,4x,1000i4)') iatom,li,
+     $          (mt2ciw(mm,li,iatom),mm=1,2*li-1)
+            enddo
+          enddo
+          write(iun,*) 'corr_iter'
+          do iatom=1, natom
+            isort=is(iatom)            
+            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
+     $        ((corr_iter(ll,iatom), at_bonding(ll,iatom)),
+     $        ll=0, lmb(isort))
+          enddo
+        else
+          write(iun,*) 'mt2wan'
+          do iatom=1, natom
+            isort=is(iatom)            
+            do li=1, 2*lmb(isort)+1
+              write(iun,'(2i4,4x,1000i4)') iatom,li,
+     $          (mt2wan(mm,li,iatom),mm=1,((li+1)/2)*2)
+            enddo
+          enddo
+          write(iun,*) 'mt2ciw'
+          do iatom=1, natom
+            isort=is(iatom)            
+            do li=1, 2*lmb(isort)+1
+              write(iun,'(2i4,4x,1000i4)') iatom,li,
+     $          (mt2ciw(mm,li,iatom),mm=1,((li+1)/2)*2)
+            enddo
+          enddo
+
+          write(iun,*) 'mt2ciw_rel_l'
+          do iatom=1, natom
+            isort=is(iatom)            
+            do li=1, lmb(isort)+1
+              write(iun,'(2i4,4x,1000i4)') iatom,li,
+     $          (mt2ciw_rel_l(mm,li,iatom),mm=1,4*lmb(isort)+2)
+            enddo
+          enddo          
+          write(iun,*) 'corr_iter_rel'
+          do iatom=1, natom
+            isort=is(iatom)            
+            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
+     $        ((corr_iter_rel(li,iatom),at_bonding_rel(li,iatom)),
+     $        li=1, 2*lmb(isort)+1)
+          enddo
+          write(iun,*) 'corr_iter'
+          do iatom=1, natom
+            isort=is(iatom)            
+            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
+     $        ((corr_iter(ll,iatom),at_bonding(ll,iatom)),
+     $        ll=0, lmb(isort))
+          enddo
+
+        endif
+        write(iun,*) 'natom_ciw', natom_ciw
+        write(iun,*) 'n_ciw_max', n_ciw_max
+        write(iun,*) 'n_ciw_atom'
+        do iatom=1, natom
+          write(iun,'(2i4)') iatom,n_ciw_atom(iatom)
+        enddo        
+        write(iun,*) 'iatom_ciw'
+        do iat=1, natom_ciw
+          write(iun,'(2i4)') iat,iatom_ciw(iat)
+        enddo
+
+c$$$        write(iun,*) 'is_ciw'
+c$$$        do iatom=1, natom
+c$$$          write(iun,'(2i4)') iatom,is_ciw(iatom)
+c$$$        enddo                
+        write(iun,*) 'ciw_ind'
+        do iat=1, natom_ciw
+          write(iun,'(i4,4x,1000i4)') iat,(ciw_ind(ii,iat),
+     $      ii=1, n_ciw_atom(iat))
+        enddo
+
+        write(iun,*) 'at_orb_ciw'
+        do iwan=1,num_orb_proj
+          write(iun,'(3i4)') iwan,
+     $      (at_orb_ciw(ii, iwan), ii=1, 2)
+        enddo
+
+        do iat=1, natom_ciw
+          iatom=iatom_ciw(iat)
+          isort=is(iatom)          
+          
+          do l=0, lmb(isort)
+            
+            if ((corr_iter(l,iatom) .eq. 2)
+     $        .and.
+     $        (at_bonding(l,iatom) .eq. 0)
+     $        ) then
+              
+              if (nrel .eq. 1) then
+                mudim=l+l+1
+                do m1=1, mudim
+                  iorb=find_ind(mt2ciw(m1,l+1,iatom),
+     $              n_ciw_atom(iatom),ciw_ind(1:n_ciw_atom(iatom),iat))
+                  write(iun,'(5i5)') iat, l, m1, mt2ciw(m1,l+1,iatom),
+     $              iorb
+                enddo
+              else
+                mudim=4*l+2                
+                do m1=1, mudim
+                  iorb=find_ind(mt2ciw_rel_l(m1,l+1,iatom),
+     $              n_ciw_atom(iatom),ciw_ind(1:n_ciw_atom(iatom),iat))                  
+                  write(iun,'(5i5)') iat, l, m1,
+     $              mt2ciw_rel_l(m1,l+1,iatom),iorb
+                enddo
+              endif
+            endif
+          enddo
+        enddo
+
+      endif
+      end
+
+
+      subroutine read_wann_inip
+
+
+      use wannier90_mod
+      use parallel_mod      
+      use manager_mod      
+      use solid_mod      
+      use atom_mod      
+      use units_mod   
+
+      implicit none
+      include "mpif.h"      
+      integer :: iwan,iorb,ii,jorb,iatom,lval,mval1
+      double precision :: tempvec1(3),tempvec2(3),mval2,ival
+
+      if (maswrk) then
+
+        
+        if (irel .le. 1) then
+          num_alimj=3
+        else
+          num_alimj=4
+        endif
+
+        open(unit=111, file=adjustl(trim(wanpath))
+     $    //'/'//trim(seed_name)//'.inip') ! initial projector
+        allocate(nalimj(num_wann))
+        do iwan=1, num_wann
+          nalimj(iwan)=1
+        enddo
+        max_nalimj=maxval(nalimj)              
+        allocate(alimj(num_alimj,max_nalimj,num_wann))
+        alimj=0.0d0
+        allocate(alimj_coeff(max_nalimj,num_wann))
+        alimj_coeff=0.0d0
+        allocate(alimj_xaxis(3,max_nalimj,num_wann))
+        alimj_coeff=0.0d0
+        allocate(alimj_zaxis(3,max_nalimj,num_wann))
+        alimj_coeff=0.0d0                        
+
+        do iwan=1, num_wann
+          if (irel .le. 1) then
+            read(111, *) 
+     $        iatom, lval, mval1,
+     $        (alimj_xaxis(ii, 1,iwan), ii=1, 3),
+     $        (alimj_zaxis(ii, 1,iwan), ii=1, 3)
+            alimj(1,1,iwan)=iatom
+            alimj(2,1,iwan)=lval
+            alimj(3,1,iwan)=mval1+lval+1
+          else
+            read(111, *) 
+     $        iatom, lval, ival,mval2,
+     $        (alimj_xaxis(ii, 1,iwan), ii=1, 3),
+     $        (alimj_zaxis(ii, 1,iwan), ii=1, 3)
+            alimj(1,1,iwan)=iatom
+            alimj(2,1,iwan)=lval
+            alimj(3,1,iwan)=nint(ival*2.0d0)
+            alimj(4,1,iwan)=nint(mval2*2.0d0)
+          endif          
+          do iorb=1, nalimj(iwan)
+            alimj_coeff(iorb,iwan)=dcmplx(1.0d0, 0.0d0)
+          enddo
+        enddo
+        close(111)
+
+      endif
+
+      call mpi_bcast(num_alimj,1,mpi_integer,
+     $  0,mpi_comm_world,mpierr)
+
+      if (.not. maswrk) allocate(nalimj(num_wann))      
+      call mpi_bcast(nalimj,num_wann,mpi_integer,
+     $  0,mpi_comm_world,mpierr)
+      
+      if (.not. maswrk) then
+
+        max_nalimj=maxval(nalimj)            
+        allocate(alimj(num_alimj,max_nalimj,num_wann))
+        alimj=0.0d0
+        allocate(alimj_coeff(max_nalimj,num_wann))
+        alimj_coeff=0.0d0
+        allocate(alimj_xaxis(3,max_nalimj,num_wann))
+        alimj_xaxis=0.0d0
+        allocate(alimj_zaxis(3,max_nalimj,num_wann))
+        alimj_zaxis=0.0d0                        
+      endif
+      call mpi_bcast(num_wann,1,mpi_integer,
+     $  0,mpi_comm_world,mpierr)
+      call mpi_bcast(alimj,num_alimj*max_nalimj*num_wann,mpi_integer,
+     $  0,mpi_comm_world,mpierr)
+      call mpi_bcast(alimj_coeff,max_nalimj*num_wann,
+     $  mpi_double_complex,0,mpi_comm_world,mpierr)
+      call mpi_bcast(alimj_xaxis,3*max_nalimj*num_wann,
+     $  mpi_double_precision,0,mpi_comm_world,mpierr)
+      call mpi_bcast(alimj_zaxis,3*max_nalimj*num_wann,
+     $  mpi_double_precision,0,mpi_comm_world,mpierr)
+
+      end

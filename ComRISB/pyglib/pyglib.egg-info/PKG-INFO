@@ -1,0 +1,15 @@
+Metadata-Version: 1.1
+Name: pyglib
+Version: 1.0.0
+Summary: Python Modules for CyGutz package
+Home-page: UNKNOWN
+Author: UNKNOWN
+Author-email: UNKNOWN
+License: OpenBSD
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: Topic :: Software Development :: Build Tools
+Classifier: License :: OSI Approved :: OpenBSD License
+Classifier: Programming Language :: Python :: 2.7

@@ -1,0 +1,71 @@
+TEXT band structure calculation
+CONTROL   iter_dft= 80  iter_hf=  0  iter_gw=  0 iter_qp=  0
+          admix=0.100  adspin=0.600 adm_gw=0.050 acc_it_gw=0.10
+          iexch=005 scal_spin= 1.0000
+          nproc_tau=   1 nproc_k=   16
+          irel=1 clight=274.074e+00 rel_interst=F irel_core=1
+          temperature=    300.00  restart=F
+FILES
+  allfile=mdl.
+SYM symgen=I_R4[0.0,1.0,0.0]_R2[1.0,0.0,0.0]_R3[1.0,-1.0,1.0]_
+STRUCTURE  par=  1.0000000  natom=  2 nsort=  2 istruct= -3
+      is=  1  2
+      b/a= 1.000000  c/a= 1.000000
+      a=   0.0000000000000000  -4.2005777179643129  -4.2005777179643129
+      b=   4.2005777179643129   0.0000000000000000  -4.2005777179643129
+      c=   4.2005777179643129  -4.2005777179643129   0.0000000000000000
+    tau=   0.0000000000000000   0.0000000000000000   0.0000000000000000
+    tau=   0.5000000000000000   0.5000000000000000   0.5000000000000000
+REAL SPACE MESHES mdiv=  14   14   14
+                 nrdiv=  10   10   10
+BASIS  cut_lapw_ratio=0.610 cut_pb_ratio=0.980
+       eps_pb=1.e-03
+ZONES nbndf=   0
+DOS   emindos=-15.000  emaxdos= 15.000   ndos=  800
+      n_cont_frac=  30 e_small=2.e-02
+      dos= T           bandstructure= T
+K_POINT  ndiv=  10  10  10  metal=T n_k_div=  9 k_line=010
+MULTI_SCF vv0=  1.00
+MAGNET  b_extval=   0.000000 iter_h_ext=0000100
+        b_ext=  0.000  0.000  1.000
+TAU MESH n_tau=   62 n_tau_int=  900
+OMEGA MESH n_omega_exa=   29 n_omega_asy=   18 omega_max=  200.00 
+           interp_omega_d= 2
+NU MESH n_nu_exa=   29 n_nu_asy=   18 nu_max=  200.00
+        interp_nu_d= 2
+ATOMIC DATA --------------------------------------------------------
+  txtel=mn    z= 25.0 magn_shift= 0.000
+  smt= 2.32800 h= 0.0120 nrad= 1216 z_dop=0.000
+  lmb= 6  lmpb= 6
+  lim_pb_mt= 30 30 30 30 30 30 30
+  ntle=  4  3  3  1  1  1  1
+  l  augm  atocc   ptnl  corr idmd
+  0   LOC  2.000  3.800     N    0
+  0   APW  2.000  4.800     N    0
+  0   LOC  0.000  5.800     N    1
+  0   LOC  0.000  6.800     N    1
+  1   LOC  6.000  3.800     N    0
+  1   APW  0.000  4.800     N    0
+  1   LOC  0.000  5.800     N    1
+  2   APW  5.000  3.800     N    0
+  2   LOC  0.000  4.800     N    1
+  2   LOC  0.000  5.800     N    1
+  3   APW  0.000  4.800     N    0
+  4   APW  0.000  5.800     N    0
+  5   APW  0.000  6.800     N    0
+  6   APW  0.000  7.800     N    0
+  txtel=o     z=  8.0 magn_shift= 0.000
+  smt= 1.74600 h= 0.0120 nrad= 1216 z_dop=0.000
+  lmb= 4  lmpb= 4
+  lim_pb_mt= 30 30 30 30 30
+  ntle=  3  3  1  1  1
+  l  augm  atocc   ptnl  corr idmd
+  0   APW  2.000  2.800     N    0
+  0   LOC  0.000  3.800     N    1
+  0   LOC  0.000  4.800     N    1
+  1   APW  4.000  2.800     N    0
+  1   LOC  0.000  3.800     N    1
+  1   LOC  0.000  4.800     N    1
+  2   APW  0.000  3.800     N    0
+  3   APW  0.000  4.800     N    0
+  4   APW  0.000  5.800     N    0

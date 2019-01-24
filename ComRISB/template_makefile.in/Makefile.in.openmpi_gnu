@@ -1,0 +1,43 @@
+# (mpi) fortran compiler
+PF90 = mpif90 
+F90 = gfortran 
+F77 = gfortran 
+
+# Compiler options
+FFLAGS =  -O2 -w -fbacktrace -ffree-line-length-0
+
+#FFLAGS = -g -Wall -Wextra -Warray-temporaries -Wconversion \
+	-fimplicit-none -fbacktrace -ffree-line-length-0 \
+	-fcheck=all -ffpe-trap=zero,overflow,underflow -finit-real=nan
+
+FIX_FORM = -ffixed-form
+FREE_FORM = -ffree-form
+
+# Math kernal library, sequential version.
+MKL_LIB = -L/home/ykent/OPT/lib/OpenBLAS-0.2.20/lib/ -lopenblas
+
+# C and Cpp compilers
+CC  = gcc
+C++ = g++
+
+# C compiler options.
+CFLAGS = -O2
+
+# Location of HDF5 binaries (with include/ and lib/ underneath)
+HDF5_BASE = /home/ykent/OPT/lib/hdf5-1.8.15-gnu/
+
+# Usually do NOT need modifications below.
+HDF5_LIB = -L$(HDF5_BASE)/lib/ -lhdf5_fortran -lhdf5
+HDF5_INCLUDE = -I$(HDF5_BASE)/include
+
+# Path to install the executibles.
+DESTDIR = ${WIEN_GUTZ_ROOT2}
+
+# Wien2k path
+WIEN = ${WIENROOT}
+
+# mpi version
+Fmpi_define = -DMPI -Dmpi_mode
+
+# fortran 2008 features
+Fstd_define = -Dflowversion

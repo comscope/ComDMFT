@@ -1,0 +1,125 @@
+#!/bin/csh -f 
+#
+unalias rm
+
+set name     = $0
+set name     = $name:t 		#name of this script-file
+set file     = `pwd`
+set file     = $file:t		#tail of file-names
+set savedir  = "."
+set savefile = ""
+unset force
+unset silent
+
+#---> path- and file-names
+#
+if ($#argv == 0) goto help
+while ($#argv)
+  switch ($1)
+  case -[H|h]
+    goto help
+    breaksw
+  case -[D|d]
+    shift
+    set savedir = $1
+    shift
+    breaksw
+  case -[F|f]
+    set force
+    shift
+    breaksw
+  case -[N|n]
+    shift
+    set file = $1
+    shift
+    breaksw
+  case -[S|s]
+    set silent
+    shift
+    breaksw
+  default: 
+    set savefile = $1
+    shift
+    breaksw
+  endsw
+end
+
+if ( $savedir != "" ) then
+    if !(-d $savedir) then
+	mkdir -p $savedir
+    endif
+endif
+
+if !($?silent) then
+    echo ""
+    echo "Starting save:"
+endif
+
+set listfiles = ($file.struct $file.dayfile $file.clmsum $file.clmup \
+        $file.clmdn $file.dmatup $file.dmatdn $file.dmatud \
+        $file.eeceup $file.eecedn $file.vorbup $file.vorbdn \
+        $file.vrespsum $file.vrespup $file.vrespdn \
+        $file.kgen $file.klist $file.scf $file.scf2 $file.scfm \
+        $file.scf2up $file.scf2dn $file.in* $file.nmat_only \
+        $file.vsp $file.vspup $file.vspdn  $file.r2v $file.r2vdn \
+        ginit.h5 *_INP.h5 GMOTT.h5 GPARAM.h5 GLOG.h5 GUTZ.LOG SAVE* G*CTL)
+
+foreach i ( ${listfiles} )
+    if ($savefile == "") then
+	    set to = $i
+    else
+	    set to = $savefile.$i:e
+    endif
+    if (-e $savedir/$to)  then
+	if !($?force) goto exists
+    endif
+    if !($?silent) echo "   $i -> $savedir/$to"
+    if (! -z $i && -e $i) cp $i $savedir/$to
+end
+
+if (-e $file.broyd1) 	rm $file.broyd*
+ 
+if !($?silent) then
+    echo ""
+    echo 'broyden files deleted, clm*, dmat*, vorb*, vresp*, eece*, scf, struct and input files saved under' $savedir:r
+    echo ""
+endif
+exit(0)
+
+exists:
+cat<<EOF
+$savedir/$to already exists. Quitting save
+
+EOF
+exit(1)
+
+help:
+cat << theend 
+
+PROGRAM:	$0
+
+PURPOSE:	saving (and clearing) an scf calculation of WIEN + Gutzwiller
+		to be called within the case-directory
+		saves the struct clmsum and scf files, deletes broyden files.
+
+		If a save directory or save _all_ input files is specified, 
+		also all input files and klist and kgen files will be
+		saved. Specifying only a save directory without a
+		save_file_name will cause save_lapw to save the
+		abovementioned files under their generic name.
+
+		NOTE: To use restore_lapw you have to utilize the 
+		      new scheme!
+
+USAGE:		$name [FLAGS] [head_of_save_filename]
+
+FLAGS:
+-h           ->	help
+-f           -> force save_lapw to overwrite previous saves
+-n           -> case name
+-d directory -> save calculation in directory specified
+-s           -> silent operation
+theend
+
+exit(1)
+ 

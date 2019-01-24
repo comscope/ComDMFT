@@ -1,0 +1,39 @@
+# (mpi) fortran compiler
+PF90 = mpiifort 
+F90 = ifort 
+F77 = ifort 
+
+# Compiler options
+FFLAGS =  -O2 -mp1 -w -prec_div -pc80 -pad -ip -DINTEL_VML -traceback
+
+#FFLAGS = -check bound -check pointer -check arg_temp_created \
+			-traceback
+
+FIX_FORM = -fixed
+FREE_FORM = -free
+
+# Math kernal library, sequential version.
+MKL_LIB = -mkl=sequential
+
+# C and Cpp compilers
+CC  = icc
+C++ = icpc
+
+# C compiler options.
+CFLAGS = -O2
+
+# Location of HDF5 binaries (with include/ and lib/ underneath)
+HDF5_BASE = /home/ykent/OPT/lib/hdf5-1.8.15-intel/
+
+# Usually do NOT need modifications below.
+HDF5_LIB = -L$(HDF5_BASE)/lib/ -lhdf5_fortran -lhdf5
+HDF5_INCLUDE = -I$(HDF5_BASE)/include
+
+# Path to install the executibles.
+DESTDIR = ${WIEN_GUTZ_ROOT2}
+
+# Wien2k path
+WIEN = ${WIENROOT}
+
+# mpi version
+Fmpi_define = -DMPI -Dmpi_mode
