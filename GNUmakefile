@@ -4,8 +4,10 @@ default: all
 
 ifdef USE_HDF5
 all: com_wannier90 com_comgw com_comlowh com_comdc com_comcoulomb com_comwann com_ctqmc com_evalsim
+comdmft: com_wannier90 com_comgw com_comlowh com_comdc com_comcoulomb com_comwann com_ctqmc com_evalsim
 else
 all: com_wannier90 com_comgw com_comlowh com_comdc com_comcoulomb com_comwann com_ctqmc com_evalsim  com_risb
+comdmft: com_wannier90 com_comgw com_comlowh com_comdc com_comcoulomb com_comwann com_ctqmc com_evalsim
 endif
 
 
@@ -32,7 +34,7 @@ com_risb:
 ifdef USE_HDF5
 clean: clean_wannier90 clean_comgw clean_comlowh clean_comdc clean_comcoulomb clean_comwann clean_ctqmc clean_evalsim clean_Destdir
 else
-clean: clean_wannier90 clean_comgw clean_comlowh clean_comdc clean_comcoulomb clean_comwann clean_ctqmc clean_evalsim clean_comrisb clean_Destdir
+clean: clean_wannier90 clean_comgw clean_comlowh clean_comdc clean_comcoulomb clean_comwann clean_ctqmc clean_evalsim  clean_Destdir clean_comrisb
 endif
 
 
