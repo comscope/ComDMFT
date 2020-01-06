@@ -35,7 +35,7 @@ Comsuite consists of programs, executables, and scripts, written in Fortran90, c
      git clone https://github.com/comscope/comsuite.git
     
 The directory contains the following sub-directories:
--  bin -- executable binaries and scripts
+- bin -- executable binaries and scripts
 - ComLowH -- program to construct low-energy Hamiltonian and tcalculate Delta
 - ComWann -- program to construct Wannier function by using wannier90 package (http://wannier.org/)
 - ComCoulomb -- program to calculate bosonic Weiss field
@@ -46,7 +46,7 @@ The directory contains the following sub-directories:
 - gw -- FlapwMBPT code(https://www.bnl.gov/cmpmsd/flapwmbpt/)
 - wannier90-2.1 -- the most recent version of Wannier90.
 
-##Compile COMSUITE package.
+## Compile COMSUITE package.
 - First, define the installation directory in the shell. For example in bash shell, use the following command adds $COMSUITE_BIN to your system $PATH
 
       export COMSUITE_BIN=install_directory/bin
@@ -107,4 +107,4 @@ The directory contains the following sub-directories:
           make clean
           make
 
-     All executable files then are in bin directory (You do not need to create bin directory by yourself). 
+  All executable files then are in bin directory (You do not need to create bin directory by yourself). 
