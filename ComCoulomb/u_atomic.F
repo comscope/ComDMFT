@@ -28,6 +28,10 @@ C$$$     $  tempmat1(:,:),tempmat2(:,:)
       if(num_orb_proj==0) return
 c     ------- We calculate interactions in 4_function basis now -----
 
+        if (maswrk) then
+          write(iun,*) 'here-1'
+        endif
+      
       do ind_k=1,ndim3_k(me3_k+1)
         k=n3_mpi_k(me3_k+1)+ind_k
         allocate(v_tmp(nvopt(k),nvopt(k)))
@@ -48,9 +52,16 @@ c     ------- We calculate interactions in 4_function basis now -----
         deallocate(tempmat2)
         
       enddo
+      if (maswrk) then
+          write(iun,*) 'here-2'
+        endif
       call mpi_allreduce_dcmplx(v_loc,
      $  num_orb_proj**4*nspin**2,mpi_sum,comm_tau)      
 
+      if (maswrk) then
+        write(iun,*) 'here-3'
+      endif
+      
       call mpi_allreduce_dcmplx(w_loc,
      $  num_orb_proj**4*nspin**2*ndim3_nu,mpi_sum,comm_tau)
 c$$$      call mpi_allreduce_dcmplx(epsinv_loc,
@@ -60,7 +71,11 @@ c$$$     $  num_orb_proj**4*nspin**2*ndim3_nu,mpi_sum,comm_tau)
 c$$$      call mpi_allreduce_dcmplx(chi0_loc,
 c$$$     $  num_orb_proj**4*nspin**2*ndim3_nu,mpi_sum,comm_tau)
 c$$$      call mpi_allreduce_dcmplx(chi_loc,
-c$$$     $  num_orb_proj**4*nspin**2*ndim3_nu,mpi_sum,comm_tau)
+c$$$  $  num_orb_proj**4*nspin**2*ndim3_nu,mpi_sum,comm_tau)
+
+      if (maswrk) then
+        write(iun,*) 'here-4'
+      endif      
       if (pol_iter_for_u .gt. 0) then
 c$$$        call mpi_allreduce_dcmplx(chi0_low_loc,
 c$$$     $    num_orb_proj**4*nspin**2*ndim3_nu,mpi_sum,comm_tau)      
@@ -74,15 +89,26 @@ c$$$        call mpi_allreduce_dcmplx(chi0_high_loc,
 c$$$     $    num_orb_proj**4*nspin**2*ndim3_nu,mpi_sum,comm_tau)
 c$$$        call mpi_allreduce_dcmplx(chi_high_loc,
 c$$$     $    num_orb_proj**4*nspin**2*ndim3_nu,mpi_sum,comm_tau)
-c$$$      elseif (u_mode .eq. 'edmf') then
-c$$$        call mpi_allreduce_dcmplx(w_wpb_local,
-c$$$     $    nwpb_max**2*natom_ciw**2*ndim3_nu,mpi_sum,comm_tau)        
+      elseif (u_mode .eq. 'edmf') then
+        call mpi_allreduce_dcmplx(w_wpb_local,
+     $    nwpb_max**2*natom_ciw**2*ndim3_nu,mpi_sum,comm_tau)
+
+      if (maswrk) then
+        write(iun,*) 'here-6'
+      endif        
       endif
-c$$$
-c$$$      if (u_mode .eq. 'edmf') then
-c$$$        call chi0_projection      
-c$$$        call u_weiss
-c$$$      endif        
+
+      if (maswrk) then
+        write(iun,*) 'here-7'
+      endif      
+c$$$  
+      if (u_mode .eq. 'edmf') then
+c$$$  call chi0_projection
+        if (maswrk) then
+          write(iun,*) 'here1'
+        endif
+        call u_weiss
+      endif        
 c$$$
 c$$$      call boson_rr_dens_nu(w_k_den,'w',rydberg)
 c$$$      call boson_rr_dens_nu(epsinv_k_den,'epsinv',1.0d0)
@@ -109,6 +135,7 @@ c$$$     $  rydberg)
 
       if(irel<=1) then
         call v_slater_l
+        call v_tensor_l
         call boson_slater_l(w_loc,'w',rydberg)
 c$$$        call boson_slater_l(epsinv_loc,'epsinv',1.0d0)
 c$$$        call boson_slater_l(eps_loc,'eps',1.0d0)
@@ -125,6 +152,7 @@ c$$$          call boson_slater_l(chi_high_loc,'chi_high',1.0d0/rydberg)
 
       elseif(irel.eq.2) then
         call v_slater_rel_l
+        call v_tensor_rel_l        
         call boson_slater_rel_l(w_loc,'w',rydberg)
 c$$$        call boson_slater_rel_l(epsinv_loc,'epsinv',1.0d0)
 c$$$        call boson_slater_rel_l(eps_loc,'eps',1.0d0)
@@ -231,11 +259,11 @@ c        write(179, *) 'error in zgetri', info
 
               if (maswrk) then
                 do ik=1, nqdiv
-                  write(991,'(4i5,10000(2f12.6,4x))'),
+                  write(991,'(4i5,10000(2f12.6,4x))')
      $              iorb,ispin,jorb,jspin,
      $              ((tmp(ik,i_nu))*fac, i_nu=0, n_nu)
                 enddo
-                write(992,'(4i5,10000(2f12.6,4x))'),
+                write(992,'(4i5,10000(2f12.6,4x))')
      $            iorb,ispin,jorb,jspin,
      $            ((tmp(1,i_nu))*fac, i_nu=0, n_nu)
               endif              
@@ -252,7 +280,6 @@ c        write(179, *) 'error in zgetri', info
       end
 
 
-      
 
 
       subroutine boson_rr_dens_tau(k_den, tempchar,fac)
@@ -320,11 +347,11 @@ c        write(179, *) 'error in zgetri', info
 
               if (maswrk) then
                 do ik=1, nqdiv
-                  write(991,'(4i5,10000(2f12.6,4x))'),
+                  write(991,'(4i5,10000(2f12.6,4x))')
      $              iorb,ispin,jorb,jspin,
      $              ((tmp(ik,i_tau))*fac/2.0d0, i_tau=0, n_tau/2)
                 enddo
-                write(992,'(4i5,10000(2f12.6,4x))'),
+                write(992,'(4i5,10000(2f12.6,4x))')
      $            iorb,ispin,jorb,jspin,
      $            ((tmp(1,i_tau))*fac/2.0d0, i_tau=0, n_tau/2)
               endif              

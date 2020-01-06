@@ -228,7 +228,92 @@
         enddo     
       enddo       
       deallocate(ff)
-      end      
+      end
+
+
+
+      subroutine v_tensor_l
+      use atom_mod
+      use manager_mod
+      use parallel_mod
+      use solid_mod
+      use units_mod
+      use wannier90_mod
+      implicit none
+      include "mpif.h"
+      
+      integer :: isort,l,ij,kl,i_len,iatom_c,iatom,nf,ispin,jspin,lm1,
+     &  lm2,lm3,lm4,km1,km2,km3,km4,ll,ig,lm_min,ll0,llm,ii,
+     &  iii,indx,icg1,icg2,jcg1,jcg2,icg,jjcg,lmi,lmj,
+     &  li,mudim,lf,ie,m4,m3,m2,m1,iat,
+     $  i1,i2,i3,i4,kk,kk0,i1mi2,i3mi4
+      
+      double precision :: c,cc
+      character(len=5) :: lchar,catom
+      
+      
+      i_len=len_trim(allfile)
+      
+      
+      do iat=1,natom_ciw
+        iatom=iatom_ciw(iat)
+        isort=is(iatom)
+        if (iatom .lt. 10)then
+          write(catom,'(i1)') iatom
+        elseif (iatom .lt. 10)then
+          write(catom,'(i2)') iatom
+        elseif (iatom .lt. 100)then
+          write(catom,'(i3)') iatom
+        endif
+        
+        do li=1, nrel*lmb(isort)+1
+          l=li-1
+          mudim=l+l+1
+          write(lchar,'(i2)') l
+          if ((corr_iter(l,iatom) .eq. 2)
+     $      .and.
+     $      (at_bonding(l,iatom) .eq. 0)
+     $      ) then
+            if(maswrk) then
+              open(3,file=allfile(1:i_len)
+     $          //'_v_tensor_'
+     $          //trim(adjustl(catom))
+     $          //'_'//trim(adjustl(lchar))//'.dat')
+              write(3,'(a)')
+     $          '# v_tensor'
+            endif
+            
+            do jspin=1,nspin
+              do ispin=1,nspin
+                
+                do m4=1,mudim
+                  km4=mt2ciw(m4,li,iatom)
+                  
+                  do m3=1,mudim
+                    km3=mt2ciw(m3,li,iatom)
+                    
+                    do m2=1,mudim
+                      km2=mt2ciw(m2,li,iatom)
+                      
+                      do m1=1,mudim
+                        km1=mt2ciw(m1,li,iatom)
+                        if(maswrk) then                        
+                          write(3,'(6i5,2x,2(e22.15,2x))')
+     $                      m1,m2,m3,m4,ispin,jspin,
+     $                      v_loc(km1,km2,km3,km4,
+     $                      ispin,jspin)*rydberg
+                        endif
+                      enddo
+                    enddo
+                  enddo
+                enddo
+              enddo     
+            enddo
+            if(maswrk) close(3)            
+          endif
+        enddo
+      enddo
+      end            
 
 
 

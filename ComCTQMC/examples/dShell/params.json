@@ -1,0 +1,77 @@
+{
+    "basis" : {
+        "orbitals" : "d",
+        "type" : "product real"
+    },
+
+    "hloc" : {
+        "one body" : [
+            [0.02, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, -0.55, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, -0.6, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0.02, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, -0.55, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, -0.6]],
+
+        "two body" : {
+            "parametrisation" : "slater-condon",
+            "F0": 15.0,
+            "F2": 5.169230769230769,
+            "F4": 3.230769230769231,
+            "approximation": "none"
+        }
+    },
+
+    "dyn" : "dyn.json",
+
+    "hybridisation" : {
+        "matrix" : [
+            [ "xy", "", "", "", "", "", "", "", "", ""],
+            [ "", "yz", "", "", "", "", "", "", "", ""],
+            [ "", "", "3z2r2", "", "", "", "", "", "", ""],
+            [ "", "", "", "zx", "", "", "", "", "", ""],
+            [ "", "", "", "", "x2y2", "", "", "", "", ""], 
+            [ "", "", "", "", "", "xy", "", "", "", ""],
+            [ "", "", "", "", "", "", "yz", "", "", ""],
+            [ "", "", "", "", "", "", "", "3z2r2", "", ""],
+            [ "", "", "", "", "", "", "", "", "zx", ""],
+            [ "", "", "", "", "", "", "", "", "", "x2y2"]], 
+
+        "functions" : "hyb.json"
+    },
+
+    "quantum numbers" : {
+        "Sz" : {},
+        "N" : {}
+    },
+
+    "observables" : {
+        "S2" : {}
+    },
+
+    
+    "beta" : 50,
+    "mu" : 27.15110125913311,
+   
+    "thermalisation time" : 15,
+    "measurement time" : 60,
+   
+    "green basis" : "matsubara", 
+    "green matsubara cutoff" : 50,
+    "green bulla" : true,
+
+    "quantum number susceptibility" : true,
+    "occupation susceptibility direct" : true,
+    "occupation susceptibility bulla" : true,
+    
+    "susceptibility cutoff" : 50,
+    "susceptibility tail" : 200,
+
+    "density matrix precise" : true,
+
+    "probabilities" : ["N", "energy", "S2", "Sz"]
+}

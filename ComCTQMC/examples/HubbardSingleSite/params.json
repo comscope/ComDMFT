@@ -1,0 +1,45 @@
+{
+    "beta": 50.0,
+    "mu": -1, 
+  
+    "hybridisation": {
+        "functions": "hyb.json", 
+        "matrix": [
+            [ "A",  "" ], 
+            [  "", "A" ]
+        ]
+    }, 
+
+    "hloc": {
+        "one body": [
+            [ 0.0, 0.0 ], 
+            [ 0.0, 0.0 ]
+        ],  
+        "two body": [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ]
+    },
+
+    "observables" : {
+    },
+
+    "quantum numbers": {
+        "Sz": [ -0.5, 0.5 ]
+    },
+
+    "dyn" : "dyn.json",
+
+    "thermalisation time" : 10,
+    "measurement time" : 20,
+   
+    "green bulla" : true,
+    "green basis" : "legendre",
+    "green legendre cutoff" : 100,
+    "green matsubara cutoff" : 20,
+
+    "quantum number susceptibility" : true,
+    "occupation susceptibility bulla" : true,    
+
+    "density matrix precise" : true,
+
+    "susceptibility cutoff" : 50,
+    "susceptibility tail" : 200
+}

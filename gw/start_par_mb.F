@@ -70,7 +70,14 @@ c        We are good so nothing else to do here.
                write(iun,'(i9,"  ",i7)')itau,ik
              enddo
            endif
-           nproc_tau = tau_list((1+nsol)/2)
+!
+!          All functionality benefits from k-point parallelism
+!          so distribute the k-points over as many processors
+!          as possible. Conversely that means selecting the lowest
+!          number of processors for the tau dimension of the 
+!          processor grid.
+!
+           nproc_tau = tau_list(1)
            nproc_k   = nproc/nproc_tau
            if(me==0) write(iun,*)' using NPROC_TAU, NPROC_K: ',
      &                           nproc_tau,nproc_k

@@ -44,6 +44,16 @@
           call scgr(icg,ikey)
         enddo
       endif
+c$$$c
+c$$$c     In write_wan_bni the code stores size(cgr), size(jcgr)
+c$$$c     and size(indxcgr) in "info.rst". However, if an array is not
+c$$$c     allocated the size of this arrays is undefined in the
+c$$$c     Fortran standard upto at least Fortran 2008.
+c$$$c
+c$$$      if (.not.allocated(cgr)) allocate(cgr(1))
+c$$$      if (.not.allocated(jcgr)) allocate(jcgr(1))
+c$$$      if (.not.allocated(indxcgr)) allocate(indxcgr(1,1,1,1))
+c$$$c
       allocate(pcor(maxmtcor))
       pcor=0.d0
       allocate(pcor_old(maxmtcor))

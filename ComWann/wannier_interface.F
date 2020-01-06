@@ -11,7 +11,7 @@
      $  indloc1(1),indloc2(1),indloc3(1),indloc4(1),indloc5(1),
      $  indtmp,j,m,tempintarr(3),
      $  jwan,ndiv_fi(3),
-     $  me1
+     $  me1,i_len,isort,mt0,ir,iatom
 !     $  wanntot
 !     $  ndim,nb,
 !     $  jbnd1,jbnd2,kvec(3),
@@ -99,6 +99,13 @@ c     $    'the case of magn==2'
         endif
         
         num_nnmax=12
+
+        sort_degen=0
+        do iatom=1, natom
+          isort=is(iatom)
+          sort_degen(isort)=sort_degen(isort)+1
+        enddo
+        
 
         
         allocate(proj_site(3,nbndf))
@@ -195,14 +202,38 @@ c     $    'the case of magn==2'
      $      (z_wan_bnd,nfun*num_bands*npnt,mpi_sum,mpi_comm_world)
           call mpi_allreduce_dcmplx
      $      (ev_wan_bnd,nbasmpw*num_bands*npnt,mpi_sum,mpi_comm_world)
-        endif        
+        endif
+
+c$$$        if (me .eq. 0) then
+c$$$          i_len=len_trim(allfile)          
+c$$$          open(3,file=allfile(1:i_len)//'_v_mt_h_'
+c$$$     $      //trim(ubi_0)//'_1.txt')
+c$$$          do isort=1,nsort
+c$$$            mt0=indmt(1,isort,1)          
+c$$$            write(3,'(i5, 10000(f20.12,2x))'), isort,
+c$$$     $        (v_mt_h(mt0+ir), ir=0, nrad(isort))
+c$$$          enddo
+c$$$          close(3)
+c$$$c$$$  elseif (me .eq. 5) then
+c$$$c$$$  open(3,file=allfile(1:i_len)//'_v_mt_h_'
+c$$$c$$$  $    //trim(ubi_0)//'_2.txt')
+c$$$c$$$  do isort=1,nsort
+c$$$c$$$  mt0=indmt(1,isort,1)          
+c$$$c$$$  write(3,'(i5, 10000(f20.12,2x))'), isort,
+c$$$c$$$  $      (v_mt_h(mt0+ir), ir=0, nrad(isort))
+c$$$c$$$  enddo
+c$$$c$$$  close(3)
+c$$$        endif      
+        
 
         call count_nbnd_in_froz_win        
 
         call wannier_orbital(ispin)        
 
-
         call read_wann_inip
+
+        call reset_dis_froz_max
+        
         call write_wannier_win(ispin)
 
         if (maswrk) then
@@ -299,7 +330,6 @@ c          write(179,*) 'num_bands should be even number if irel .eq. 2'
             exclude_bands_table(indexb)=1
           endif
         enddo
-        
 
         
         if (nbndf  .eq. nexband+num_bands) then
@@ -319,22 +349,20 @@ c          write(179,*) 'num_bands should be even number if irel .eq. 2'
           enddo
         endif
 
-        
-
 
         if (maswrk) then
           write(iun,*) "nntot",nntot
-          write(iun,*) "kvec and bvec in gbas"
-          do ind=1, nqdiv
-            do iq0=1, nntot
-              bvec=
-     $          kpt_latt(:,nnlist(ind,iq0))+nncell(:,ind,iq0)
-     $          -kpt_latt(:,ind)
-              write(iun,'(6f12.6)') kpt_latt(:,ind), bvec
-            enddo
-          enddo
-          write(iun,*) "num_bands",num_bands
-          write(iun,*) "num_wann",num_wann
+c$$$          write(iun,*) "kvec and bvec in gbas"
+c$$$          do ind=1, nqdiv
+c$$$            do iq0=1, nntot
+c$$$              bvec=
+c$$$     $          kpt_latt(:,nnlist(ind,iq0))+nncell(:,ind,iq0)
+c$$$     $          -kpt_latt(:,ind)
+c$$$              write(iun,'(6f12.6)') kpt_latt(:,ind), bvec
+c$$$            enddo
+c$$$          enddo
+c$$$          write(iun,*) "num_bands",num_bands
+c$$$          write(iun,*) "num_wann",num_wann
         endif
 
 
@@ -352,8 +380,8 @@ c          write(179,*) 'num_bands should be even number if irel .eq. 2'
         if (maswrk) then
            write(iun,*) 'num_wann', num_wann
            write(iun,*) 'num_bands', num_bands
-           write(iun,*) 'eigenvalues', eigenvalues
-          call wannier_run(trim(seed_name),ndiv,nqdiv,
+c$$$           write(iun,*) 'eigenvalues', eigenvalues
+           call wannier_run(trim(seed_name),ndiv,nqdiv,
      $      transpose(rbas)*par*bohr,transpose(gbas)*2.0d0*pi/par/bohr,
      $      kpt_latt,num_bands,num_wann,nntot,natom,atom_symbols,
      $      tau*par*bohr,gamma_only,M_matrix,A_Matrix,eigenvalues,
@@ -600,6 +628,7 @@ c$$$          enddo
 c$$$        endif
                   
 
+        call cal_occ_weight        
 
         deallocate(ndegen)
         deallocate(irvec)

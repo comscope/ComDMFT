@@ -174,16 +174,19 @@ c
         if (h5err.ne.0) then
           write(*,*)'ERROR: create_dcmplx_type: h5tcreate_f failed'
         endif
-        call h5tinsert_f(H5T_NATIVE_DCMPLX,"real",offset,
+        ! Name real part 'r' in accordance with the HDF5 Python bindings
+        call h5tinsert_f(H5T_NATIVE_DCMPLX,"r",offset,
      &                   h5kind_to_type(size8,H5_REAL_KIND),h5err)
         if (h5err.ne.0) then
-          write(*,*)'ERROR: create_dcmplx_type: h5tinsert_f real failed'
+          write(*,*)'ERROR: create_dcmplx_type: h5tinsert_f r failed'
         endif
         offset = offset + size8
-        call h5tinsert_f(H5T_NATIVE_DCMPLX,"imag",offset,
+        ! Name imaginary part 'i' in accordance with the HDF5
+        ! Python bindings
+        call h5tinsert_f(H5T_NATIVE_DCMPLX,"i",offset,
      &                   h5kind_to_type(size8,h5_real_kind),h5err)
         if (h5err.ne.0) then
-          write(*,*)'ERROR: create_dcmplx_type: h5tinsert_f imag failed'
+          write(*,*)'ERROR: create_dcmplx_type: h5tinsert_f i failed'
         endif
         end subroutine create_dcmplx_type
 c

@@ -1,9 +1,11 @@
 include ../arch.mk
+# compfl = -debug -g -CB -check bounds -traceback -check uninit -fp-model precise
+# compfl = -O3
 #i&&&&&&&&&&&&&&&&&&&&&&&&&&&&        UNIX MPICH MPI       &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 comp = $(PF90) $(FPPFLAGS) -DMPI -c $(compfl)
 link = $(PF90)  $(compfl)
-LIB = -i-static $(LAPACK_LIB) 
+LIB =  $(LAPACK_LIB) 
 
 PROG = rspflapw.exe
 
@@ -629,8 +631,8 @@ mod_files = \
  units_mod.mod
 
 ifdef USE_HDF5
-  o_files += write_wan_bni_hdf5.F
-  o_files += write_gwl_bni_hdf5.F
+  o_files += write_wan_bni_hdf5.o
+  o_files += write_gwl_bni_hdf5.o
   o_files += hdf5io_mod.o
   mod_files += hdf5io_mod.mod
 endif
@@ -648,7 +650,6 @@ clean:
 $(PROG) : $(mod_files) $(o_files)
 	$(link) $(o_files) -o $(PROG) $(LIB)
 	cp $(PROG) ../bin
-
 .o.mod:
 	echo $<
 

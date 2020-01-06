@@ -15,231 +15,193 @@
 
 namespace jsx {
     
-    struct TypeId {        // Saw this way of dynamic type checking somewhere on internet ... but can't find where anymore ... very nice solution !!
-        using FuncPtr = TypeId(*)();
-        
-        TypeId() = delete;
-        TypeId(FuncPtr ptr) : ptr_(ptr) {};
-    private:
-        FuncPtr ptr_;
-        
-        friend bool operator!=(TypeId const&, TypeId const&);
-    };
-    
-    inline bool operator!=(TypeId const& lhs, TypeId const& rhs) {
-        return lhs.ptr_ != rhs.ptr_;
-    }
-    
-    template<typename T> TypeId get_type_id() { return &get_type_id<T>;};
-    
     struct value;
     
-    struct x_base {
+    struct TypeId {        // Saw this way of dynamic type checking somewhere on internet ... but can't find where anymore ... very nice solution !!
+        using FuncPtr = TypeId(*)();
+        TypeId(FuncPtr val) : val_(val) {};
+    private:
+        FuncPtr val_;
+        friend value;
+    };
+
+    template<typename T> TypeId get_type_id() { return &get_type_id<T>;};
+
+    
+    template<typename T> struct Trait {
+        enum : bool { is_json = false };
+        static std::string name(T const& t = T()) { return T::name();};
+        static void write(T const& t, value& dest) { t.write(dest);};
+    };
+
+    struct empty_t {};                              inline std::string json_name(empty_t const&)   { return "jsx::empty_t";};
+    struct null_t {};                               inline std::string json_name(null_t const&)    { return "jsx::null_t";};
+    typedef bool boolean_t;                         inline std::string json_name(boolean_t const&) { return "jsx::boolean_t";};
+    typedef std::int64_t int64_t;                   inline std::string json_name(int64_t const&)   { return "jsx::int64_t";};
+    typedef double real64_t;                        inline std::string json_name(real64_t const&)  { return "jsx::real64_t";};
+    typedef std::string string_t;                   inline std::string json_name(string_t const&)  { return "jsx::string_t";};
+    typedef std::vector<value> array_t;             inline std::string json_name(array_t const&)   { return "jsx::array_t";};
+    typedef std::map<std::string, value> object_t;  inline std::string json_name(object_t const&)  { return "jsx::object_t";};
+    
+    template<typename T> struct IsJsonTrait {
+        enum : bool { is_json = true };
+        static std::string name(T const& t = T()) { return json_name(t);};
+        static void write(T const& t, value& dest) { throw std::runtime_error("jsx: writing json type is invalid"); };
+    };
+    
+    template<> struct Trait<empty_t>   : IsJsonTrait<empty_t>   {};
+    template<> struct Trait<null_t>    : IsJsonTrait<null_t>    {};
+    template<> struct Trait<boolean_t> : IsJsonTrait<boolean_t> {};
+    template<> struct Trait<int64_t>   : IsJsonTrait<int64_t>   {};
+    template<> struct Trait<real64_t>  : IsJsonTrait<real64_t>  {};
+    template<> struct Trait<string_t>  : IsJsonTrait<string_t>  {};
+    template<> struct Trait<array_t>   : IsJsonTrait<array_t>   {};
+    template<> struct Trait<object_t>  : IsJsonTrait<object_t>  {};
+    
+
+    struct Any {
+        virtual std::string name() const = 0;
+        virtual bool is_json() const = 0;
         virtual void write(value&) const = 0;
-        virtual x_base* copy() const = 0;
+        virtual Any* clone() const = 0;
         virtual TypeId type_id() const = 0;
         virtual void* ptr() = 0;
-        virtual ~x_base() {};
+        virtual ~Any() = default;
     };
     
     template<typename T>
-    struct x_type : x_base {
-        x_type() {};
-        x_type(T const& t) : t_(t) {};
-        x_type(T&& t) : t_(std::move(t)) {};
-        void write(value& arg) const { t_.write(arg);};
-        x_base* copy() const { return new x_type(t_);};
+    struct AnyImpl : Any {
+        AnyImpl(T const& t) : t_(t) {};
+        AnyImpl(T&& t) : t_(std::move(t)) {};
+        std::string name() const { return Trait<T>::name(t_);};
+        bool is_json() const { return Trait<T>::is_json;};
+        void write(value& dest) const { Trait<T>::write(t_, dest);};
+        Any* clone() const { return new AnyImpl(t_);};
         TypeId type_id() const { return get_type_id<T>();};
         void* ptr() { return &t_;};
     private:
         T t_;
     };
-    
-    struct null {};
-    typedef std::vector<value> array;
-    typedef std::map<std::string, value> object;
-    
-    enum class type : uint8_t { empty, null, boolean, int64, real64, string, array, object, x };
-    
-    char const * const type_names[] = { "empty", "null", "boolean", "int64", "real64", "string", "array", "object", "x" };
-    
-    struct value {
-        value() : type_(::jsx::type::empty) {};
-        value(value const& arg) : type_(arg.type_) { copy(arg);};
-        value(value&& arg) noexcept : type_(arg.type_), data_(arg.data_) { arg.type_ = ::jsx::type::empty;};
-        value& operator=(value const& arg) { clear(); type_ = arg.type_; copy(arg); return *this;};
-        value& operator=(value&& arg) noexcept { clear(); type_ = arg.type_; data_ = arg.data_; arg.type_ = ::jsx::type::empty; return *this;};
-        
-        /*explicit*/ value(::jsx::null const& arg) : type_(::jsx::type::null) {};
-        /*explicit*/ value(bool const& arg) : type_(::jsx::type::boolean) { data_.boolean = arg;};
-        /*explicit*/ value(std::int64_t const& arg) : type_(::jsx::type::int64) { data_.int64   = arg;};
-        /*explicit*/ value(double const& arg) : type_(::jsx::type::real64) { data_.real64  = arg;};
-        /*explicit*/ value(std::string const& arg) : type_(::jsx::type::string) { data_.string  = new std::string(arg);};
-        /*explicit*/ value(::jsx::array const& arg) : type_(::jsx::type::array) { data_.array   = new ::jsx::array(arg);};
-        /*explicit*/ value(::jsx::object const& arg) : type_(::jsx::type::object) { data_.object  = new ::jsx::object(arg);};
-        
-        /*explicit*/ value(std::string&& arg) : type_(::jsx::type::string) { data_.string  = new std::string(std::move(arg));};
-        /*explicit*/ value(::jsx::array&& arg) : type_(::jsx::type::array) { data_.array   = new ::jsx::array(std::move(arg));};
-        /*explicit*/ value(::jsx::object&& arg) : type_(::jsx::type::object) { data_.object  = new ::jsx::object(std::move(arg));};
-        
-        template <typename T, void(std::decay<T>::type::*)(value&) const = &std::decay<T>::type::write>
-        /*explicit*/ value(T&& arg) : type_(::jsx::type::x) { data_.x = new x_type<typename std::decay<T>::type>(std::forward<T>(arg));}
-        
-        value& operator=(::jsx::null const& arg) { clear(); type_ = ::jsx::type::null; return *this;};
-        value& operator=(bool const& arg) { clear(); type_ = ::jsx::type::boolean; data_.boolean = arg; return *this;};
-        value& operator=(std::int64_t const& arg) { clear(); type_ = ::jsx::type::int64; data_.int64 = arg; return *this;};
-        value& operator=(double const& arg) { clear(); type_ = ::jsx::type::real64; data_.real64 = arg; return *this;};
-        value& operator=(std::string const& arg) { clear(); type_ = ::jsx::type::string; data_.string = new std::string(arg); return *this;};
-        value& operator=(::jsx::array const& arg) { clear(); type_ = ::jsx::type::array; data_.array = new ::jsx::array(arg); return *this;};
-        value& operator=(::jsx::object const& arg) { clear(); type_ = ::jsx::type::object; data_.object = new ::jsx::object(arg); return *this;};
-        
-        value& operator=(std::string&& arg) { clear(); type_ = ::jsx::type::string; data_.string = new std::string(std::move(arg)); return *this;};
-        value& operator=(::jsx::array&& arg) { clear(); type_ = ::jsx::type::array; data_.array = new ::jsx::array(std::move(arg)); return *this;};
-        value& operator=(::jsx::object&& arg) { clear(); type_ = ::jsx::type::object; data_.object = new ::jsx::object(std::move(arg)); return *this;};
-        
-        template <typename T, void(std::decay<T>::type::*)(value&) const = &std::decay<T>::type::write>
-        value& operator=(T&& arg) { clear(); type_ = ::jsx::type::x; data_.x = new x_type<typename std::decay<T>::type>(std::forward<T>(arg)); return *this;}
 
-        //provisorisch ?
-        template<typename InputIt>
-        value(InputIt begin, InputIt end) : type_(::jsx::type::array) {
-            data_.array = new ::jsx::array(end - begin);
+    struct value {
+        value() : data_(new AnyImpl<empty_t>(empty_t())) {};
+        value(value const& arg) : data_(arg.data_->clone()) {};
+        value(value&& arg) noexcept : data_(arg.data_) { arg.data_ = new AnyImpl<empty_t>(empty_t());};
+        value& operator=(value const& arg) { delete data_; data_ = arg.data_->clone(); return *this;};
+        value& operator=(value&& arg) noexcept { delete data_; data_ = arg.data_; arg.data_ = new AnyImpl<empty_t>(empty_t()); return *this;};
+        ~value() { delete data_;};
+        
+        template<typename T, typename std::enable_if<!std::is_same<typename std::decay<T>::type, value>::value, int>::type = 0>
+        value(T&& arg) : data_(new AnyImpl<typename std::decay<T>::type>(std::forward<T>(arg))) {
+        }
+        template<typename T, typename std::enable_if<!std::is_same<typename std::decay<T>::type, value>::value, int>::type = 0>
+        value& operator=(T&& arg) {
+            delete data_; data_ = new AnyImpl<typename std::decay<T>::type>(std::forward<T>(arg)); return *this;
+        }
+        
+        template<typename InputIt> //provisorisch ?
+        value(InputIt begin, InputIt end) : data_(new AnyImpl<array_t>(array_t(end - begin))) {
             InputIt source = begin; auto dest = array().begin();
             while(source != end) *dest++ = *source++;
         }
-        
-        ::jsx::type type() const { return type_;};
-        
-        bool boolean() const { assert_type(::jsx::type::boolean); return data_.boolean;};
-        std::int64_t int64() const {
-            if(type_ == ::jsx::type::real64 && static_cast<double>(static_cast<std::int64_t>(data_.real64)) == data_.real64) return data_.real64;
-            assert_type(::jsx::type::int64); return data_.int64;
-        };
-        double real64() const {
-            if(type_ == ::jsx::type::int64 && static_cast<std::int64_t>(static_cast<double>(data_.int64)) == data_.int64) return data_.int64;
-            assert_type(::jsx::type::real64); return data_.real64;
-        };
-        std::string& string() { assert_type(::jsx::type::string); return *data_.string;};
-        std::string const& string() const { assert_type(::jsx::type::string); return *data_.string;};
-        ::jsx::array& array() { assert_type(::jsx::type::array); return *data_.array;};
-        ::jsx::array const& array() const { assert_type(::jsx::type::array);  return *data_.array;};
-        ::jsx::object& object() { assert_type(::jsx::type::object); return *data_.object;};
-        ::jsx::object const& object() const { assert_type(::jsx::type::object); return *data_.object;};
-        
-        template <typename T, void(T::*)(value&) const = &T::write>   //google SFINAE if this looks strange to you
-        T& at() {
-            assert_type(::jsx::type::x);
-            if(data_.x->type_id() != get_type_id<T>()) throw std::runtime_error("jsx: wrong x type");
-            return *static_cast<T*>(data_.x->ptr());
-        }
-        
-        template <typename T, void(T::*)(value&) const = &T::write>
-        T const& at() const {
-            assert_type(::jsx::type::x);
-            if(data_.x->type_id() != get_type_id<T>()) throw std::runtime_error("jsx: wrong x type");
-            return *static_cast<T const*>(data_.x->ptr());
-        }
-        
-        void reset() { clear(); type_ = ::jsx::type::empty;}
-        
-        //eleganz vo arsch vo chamel aber praktisch
-        std::size_t size() const {
-            if(type_ == ::jsx::type::array) return array().size();
-            if(type_ == ::jsx::type::object) return object().size();
 
-            throw std::runtime_error("jsx: invalid type for size request.");
+        template<typename T>
+        bool is() const {
+            return data_->type_id().val_ == get_type_id<T>().val_;
         }
+        
+        template<typename T> T& at() { return at_impl<T>();}
+        template<typename T> T const& at() const { return at_impl<T>();}
+        
+        boolean_t& boolean() { return at<boolean_t>();};
+        boolean_t const& boolean() const { return at<boolean_t>();};
+        string_t& string() { return at<string_t>();};
+        string_t const& string() const { return at<string_t>();};
+        array_t& array() { return at<array_t>();};
+        array_t const& array() const { return at<array_t>();};
+        object_t& object() { return at<object_t>();};
+        object_t const& object() const { return at<object_t>();};
+        
+        int64_t int64() const {
+            if(is<real64_t>() && static_cast<real64_t>(static_cast<int64_t>(unsafe_at_impl<real64_t>())) == unsafe_at_impl<real64_t>()) return unsafe_at_impl<real64_t>();
+            return at<int64_t>();
+        };
+        real64_t real64() const {
+            if(is<int64_t>() && static_cast<int64_t>(static_cast<real64_t>(unsafe_at_impl<int64_t>())) == unsafe_at_impl<int64_t>()) return unsafe_at_impl<int64_t>();
+            return at<real64_t>();
+        };
+        
+        std::size_t size() const { //eleganz vo arsch vo chamel aber praktisch
+            if(is<array_t>()) return array().size();
+            if(is<object_t>()) return object().size();
+
+            throw std::runtime_error("jsx::value: found " + data_->name() + " type instead of jsx::array_t or jsx::object_ type for size request.");
+        };
         value& operator[](std::size_t index) {
             return array()[index];
         };
         value& operator()(std::size_t index) {
-            if(!(index < array().size())) throw std::runtime_error("jsx: invalid array index.");
-            return array().at(index);
+            if(!(index < array().size())) throw std::runtime_error("jsx::value: invalid array index.");
+            return array()[index];
         };
         value const& operator()(std::size_t index) const {
-            if(!(index < array().size())) throw std::runtime_error("jsx: invalid array index.");
-            return array().at(index);
+            if(!(index < array().size())) throw std::runtime_error("jsx::value: invalid array index.");
+            return array()[index];
         };
         
         std::size_t is(std::string const& key) const {
-            assert_type(::jsx::type::object); return object().count(key);
+            return object().count(key);
         };
         value& operator[](std::string const& key) {
-            if(type_ != ::jsx::type::object) *this = ::jsx::object();
+            if(!is<object_t>()) *this = object_t();
             return object()[key];
-        }
+        };
         value& operator()(std::string const& key) {
-            if(!is(key)) throw std::runtime_error("jsx: key \"" + key + "\" not found.");
-            return object().at(key);
+            if(!is(key)) throw std::runtime_error("jsx::value: key \"" + key + "\" not found.");
+            return object()[key];
         };
         value const& operator()(std::string const& key) const {
-            if(!is(key)) throw std::runtime_error("jsx: key \"" + key + "\" not found.");
+            if(!is(key)) throw std::runtime_error("jsx::value: key \"" + key + "\" not found.");
             return object().at(key);
         };
-        
-        void to_json(value& arg) const {
-            if(type_ == ::jsx::type::x)
-                data_.x->write(arg);
-            else
-                throw std::runtime_error("jsx::value::write: not x type.");
-        };
-        
-        ~value() {
-            clear();
-        };
-    private:
-        ::jsx::type type_;
-        
-        union variant {
-            bool boolean;
-            std::int64_t int64;
-            double real64;
-            std::string* string;
-            ::jsx::array* array;
-            ::jsx::object* object;
-            x_base* x;
-        } data_;
 
-        void assert_type(::jsx::type type) const {
-            if(type != type_) throw std::runtime_error("jsx: found " +
-                                                       std::string(type_names[static_cast<std::uint8_t>(type_)]) +
-                                                       " type instead of requested " +
-                                                       std::string(type_names[static_cast<std::uint8_t>(type)]) +
-                                                       " type");
+        bool is_json() const {
+            return data_->is_json();
+        };
+
+    private:
+        Any* data_;
+        
+        template<typename T> T& unsafe_at_impl() const {
+            return *static_cast<T*>(data_->ptr());
         }
         
-        void clear() {
-            switch(type_) {
-                case ::jsx::type::string: delete data_.string; break;
-                case ::jsx::type::array: delete data_.array; break;
-                case ::jsx::type::object: delete data_.object; break;
-                case ::jsx::type::x: delete data_.x; break;
-                default: break;
-            }
+        template<typename T>
+        T& at_impl() const {
+            if(!is<T>()) throw std::runtime_error("jsx::value: found " + data_->name() + " type instead of " + Trait<T>::name() + " type.");
+            return unsafe_at_impl<T>();
         }
         
-        void copy(value const& arg) {
-            if(type_ < ::jsx::type::string)
-                data_ = arg.data_;
-            else switch(arg.type_) {
-                case ::jsx::type::string: data_.string = new std::string(*arg.data_.string); break;
-                case ::jsx::type::array: data_.array = new ::jsx::array(*arg.data_.array); break;
-                case ::jsx::type::object: data_.object = new ::jsx::object(*arg.data_.object); break;
-                case ::jsx::type::x: data_.x = arg.data_.x->copy();
-                default: break;
-            }
+        friend value to_jsx(value const&);
+    };
+
+    
+    template<typename T, typename std::enable_if< !Trait<T>::is_json, int>::type = 0>
+    T& at(value& source) {
+        if(source.is_json()) {
+            T dest; dest.read(source); source = std::move(dest);
         }
+        return source.at<T>();
+    };
+    template<typename T, typename std::enable_if< !Trait<T>::is_json, int>::type = 0>
+    T const& at(value const& source) {
+        return source.at<T>();
+    };
+
+    inline value to_jsx(value const& source){
+        value dest; source.data_->write(dest); return dest;
     };
     
-    template<typename T> T& at(value& v) {
-        if(v.type() != type::x) {
-            T t; t.read(v); v = std::move(t);
-        }
-        return v.at<T>();
-    };
-    template<typename T> T const& at(value const& v) {
-        return v.at<T>();
-    };
     
     inline char const* parse(char const*, value&);
     
@@ -250,16 +212,18 @@ namespace jsx {
     
     inline char const* parse(char const* it, std::string& s) {
         ++it;
-        
+
         char const* end = it;
         while(*end != '\0' && *end != '\"') ++end;
-        if(*end != '\"') throw std::runtime_error("jsx parser: error while reading string");
-        s.clear(); s.append(it, end);
+        if(*end == '\0' ) throw std::runtime_error("jsx::parser: error while reading string");
+        s.append(it, end);
+        if(*(end - 1) != '\\') return ++end;
         
-        return ++end;
+        s.append(end, end + 1);
+        return parse(end, s);
     }
     
-    inline char const* parse(char const* it, array& a) {
+    inline char const* parse(char const* it, array_t& a) {
         it = skip_white_space(++it);
         if(*it == ']') return ++it;
         
@@ -270,58 +234,57 @@ namespace jsx {
             ++it;
         };
         
-        if(*it != ']') throw std::runtime_error("jsx parser: error while reading array");
+        if(*it != ']') throw std::runtime_error("jsx::parser: error while reading array");
         return ++it;
     }
     
-    inline char const* parse(char const* it, object& o) {
+    inline char const* parse(char const* it, object_t& o) {
         it = skip_white_space(++it);
         if(*it == '}') return ++it;
         
-        std::string key;
         while(1) {
-            if(*it != '\"') throw std::runtime_error("jsx parser: object key not valid");
-            it = parse(it, key);
+            if(*it != '\"') throw std::runtime_error("jsx::parser: object key not valid");
+            std::string key; it = parse(it, key);
             
             it = skip_white_space(it);
-            if(*it != ':') throw std::runtime_error("jsx parser: no object value found");
+            if(*it != ':') throw std::runtime_error("jsx::parser: no object value found");
             it = parse(++it, o[key]);
             
             if(*it != ',') break;
             it = skip_white_space(++it);
         };
         
-        if(*it != '}') throw std::runtime_error("jsx parser: error while reading object");
+        if(*it != '}') throw std::runtime_error("jsx::parser: error while reading object");
         return ++it;
     }
     
-    const long long int lli_int64_max = std::numeric_limits<std::int64_t>::max();
-    const long long int lli_int64_min = std::numeric_limits<std::int64_t>::min();
+    constexpr long long int lli_int64_max = std::numeric_limits<int64_t>::max();
+    constexpr long long int lli_int64_min = std::numeric_limits<int64_t>::min();
     
     inline char const* parse(char const* it, value& v) {
         it = skip_white_space(it);
         
         switch(*it) {
             case '{':
-                v = object();
+                v = object_t();
                 it = parse(it, v.object());
                 break;
             case '[':
-                v = array();
+                v = array_t();
                 it = parse(it, v.array());
                 break;
             case '\"':
-                v = std::string();
+                v = string_t();
                 it = parse(it, v.string());
                 break;
             case 'n':
-                if(*++it == 'u' && *++it == 'l' && *++it == 'l') v = null(); else throw std::runtime_error("jsx parser: error while reading null");
+                if(*++it == 'u' && *++it == 'l' && *++it == 'l') v = null_t(); else throw std::runtime_error("jsx::parser: error while reading null");
                 ++it; break;
             case 't':
-                if(*++it == 'r' && *++it == 'u' && *++it == 'e') v = true; else throw std::runtime_error("jsx parser: error while reading true");
+                if(*++it == 'r' && *++it == 'u' && *++it == 'e') v = true; else throw std::runtime_error("jsx::parser: error while reading true");
                 ++it; break;
             case 'f':
-                if(*++it == 'a' && *++it == 'l' && *++it == 's' && *++it == 'e') v = false; else throw std::runtime_error("jsx parser: error while reading true");
+                if(*++it == 'a' && *++it == 'l' && *++it == 's' && *++it == 'e') v = false; else throw std::runtime_error("jsx::parser: error while reading true");
                 ++it; break;
             default:
                 errno = 0; char* lli_end; long long int lli = strtoll(it, &lli_end, 10);
@@ -331,19 +294,21 @@ namespace jsx {
                 int d_fail = errno != 0 || d_end == it;
                 
                 if(!int64_fail && lli_end == d_end) {
-                    v = static_cast<std::int64_t>(lli); it = lli_end; break;
+                    v = static_cast<int64_t>(lli); it = lli_end; break;
                 }
                 
                 if(!d_fail) {
                     v = d; it = d_end; break;
                 }
-                //throw because empty ?
+                
+                throw std::runtime_error("jsx::parser: empty found !");
         }
         
         return skip_white_space(it);
     }
     
-    inline void read(std::istream& stream, value& v) {
+    template<typename T>
+    inline void read(std::istream& stream, T& v) {
         std::string buffer;
         
         stream.seekg(0, std::ios::end);
@@ -354,12 +319,13 @@ namespace jsx {
         stream.read(&buffer.front(), size);
         buffer[size] = '\0';
 
-        if(*parse(&buffer.front(), v) != '\0') throw std::runtime_error("jsx parser: stream contains more ...");
+        if(*parse(&buffer.front(), v) != '\0') throw std::runtime_error("jsx::parser: stream contains more ...");
     }
+     
     
     inline void write(value const&, std::ostream&, int, int, bool);
 
-    inline void write(array const& a, std::ostream& stream, int indent = 4, int pos = 0, bool in_array = false) {
+    inline void write(array_t const& a, std::ostream& stream, int indent = 4, int pos = 0, bool in_array = false) {
         if(in_array) stream << '\n' << std::string(pos += indent, ' ');
         stream << "[ ";
         auto it = a.begin();
@@ -374,7 +340,7 @@ namespace jsx {
         stream << " ]";
     }
     
-    inline void write(object const& o, std::ostream& stream, int indent = 4, int pos = 0, bool in_array = false) {
+    inline void write(object_t const& o, std::ostream& stream, int indent = 4, int pos = 0, bool in_array = false) {
         stream << '{';
         auto it = o.begin();
         if(it != o.end())
@@ -390,18 +356,15 @@ namespace jsx {
     }
     
     inline void write(value const& v, std::ostream& stream, int indent = 4, int pos = 0, bool in_array = false) {
-        switch(v.type()) {
-            case type::null: stream << "null"; break;
-            case type::boolean: stream << (v.boolean() ? "true" : "false"); break;
-            case type::int64: stream << v.int64(); break;
-            case type::real64: stream << v.real64(); break;
-            case type::string: stream << '\"' << v.string() << '\"'; break;
-            case type::array: write(v.array(), stream, indent, pos, in_array); break;
-            case type::object: write(v.object(), stream, indent, pos, in_array); break;
-            case type::x: { value temp; v.to_json(temp); write(temp, stream, indent, pos, in_array); break; }
-            case type::empty: throw std::runtime_error("jsx::write: empty"); break;
-            default: throw std::runtime_error("jsx::write: fatal error"); break;
-        }
+        if(v.is<null_t>())    { stream << "null"; return;};
+        if(v.is<boolean_t>()) { stream << (v.boolean() ? "true" : "false"); return;};
+        if(v.is<int64_t>())   { stream << v.int64(); return;};
+        if(v.is<real64_t>())  { stream << v.real64(); return;};
+        if(v.is<string_t>())  { stream << '\"' << v.string() << '\"'; return;};
+        if(v.is<array_t>())   { write(v.array(), stream, indent, pos, in_array); return;};
+        if(v.is<object_t>())  { write(v.object(), stream, indent, pos, in_array); return;};
+        if(v.is<empty_t>())   { throw std::runtime_error("jsx::write: empty");};
+        value temp = to_jsx(v); write(temp, stream, indent, pos, in_array);
     }
 }
 

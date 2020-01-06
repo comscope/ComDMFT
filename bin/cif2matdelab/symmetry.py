@@ -436,3 +436,16 @@ def retr_symmetry_operations(struct,ini):
     """
     ini["symgen"] = struct.get_symmetry_operations()
     return ini
+
+def retr_spacegroup_number(struct,ini):
+    """
+    Retrieve the space group number.
+
+    When choosing real space grids some space groups imply restrictions
+    on the number of points along the different lattice vectors.
+    To impose the correct restrictions we need to know the space group
+    number of the current system. This function add this number to
+    the dictionary.
+    """
+    ini["spacegroup"] = struct.get_space_group_number()
+    return ini

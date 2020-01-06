@@ -1,3 +1,115 @@
+      subroutine read_wan_bni2_hdf5
+      use comwann_mod
+      use hdf5io_mod
+      use hdf5
+      implicit none
+      include 'mpif.h'
+      integer(hid_t) :: fid_dat = -1
+      integer :: itemp =0
+      integer :: ng(4)
+      integer :: nv(4)
+      integer :: jcg_size,jcgr_size,cg_size,
+     $ indxcg_size,indxcgr_r1size,indxcgr_r2size,
+     $ indxcgr_r3size,indxcgr_r4size,cgr_size,
+     $ iatom,i,it,isort,lb,lpb,l,ll,n,ntl(0:10),
+     $ iwan,ii,jj,i_len,
+     $  cnt1,cnt2,kk
+      character*1 :: dummyc
+      complex*16 :: ai
+      double precision :: dblr,dbli
+
+      call finit()
+      i_len=len_trim(rstpath)
+      call fopen(rstpath(1:i_len)//'/info.rst',fid_dat)
+
+
+      call fread(MPI_COMM_WORLD,maxnsym,"maxnsym",fid_dat)
+      call fread(MPI_COMM_WORLD,maxmt,"maxmt",fid_dat)
+      call fread(MPI_COMM_WORLD,irel_core,"irel_core",fid_dat)
+      call fread(MPI_COMM_WORLD,nrel_core,"nrel_core",fid_dat)
+      call fread(MPI_COMM_WORLD,maxl_cor,"maxl_cor",fid_dat)
+      call fread(MPI_COMM_WORLD,ncormax,"ncormax",fid_dat)
+      call fread(MPI_COMM_WORLD,max_rl,"max_rl",fid_dat)
+      call fread(MPI_COMM_WORLD,nspin_1,"nspin_1",fid_dat)
+      call fread(MPI_COMM_WORLD,maxmtcor,"maxmtcor",fid_dat)
+
+
+      allocate(smt(nsort))
+      smt=0.0d0
+      allocate(indmt(maxnsym,nsort,nspin_0))
+      indmt=0
+      allocate(indfun0(2,maxntle,nrel*maxb+1,nsort))
+      indfun0=0
+      allocate(iat_1(nsort))
+      iat_1=0
+      allocate(lc_max(nsort))
+      lc_max=0
+      allocate(lm_isz(maxel,nsort))
+      lm_isz=0
+      allocate(ncor(nsort))
+      ncor=0
+      allocate(indcor(ncormax,nspin_0,nsort))
+      indcor=0
+      allocate(li_cor(ncormax,nsort))
+      li_cor=0
+      allocate(rl(0:maxnrad,0:max_rl,nsort))
+      rl=0.0d0
+
+      nv = 0
+      ng(1)=size(smt,1)
+      call fread(MPI_COMM_WORLD,smt,ng(1),nv(1),"smt",fid_dat)
+
+      ng(1)=size(indmt,1)
+      ng(2)=size(indmt,2)
+      ng(3)=size(indmt,3)
+      call fread(MPI_COMM_WORLD,indmt,ng,nv,"indmt",fid_dat)
+
+      ng(1)=size(indfun0,1)
+      ng(2)=size(indfun0,2)
+      ng(3)=size(indfun0,3)
+      ng(4)=size(indfun0,4)
+      call fread(MPI_COMM_WORLD,indfun0,ng,nv,"indfun0",fid_dat)
+
+      nv = 0
+      ng(1)=size(iat_1,1)
+      call fread(MPI_COMM_WORLD,iat_1,ng(1),nv(1),"iat_1",fid_dat)
+
+      nv = 0
+      ng(1)=size(lc_max,1)
+      call fread(MPI_COMM_WORLD,lc_max,ng(1),nv(1),"lc_max",fid_dat)
+
+
+      ng(1)=size(lm_isz,1)
+      ng(2)=size(lm_isz,2)
+      call fread(MPI_COMM_WORLD,lm_isz,ng,nv,"lm_isz",fid_dat)
+
+      nv = 0
+      ng(1)=size(ncor,1)
+      call fread(MPI_COMM_WORLD,ncor,ng(1),nv(1),"ncor",fid_dat)
+
+      ng(1)=size(indcor,1)
+      ng(2)=size(indcor,2)
+      ng(3)=size(indcor,3)
+      call fread(MPI_COMM_WORLD,indcor,ng,nv,"indcor",fid_dat)
+
+      ng(1)=size(li_cor,1)
+      ng(2)=size(li_cor,2)
+      call fread(MPI_COMM_WORLD,li_cor,ng,nv,"li_cor",fid_dat)
+
+      ng(1)=size(rl,1)
+      ng(2)=size(rl,2)
+      ng(3)=size(rl,3)
+      call fread(MPI_COMM_WORLD,rl,ng,nv,"rl",fid_dat)
+
+
+      call fclose(fid_dat)
+      end
+
+
+
+
+
+
       subroutine read_wan_bni_hdf5
       use comwann_mod
       use hdf5io_mod

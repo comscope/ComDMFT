@@ -96,7 +96,7 @@ c      write(iun,*)'fid_dat',fid_dat
       allocate(tempwindow(ng(1),ng(2)))
       do ii=1,ng(1)
        do jj=1,ng(2)
-         if(lwindow(ii,jj) .eq. .true.) then
+         if(lwindow(ii,jj)) then
           tempwindow(ii,jj) = 1
          else
           tempwindow(ii,jj) = 0

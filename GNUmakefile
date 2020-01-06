@@ -2,12 +2,12 @@ include arch.mk
 
 default: all
 
+#all: clean_Destdir Common Wannier90 Gw Mqsgw_dmft Ucal Fullgw_dmft Analytical_continuation
+
 ifdef USE_HDF5
 all: com_wannier90 com_comgw com_comlowh com_comdc com_comcoulomb com_comwann com_ctqmc com_evalsim
-comdmft: com_wannier90 com_comgw com_comlowh com_comdc com_comcoulomb com_comwann com_ctqmc com_evalsim
 else
 all: com_wannier90 com_comgw com_comlowh com_comdc com_comcoulomb com_comwann com_ctqmc com_evalsim  com_risb
-comdmft: com_wannier90 com_comgw com_comlowh com_comdc com_comcoulomb com_comwann com_ctqmc com_evalsim
 endif
 
 
@@ -24,24 +24,26 @@ com_comcoulomb:
 com_comwann:
 	cd ComWann && $(MAKE) && cd ../  
 com_ctqmc:
-	cd ComCTQMC && cd ctqmc && cd CPU && $(MAKE) && cd ../ && cd ../ && cd ../
+	cd ComCTQMC && cd ctqmc && cd host && $(MAKE) && cd ../ && cd ../ && cd ../
 com_evalsim:
 	cd ComCTQMC && cd evalsim && $(MAKE) && cd ../ && cd ../ 
 com_risb:
 	cd ComRISB && $(MAKE) && cd ../
 
 
+#clean: clean_Common clean_Wannier90 clean_Gw clean_Mqsgw_dmft clean_Ucal clean_Fullgw_dmft clean_Analytical_continuation clean_Destdir
+
 ifdef USE_HDF5
 clean: clean_wannier90 clean_comgw clean_comlowh clean_comdc clean_comcoulomb clean_comwann clean_ctqmc clean_evalsim clean_Destdir
 else
-clean: clean_wannier90 clean_comgw clean_comlowh clean_comdc clean_comcoulomb clean_comwann clean_ctqmc clean_evalsim  clean_Destdir clean_comrisb
+clean: clean_wannier90 clean_comgw clean_comlowh clean_comdc clean_comcoulomb clean_comwann clean_ctqmc clean_evalsim clean_comrisb clean_Destdir
 endif
 
 
 clean_evalsim:
 	cd ComCTQMC && cd evalsim && $(MAKE) clean && cd ../ && cd ../
 clean_ctqmc:
-	cd ComCTQMC && cd ctqmc && cd CPU && $(MAKE) clean && cd ../ && cd ../ && cd ../
+	cd ComCTQMC && cd ctqmc && cd host && $(MAKE) clean && cd ../ && cd ../ && cd ../
 clean_comlowh:
 	cd ComLowH && $(MAKE) clean && cd ../
 clean_comgw:
@@ -52,8 +54,20 @@ clean_comcoulomb:
 	cd ComCoulomb && $(MAKE) clean && cd ../
 clean_comwann:
 	cd ComWann && $(MAKE) clean && cd ../
+clean_Common:  	
+	cd common && $(MAKE) clean && cd ../
 clean_wannier90:  	
 	cd wannier90_2.1 && $(MAKE) clean && cd ../
+clean_Gw:  	
+	cd gw && $(MAKE) clean && cd ../
+clean_Ucal:  	
+	cd ucal && $(MAKE) clean && cd ../
+clean_Mqsgw_dmft:  	
+	cd mqsgw_dmft && $(MAKE) clean && cd ../
+clean_Fullgw_dmft:  	
+	cd fullgw_dmft && $(MAKE) clean && cd ../
+clean_Analytical_continuation:  	
+	cd analytical_continuation && $(MAKE) clean && cd ../
 clean_comrisb:
 	cd ComRISB && $(MAKE) clean && cd ..
 	cd bin && rm -rf CyGutz CyGutzB check_band_gaps.py complot_bands.py \
@@ -66,5 +80,5 @@ clean_comrisb:
 		modify_u_matrix_for_impurity.py plot_band_tf.py plot_dos_tf.py \
 		post_process run_ga.py save_ldag stepin_wien_gutz.py switch_gparam.py \
 		&& cd ..
-clean_Destdir:  	
-	rm bin/rspflapw.exe bin/ComLowH bin/ComDC bin/ComWann bin/CTQMC bin/EVALSIM bin/ComCoulomb
+clean_Destdir:
+	rm ./bin/rspflapw.exe ./bin/ComLowH ./bin/ComDC ./bin/ComWann ./bin/CTQMC ./bin/EVALSIM ./bin/ComCoulomb

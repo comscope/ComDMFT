@@ -35,7 +35,7 @@ c$$$            elseif (k0 .lt. 10000) then
 c$$$              write(ch, '(a, i4, a)') "check_", k0, "_"
 c$$$            endif
       
-      
+            
             if(.not.correlation) then
               g_full_00(:,k,ispin)=0.d0
               do i=1,n_bnd(k0,ispin)

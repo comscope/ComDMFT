@@ -5,8 +5,8 @@
 
 # (mpi) fortran compiler, always use HDF5.
 
+PF90_risb = ${PF90}
 F77 = ${F90}
-PF90 = ${PF90_RISB}
 
 # Compiler options
 FFLAGS =  ${compfl}
@@ -18,7 +18,7 @@ MKL_LIB = ${LAPACK_LIB}
 C++ = ${CXX}
 CFLAGS = ${CXXFLAGS_RISB}
 
-# Path to install the executibles.
+# Path to install the executables.
 DESTDIR = ${COMSUITE_BIN}
 
 # mpi version

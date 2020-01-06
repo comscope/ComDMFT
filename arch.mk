@@ -5,7 +5,7 @@ PF90 = ftn
 compfl = -O3
 
 ##### phdf5
-USE_HDF5 = defined ### Comment out this line if you don't want to compile with hdf5 (for LDA+RISB, this line should be commented out)
+###USE_HDF5 = defined ### Comment out this line if you don't want to compile with hdf5 (for LDA+RISB, this line should be commented out)
 ifdef USE_HDF5
     FPPFLAGS += -DUSE_HDF5
     PF90 = h5pfc

@@ -1,15 +1,17 @@
-#ifndef UTILITIES
-#define UTILITIES
+#ifndef UTILITIES_H
+#define UTILITIES_H
 
 #include <vector>
+#include <iostream>
 #include <complex>
 #include <fstream>
-#include <valarray>
+#include <cmath>
 #include <cstring>
 #include <cstdint>
 #include <random>
+#include <limits>
+#include <stdexcept>
 
-//Achtung: es kann sein dass gewisse observabeln nicht gespeichert wurden, c.f. MonteCarlo.h
 
 namespace ut {
 
@@ -47,48 +49,99 @@ namespace ut {
         Beta& operator=(Beta&& other) {
             beta_ = other.beta_; other.beta_ = nullptr; return *this;
         };
-        
-        double operator()() const { return *beta_;};
-        
         ~Beta() {
             delete beta_;
         };
+        
+        double operator()() const { return *beta_;};
+
     private:
         double* beta_;
     };
     
-    Beta beta;
+    extern Beta beta;
     
     //--------------------------------------------------------------------------------------------------------------------------
-
-    struct BitSet {
-        typedef std::uint_fast64_t data_type;
+    
+    enum class Flag { Pending, Accept, Reject };
+    
+    //--------------------------------------------------------------------------------------------------------------------------
+    
+    struct Zahl {
+        Zahl() : mantissa_(.0), exponent_(std::numeric_limits<int>::min()) {};
+        Zahl(double x, double y = .0) {   // constructs x*exp(y)
+            if(std::isfinite(x) && std::isfinite(y)) {
+                mantissa_ = std::frexp(x*std::exp(y - M_LN2*(static_cast<int>(y/M_LN2) + 1)), &exponent_);
+                mantissa_ ? exponent_ += static_cast<int>(y/M_LN2) + 1 : exponent_ = std::numeric_limits<int>::min();
+            } else
+                throw(std::runtime_error("ut::Zahl: argument of constructor is not a number"));
+        };
+        Zahl(Zahl const&) = default;
+        Zahl(Zahl&&) = default;
+        Zahl& operator=(Zahl const&) = default;
+        Zahl& operator=(Zahl&&) = default;
+        ~Zahl() = default;
         
-        BitSet() = delete;
-        BitSet(std::size_t n) : size_((n + sizeof(data_type) - 1)/sizeof(data_type)), data_(new data_type[size_]) {
-            std::memset(data_, 0, size_*sizeof(data_type));
+        Zahl& operator+=(Zahl const& arg) {
+            int exp;
+            if(exponent_ > arg.exponent_) {
+                mantissa_ = std::frexp(mantissa_ + std::ldexp(arg.mantissa_, arg.exponent_ - exponent_), &exp);
+                mantissa_ ? exponent_ += exp : exponent_ = std::numeric_limits<int>::min();
+            } else {
+                mantissa_ = std::frexp(arg.mantissa_ + std::ldexp(mantissa_, exponent_ - arg.exponent_), &exp);
+                mantissa_ ? exponent_ = arg.exponent_ + exp : exponent_ = std::numeric_limits<int>::min();
+            }
+            return *this;
         };
-        BitSet(BitSet const&) = delete;
-        BitSet(BitSet&&) = delete;
-        BitSet& operator=(BitSet const&) = delete;
-        BitSet& operator=(BitSet&&) = delete;
+        Zahl& operator*=(Zahl const& arg) {
+            int exp; mantissa_ = std::frexp(mantissa_*arg.mantissa_, &exp);
+            mantissa_ ? exponent_ += (arg.exponent_ + exp) : exponent_ = std::numeric_limits<int>::min();
+            return *this;
+        };
+        Zahl& operator/=(Zahl const& arg) {
+            int exp; mantissa_ = std::frexp(mantissa_/arg.mantissa_, &exp);
+            mantissa_ ? exponent_ += (-arg.exponent_ + exp) : exponent_ = std::numeric_limits<int>::min();
+            return *this;
+        };
+        double to_double() const { return std::ldexp(mantissa_, exponent_);};
+        Zahl abs() { mantissa_ = std::abs(mantissa_); return *this;};
         
-        int any() {
-            for(std::size_t i = 0; i < size_; ++i) if(data_[i]) return 1;
-            return 0;
-        };
-        int operator[](std::size_t pos) {
-            return data_[pos/sizeof(data_type)]&(static_cast<data_type>(1) << pos%sizeof(data_type));
-        };
-        void flip(std::size_t pos) {
-            data_[pos/sizeof(data_type)] ^= (static_cast<data_type>(1) << pos%sizeof(data_type));
-        };
-        ~BitSet() { delete[] data_;};
+        double mantissa() const { return mantissa_;};
+        int exponent() const { return exponent_;};
     private:
-        std::size_t size_;
-        data_type* data_;
+        double mantissa_;
+        int exponent_;
+        
+        friend int operator==(Zahl const&, Zahl const&);
+        friend int operator<=(Zahl const&, Zahl const&);
+        friend Zahl abs(Zahl const&);
     };
     
+    inline int operator==(Zahl const& x, Zahl const& y) {
+        return (x.mantissa_ == y.mantissa_)&&(x.exponent_ == y.exponent_);
+    }
+    inline int operator<=(Zahl const& x, Zahl const& y) {
+        if(x.mantissa_*y.mantissa_ <= .0 || x.exponent_ == y.exponent_) return x.mantissa_ <= y.mantissa_;
+        return x.exponent_ < y.exponent_ ? x.mantissa_ > .0 : x.mantissa_ < .0;
+    }
+    inline Zahl abs(Zahl const& arg) {
+        Zahl temp(arg); return temp.abs();
+    }
+    
+    inline Zahl exp(double arg) {
+        return arg != -std::numeric_limits<double>::infinity() ? Zahl(1., arg) : Zahl();
+    }	
+    inline Zahl operator+(Zahl const& x, Zahl const& y) { 
+        Zahl temp(x); temp += y; return temp;
+    }
+    inline Zahl operator*(Zahl const& x, Zahl const& y) { 
+        Zahl temp(x); temp *= y; return temp;
+    }
+    inline Zahl operator/(Zahl const& x, Zahl const& y) {
+        Zahl temp(x); temp /= y; return temp;
+    }
+    
+    template<typename... Args> struct Options {};
 }
 
 

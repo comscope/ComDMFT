@@ -1,6 +1,8 @@
 #i&&&&&&&&&&&&&&&&&&&&&&&&&&&&        UNIX MPICH MPI       &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 include ../arch.mk
 
+# compfl = -debug -g -CB -check bounds -traceback -check uninit -fp-model precise
+
 wan90_dir = ../wannier90_2.1
 
 comp = $(PF90) $(FPPFLAGS) -c $(compfl)
@@ -95,11 +97,12 @@ o_files = \
  size_shift_par.o \
  tcgstb.o \
  unport.o \
-getlimj.o \
+ getlimj.o \
  gbs_number.o \
  lget.o \
  prd1.o \
  prd2.o \
+ radial_function.o \
  rotmat_wan_proj.o \
  rotate.o \
  sphharm.o \
@@ -116,6 +119,7 @@ getlimj.o \
  read_restart_file.o \
  set_memory.o \
  read_wan_bni.o \
+ read_wan_bni2.o \
  read_wan_ini.o \
  
 
@@ -135,7 +139,6 @@ TARGET = ComWann
 $(TARGET): $(mod_files) $(o_files)
 	$(link) $(o_files) -o $(TARGET) $(LIB)
 	cp $(TARGET) ../bin
-
 .f90.o:
 	$(comp) $(INCLUDE) $<
 .F.o:

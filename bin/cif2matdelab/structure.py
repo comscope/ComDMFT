@@ -53,23 +53,57 @@ lattice_type["monoclinic"]       = -10
 lattice_type["rhombohedral"]     = -11
 lattice_type["triclinic"]        = -13
 
+def map_to_conventional_cell(InKPath):
+    """
+    Map the fractional coordinates of the high symmetry path to the range 0 to 1
+
+    For some bizarre reason Pymatgen will generate negative fractional coordinates
+    of the high symmetry points for some cells. This situation causes problems
+    when trying to compare the band structures from different codes. Hence this
+    function will generate a sane path will all the high symmetry points mapped
+    into the conventional unit cell.
+    """
+    InKPoints = InKPath['kpoints']
+    OutKPoints = {}
+    for key,inval in InKPoints.items():
+        (kx,ky,kz) = inval
+        if kx < 0.0:
+            kx += 1.0
+        if ky < 0.0:
+            ky += 1.0
+        if kz < 0.0:
+            kz += 1.0
+        outval = numpy.array([kx,ky,kz])
+        OutKPoints[key] = outval
+    OutKPath = {}
+    OutKPath['kpoints'] = OutKPoints
+    OutKPath['path'] = InKPath['path']
+    return OutKPath
 
 class structure: 
 
-    def __init__(self,ciffilename):
+    def __init__(self,ciffilename,cellkind):
         """
         Create a structure instance based on the contents of a CIF file.
         Due to the implementation of pymatgen we first have to setup a dummy
         structure to create an instance whose from_file method we can invoke.
         """
-        self.struct = mg.Structure.from_file(ciffilename,primitive=True)
+        if   cellkind == "primitive":
+            self.struct = mg.Structure.from_file(ciffilename,primitive=True)
+        elif cellkind == "conventional":
+            self.struct = mg.Structure.from_file(ciffilename,primitive=False)
+        else:
+            print("Unknown cellkind: %s" % cellkind)
+            print("Valid options are \"primitive\" or \"conventional\"")
         #if self.struct.num_sites > 1:
         #  self.struct.merge_sites(mode="delete") # remove any duplicate atoms
         self.sga    = mg.symmetry.analyzer.SpacegroupAnalyzer(self.struct)
         self.struct = self.sga.get_refined_structure()
-        self.struct = mg.symmetry.analyzer.SpacegroupAnalyzer(self.struct).find_primitive()
+        if cellkind == "primitive":
+            self.struct = mg.symmetry.analyzer.SpacegroupAnalyzer(self.struct).find_primitive()
         self.sga    = mg.symmetry.analyzer.SpacegroupAnalyzer(self.struct)
         self.kpath  = mg.symmetry.bandstructure.HighSymmKpath(self.struct)
+        self.kpath._kpath = map_to_conventional_cell(self.kpath._kpath)
 
     def lattice(self):
         """
@@ -423,6 +457,13 @@ class structure:
             return self.kpath.get_kpoints(coords_are_cartesian=False)
         else:
             return None
+
+    def get_space_group_number(self):
+        """
+        Return the space group number
+        """
+        spgr = int(self.sga.get_space_group_number())
+        return spgr
 
     def crystal_system(self):
         """

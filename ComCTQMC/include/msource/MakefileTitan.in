@@ -1,0 +1,15 @@
+BASE_CPPFLAGS = -DNDEBUG -DBOOST_DISABLE_ASSERTS
+BASE_LDFLAGS =  
+BASE_LIBS = 
+
+NVCC = nvcc
+NVCCFLAGS = -std=c++11 -O3  -arch=sm_35
+
+CXX_MPI = CC -DHAVE_MPI -O3
+CXX = CC -target-cpu=mc8
+CXXFLAGS = -Wall -fno-common -craype-verbose -std=c++11
+##CXXFLAGS = -Wall -fno-common -craype-verbose -gcc-name=/opt/gcc/4.8.2/bin/gcc -gxx-name=/opt/gcc/4.8.2/bin/g++ -std=c++11
+
+CPPFLAGS = $(BASE_CPPFLAGS) $(JSON_CPPFLAGS) $(BOOST_CPPFLAGS)
+LDFLAGS = $(BASE_LDFLAGS) $(JSON_LDFLAGS) $(BOOST_LDFLAGS)
+LIBS = $(BASE_LIBS) $(JSON_LIBS) $(BOOST_LIBS)

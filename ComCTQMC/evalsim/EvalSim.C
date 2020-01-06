@@ -1,6 +1,14 @@
 #include <memory>
+#include <algorithm>
 
 #include "EvalSim.h"
+#include "Functions.h"
+
+#include "../include/measurements/ReadDensityMatrix.h"
+#include "../include/measurements/ReadFunction.h"
+#include "../include/atomic/GenerateAtomic.h"
+#include "../include/linalg/Operators.h"
+#include "../include/options/Options.h"
 
 
 int main(int argc, char** argv)
@@ -9,336 +17,568 @@ int main(int argc, char** argv)
         if(argc != 2)
             throw std::runtime_error("ReadSim: Wrong number of input parameters !");
         
-        std::string name = argv[1];
-        jsx::value jSimulation; mpi::read(name + ".meas.json", jSimulation);
         
-        jsx::value const& jParams = jSimulation("Parameters");
-        jsx::value const jMeasurements = meas::read(jSimulation("Measurements"));
+        jsx::value jParams = mpi::read(std::string(argv[1]) + ".json");
+        jsx::value jMeasurements = meas::read(mpi::read(std::string(argv[1]) + ".meas.json"));
         
-        jsx::value jObservables;
-
-        jObservables["sign"] = jMeasurements("Sign");
-        jObservables["scalar"] = jMeasurements("Scal");
-        jObservables["expansion histogram"] = jMeasurements("ExpansionHist");
-
-        for(auto const& jEntry : jMeasurements("Susc").object()) {
-            jObservables["susceptibility"][jEntry.first]["function"] = jEntry.second;
-            
-            double const val0 = jsx::at<io::rvec>(jObservables("scalar")(jEntry.first))[0];
-            jsx::at<io::rvec>(jObservables["susceptibility"][jEntry.first]["function"])[0] -= jParams("beta").real64()*val0*val0;
-            
-            jObservables["susceptibility"][jEntry.first]["moments"] = std::string("To Do");
-        }
-
-        std::vector<io::cmat> green;
+        jParams("hloc") = mpi::read("hloc.json");
+        
+        jParams["operators"] = ga::construct_annihilation_operators(jParams("hloc"));
+        for(auto& jOp : jParams("operators").array()) linalg::make_operator_complex(jOp);
+        
+        if(jParams.is("dyn")) jParams("dyn") = mpi::read(jParams("dyn").string());
+        
+        double const beta = jParams("beta").real64(), mu = jParams("mu").real64();
+        iOmega const iomega(beta); io::rmat const oneBody = jsx::at<io::rmat>(jParams("hloc")("one body"));
+        jsx::value const jHybMatrix = jParams("hybridisation")("matrix");
+        
+        if( ! jParams.is("complex hybridisation")) jParams["complex hybridisation"] = false;
+        
+        std::cout << "Reading hybridisation function ... " << std::flush;
+        
+        std::vector<io::cmat> hyb, hybMoments;
+        
         {
-            std::map<std::string, io::cvec> functions;
-
-            for(auto& function : jMeasurements("Green").object())
-                functions[function.first] = jsx::at<io::cvec>(function.second);
-
-            green = get_function_matrix(functions, jParams("hybridisation")("matrix"));
-        }
-
-        iOmega iomega(jParams("beta").real64());
-        
-        std::vector<io::cmat> hyb;
-        std::vector<std::map<std::string, std::complex<double>>> hm_entries(1);
-        {
-            std::map<std::string, io::cvec> functions;
+            jsx::value jFunctions = mpi::read(jParams("hybridisation")("functions").string());
             
-            jsx::value jFunctions; mpi::read(jParams("hybridisation")("functions").string(), jFunctions);
-            
+            std::map<std::string, io::cvec> functions;
             for(auto& function : jFunctions.object())
                 functions[function.first] = jsx::at<io::cvec>(function.second);
             
-            hyb = get_function_matrix(functions, jParams("hybridisation")("matrix"));
+            hyb = get_function_matrix(functions, jHybMatrix);
             
-            for(auto const& function : functions) { // cross-check with Hyb.h Simple
-                std::size_t nFit = std::max(static_cast<int>(function.second.size()*.1), 1);
-                
-                double ReD = .0, D2 = .0, ReiwD = 0.;
-                for(std::size_t n = function.second.size() - nFit; n < function.second.size(); ++n) {
-                    ReD += function.second[n].real();
-                    D2 += std::abs(function.second[n])*std::abs(function.second[n]);
-                    ReiwD += -iomega(n).imag()*function.second[n].imag();
-                }
-                
-                hm_entries[0][function.first] = ReiwD/(nFit - ReD*ReD/D2);
-            }
+            hybMoments = { get_hybridisation_moments(functions, jParams, jHybMatrix) };
         }
 
+        std::cout << "Ok" << std::endl;
         
-        jsx::value jAtomic; std::unique_ptr<Ga::GenerateAtomic> generateAtomic;
         
-        if(jParams.is("impurity"))
-            mpi::read(jParams("impurity").string(), jAtomic);
-        else {
-            mpi::read("Hloc.json", jAtomic["hloc"]);
-            generateAtomic = std::unique_ptr<Ga::GenerateAtomic>(new Ga::GenerateAtomic(jAtomic["hloc"]));
-        }
+        std::cout << "Reading green function ... " << std::flush;
         
+        std::vector<io::cmat> green = read_functions(jMeasurements("green"), jParams, jHybMatrix, hyb.size());
 
-        std::cout << "Calculating self-energy ... " << std::flush;
+        std::cout << "Ok" << std::endl;
         
-        std::size_t const flavor_number = jParams("hybridisation")("matrix").size();
         
-        std::vector<io::cmat> self(std::min(green.size(), hyb.size()));
-        for(std::size_t n = 0; n < self.size(); ++n) {
+        std::cout << "Calculating self-energy with dyson ... " << std::flush;
+        
+        std::vector<io::cmat> selfDyson(green.size(), io::cmat(jHybMatrix.size(), jHybMatrix.size()));
+        for(std::size_t n = 0; n < green.size(); ++n) {
             io::cmat green_inv = linalg::inv(green[n]);
             
-            self[n].resize(flavor_number, flavor_number);
-            for(std::size_t i = 0; i < flavor_number; ++i)
-                for(std::size_t j = 0; j < flavor_number; ++j)
-                    self[n](i, j) = (i == j ? iomega(n) + jParams("mu").real64() : .0) - jAtomic("hloc")("one body")(i)(j).real64() - hyb[n](i, j) - green_inv(i, j);
+            for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                for(std::size_t j = 0; j < jHybMatrix.size(); ++j)
+                    selfDyson[n](i, j) = (i == j ? iomega(n) + mu : .0) - oneBody(i, j) - hyb[n](i, j) - green_inv(i, j);
         }
         
         std::cout << "OK" << std::endl;
         
         
-        std::vector<std::map<std::string, std::complex<double>>> gm_entries;
-        std::vector<std::map<std::string, std::complex<double>>> sm_entries;
-        
-        if(jMeasurements.is("DensityMatrix")) {
+        std::vector<io::cmat> self(green.size(), io::cmat(jHybMatrix.size(), jHybMatrix.size()));
+        if(jParams.is("green bulla") ? jParams("green bulla").boolean() : true) {
             
-            if(generateAtomic.get() != nullptr)
-                generateAtomic->write_operators(jAtomic["operators"]);
+            std::cout << "Calculating self-energy with bulla ... " << std::flush;
             
-            setup_impurity(jParams, jAtomic);
-            
-            
-            double Q1, Q2;
-            jsx::array jDensityMatrix, jDensityMatrixPrime;
-            
-            read_density_matrix(jParams,
-                                jAtomic,
-                                jMeasurements,
-                                Q1,
-                                Q2,
-                                jDensityMatrix,
-                                jDensityMatrixPrime);
-            
-            
-            /*
-             std::cout << "Calculating impurity observables ...";
-             if(jParams.is("OBS")) {
-             throw std::runtime_error("static observables not yet implemented");
-             
-             jsx::value jObs; mpi::read(jParams("OBS").string(), jObs);
-             
-             for(auto& jEntry : jObs.object()) {
-             double accObs = .0;
-             for(std::size_t s = 0; s < jAtomic("Propagator").size(); ++s)
-             accObs += linalg::trace(jsx::at<io::rmat>(jDensityMatrix.at(s)), jsx::at<io::rmat>(jEntry.second(s)));
-             
-             jScal[jEntry.first] = accObs;
-             }
-             }
-             std::cout << "OK" << std::endl;
-             */
-        
-            std::cout << "Calculating occupation ... ";
-            
-            {
-                io::cmat occupation; occupation.resize(flavor_number, flavor_number);
-                for(std::size_t i = 0; i < flavor_number; ++i) {
-                    for(std::size_t j = 0; j < flavor_number; ++j) {
-                        std::string entry = jParams("hybridisation")("matrix")(i)(j).string();
-                        
-                        if(!entry.empty())
-                            occupation(i, j) = calculate_occupation(jDensityMatrix,
-                                                                    jAtomic("operators dagger")(i),
-                                                                    jAtomic("operators")(j));
-                    }
-                }
-                auto occupation_entries = get_entries(occupation, jParams("hybridisation")("matrix"));
+            std::vector<io::cmat> bullaR = read_functions(jMeasurements("bullaR"), jParams, jHybMatrix, hyb.size());
+            std::vector<io::cmat> bullaL = read_functions(jMeasurements("bullaL"), jParams, jHybMatrix, hyb.size());
+
+            for(std::size_t n = 0; n < green.size(); ++n) {
+                io::cmat green_inv = linalg::inv(green[n]);
                 
-                for(auto const& entry : occupation_entries)
-                    jObservables["occupation"][entry.first] = entry.second.real();
+                linalg::gemm('n', 'n', .5, green_inv, bullaL[n], .0, self[n]);
+                linalg::gemm('n', 'n', .5, bullaR[n], green_inv, 1., self[n]);
             }
             
             std::cout << "Ok" << std::endl;
             
+        } else
+            self = std::move(selfDyson);
+        
+        
+        jsx::value jObservables;
+        
+        jObservables["sign"] = jMeasurements("sign");
+        jObservables["scalar"]["k"] = jsx::at<io::rvec>((jMeasurements("scalar")("k")))[0];
+        jObservables["expansion histogram"] = jMeasurements("expansion histogram");
+        
+        std::cout << "Calculating quantum number observables ... " << std::flush;
+        
+        opt::complete_qn(jParams);
+        
+        for(auto jqn : jParams("quantum numbers").object()) {
+            auto const& sectorProb = jsx::at<io::rvec>(jMeasurements("sector prob"));
+            auto jsqn = ga::construct_sector_qn(jParams("hloc"), jqn.second);
             
-            std::cout << "Calculating moments ... ";
+            double val = .0, valval = .0;
+            for(int s = 0; s < jParams("hloc")("eigen values").size(); ++s) {
+                val += sectorProb.at(s)*jsqn(s).real64();
+                valval += sectorProb.at(s)*jsqn(s).real64()*jsqn(s).real64();
+            }
             
-            std::vector<io::cmat> sm(2);
+            jObservables("scalar")[jqn.first] = val;
+            jObservables("scalar")[jqn.first + jqn.first] = valval;
+        }
+        
+        std::cout << "Ok" << std::endl;
+        
+        
+        jsx::value jDensityMatrix = meas::read_density_matrix(jParams, jMeasurements);
+        
+        
+        std::cout << "Calculating observables ... " << std::flush;
+        
+        opt::complete_observables(jParams);
+        
+        for(auto& jOb : jParams("observables").object()) {
+            jsx::value jTemp = ga::construct_observable(jParams("hloc"), jOb.second);
+            linalg::make_operator_complex(jTemp);
+            jObservables("scalar")[jOb.first] = linalg::trace(jDensityMatrix, jTemp).real();
+        }
+        
+        std::cout << "Ok" << std::endl;
+        
+        
+        std::cout << "Calculating green moments ... " << std::flush;
+        
+        std::vector<io::cmat> greenMoments;
+        {
+            jsx::value jHamiltonian = get_hamiltonian(jParams);
+
+            jsx::value jC = jsx::array_t(jHybMatrix.size());
+            for(std::size_t i = 0; i < jHybMatrix.size(); ++i) {
+                linalg::mult('n', 'n',  1., jHamiltonian, jParams("operators")(i), .0, jC(i));
+                linalg::mult('n', 'n', -1., jParams("operators")(i), jHamiltonian, 1., jC(i));
+            }
             
-            sm[0].resize(flavor_number, flavor_number);
-            sm[1].resize(flavor_number, flavor_number);
-            
-            {
-                std::vector<io::cmat> gm(3);
-                
-                gm[0].resize(flavor_number, flavor_number);
-                gm[1].resize(flavor_number, flavor_number);
-                gm[2].resize(flavor_number, flavor_number);
-                
-                for(std::size_t i = 0; i < flavor_number; ++i) {
-                    for(std::size_t j = 0; j < flavor_number; ++j) {
-                        std::string entry = jParams("hybridisation")("matrix")(i)(j).string();
+            greenMoments.resize(3, io::cmat(jHybMatrix.size(), jHybMatrix.size()));
+
+            for(std::size_t i = 0; i < jHybMatrix.size(); ++i) {
+                for(std::size_t j = 0; j < jHybMatrix.size(); ++j) {
+                    std::string entry = jHybMatrix(i)(j).string();
+                    
+                    if(!entry.empty()) {
+                        jsx::value temp;
                         
-                        if(!entry.empty())
-                            calculate_moments(jDensityMatrix,
-                                              jDensityMatrixPrime,
-                                              jAtomic("hloc")("eigen values"),
-                                              jAtomic("operators")(i),
-                                              jAtomic("operators dagger")(j),
-                                              gm[1](i, j),
-                                              gm[2](i, j));
+                        linalg::mult('n', 'c', 1., jC(i), jParams("operators")(j), .0, temp);
+                        linalg::mult('c', 'n', 1., jParams("operators")(j), jC(i), 1., temp);
+                        greenMoments[1](i, j) += linalg::trace(jDensityMatrix, temp);
+                        
+                        linalg::mult('n', 'c', 1., jC(i), jC(j), .0, temp);
+                        linalg::mult('c', 'n', 1., jC(j), jC(i), 1., temp);
+                        greenMoments[2](i, j) += linalg::trace(jDensityMatrix, temp);
+                    }
+                }
+                
+                greenMoments[0](i, i)  = 1.;
+            }
+
+            if(jParams.is("dyn")) {
+                double Q1 = -jParams("dyn")(0).real64()*jObservables("scalar")("N").real64(), Q2;
+
+                jsx::value jDensityMatrixPrime = meas::read_density_matrix_prime(jParams, jMeasurements, Q2);
+
+                for(std::size_t i = 0; i < jHybMatrix.size(); ++i) {
+                    for(std::size_t j = 0; j < jHybMatrix.size(); ++j) {
+                        std::string entry = jHybMatrix(i)(j).string();
+                        
+                        if(!entry.empty()) {
+                            jsx::value temp;
+                            
+                            linalg::mult('n', 'c', 1., jC(i), jParams("operators")(j), .0, temp);
+                            linalg::mult('c', 'n', 1., jParams("operators")(j), jC(i), 1., temp);
+                            
+                            linalg::mult('n', 'c', 1., jParams("operators")(i), jC(j), 1., temp);
+                            linalg::mult('c', 'n', 1., jC(j), jParams("operators")(i), 1., temp);
+                            
+                            greenMoments[2](i, j) += linalg::trace(jDensityMatrixPrime, temp);
+                        }
                     }
                     
-                    gm[0](i, i)  = 1.;
-                    gm[1](i, i) += Q1;
-                    gm[2](i, i) += Q2;
+                    greenMoments[1](i, i) += Q1;
+                    greenMoments[2](i, i) += Q2;
                 }
+            }
 
-                gm_entries.resize(3);
-                
-                gm_entries[0] = get_entries(gm[0], jParams("hybridisation")("matrix"));
-                gm_entries[1] = get_entries(gm[1], jParams("hybridisation")("matrix"));
-                gm_entries[2] = get_entries(gm[2], jParams("hybridisation")("matrix"));
-                
-                gm[1] = get_matrix(gm_entries[1], jParams("hybridisation")("matrix"));
-                gm[2] = get_matrix(gm_entries[2], jParams("hybridisation")("matrix"));
-                
-                
-                io::cmat gm1gm1; gm1gm1.resize(flavor_number, flavor_number);
-                linalg::gemm('n', 'n', 1., gm[1], gm[1], .0, gm1gm1);
-                
-                for(std::size_t i = 0; i < flavor_number; ++i)
-                    for(std::size_t j = 0; j < flavor_number; ++j) {
-                        sm[0](i, j) += (i == j ? jParams("mu").real64() : .0) - jAtomic("hloc")("one body")(i)(j).real64() - gm[1](i, j);
-                        sm[1](i, j) += gm[2](i, j) - gm1gm1(i, j);
-                    }
-                
-                sm_entries.resize(2);
-                
-                sm_entries[0] = get_entries(sm[0], jParams("hybridisation")("matrix"));
-                sm_entries[1] = get_entries(sm[1], jParams("hybridisation")("matrix"));
-                
-                sm[0] = get_matrix(sm_entries[0], jParams("hybridisation")("matrix")); //??
-                sm[1] = get_matrix(sm_entries[1], jParams("hybridisation")("matrix")); //??
-            }
+            greenMoments = get_function_matrix(get_function_entries(greenMoments, jHybMatrix), jHybMatrix);
+        }
+        
+        std::cout << "OK" << std::endl;
+        
+        
+        std::cout << "Calculating self-energy moments ... " << std::flush;
+        
+        std::vector<io::cmat> selfMoments;
+        {
+            selfMoments.resize(2, io::cmat(jHybMatrix.size(), jHybMatrix.size()));
             
-            std::cout << "OK" << std::endl;
+            io::cmat gm1gm1(jHybMatrix.size(), jHybMatrix.size());
+            linalg::gemm('n', 'n', 1., greenMoments[1], greenMoments[1], .0, gm1gm1);
+            
+            for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                for(std::size_t j = 0; j < jHybMatrix.size(); ++j) {
+                    selfMoments[0](i, j) += (i == j ? mu : .0) - oneBody(i, j) - greenMoments[1](i, j);
+                    selfMoments[1](i, j) += greenMoments[2](i, j) - gm1gm1(i, j);
+                }
+            
+            selfMoments = get_function_matrix(get_function_entries(selfMoments, jHybMatrix), jHybMatrix);
             
             
-            std::cout << "Fitting self-energy high frequency tail ... ";
+            for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                for(std::size_t j = 0; j < jHybMatrix.size(); ++j)
+                    greenMoments[2](i, j) += hybMoments[0](i, j);
+        }
+        
+        std::cout << "OK" << std::endl;
+        
+        
+        std::cout << "Adding self-energy high frequency tail ... "  << std::flush;
+        
+        {
             
-            io::cmat alpha; alpha.resize(flavor_number, flavor_number);
+            add_self_tail(jHybMatrix, iomega, self, selfMoments, hyb.size());
             
-            for(std::size_t i = 0; i < flavor_number; ++i)
-                for(std::size_t j = 0; j < flavor_number; ++j)
-                    if(jParams("hybridisation")("matrix")(i)(j).string() != "") {
-                        std::size_t nFit  = std::max(self.size()/8, static_cast<std::size_t>(1));
-                        std::complex<double> iomega_average = .0;
-                        std::complex<double> self_average = .0;
-                        
-                        for(std::size_t n = self.size() - nFit;  n < self.size(); ++n) {
-                            iomega_average += iomega(n);
-                            self_average += self[n](i, j);
-                        }
-                        
-                        alpha(i, j) = iomega_average/static_cast<double>(nFit) - sm[1](i, j)/(self_average/static_cast<double>(nFit) - sm[0](i, j));
-                    }
+            jObservables["self-energy"] =  write_functions(jParams, jHybMatrix, self, selfMoments);
             
-            std::cout << "Ok" << std::endl;
-            
-            /*
-            io::cmat alpha; alpha.resize(flavor_number, flavor_number);
-            
-            for(std::size_t i = 0; i < flavor_number; ++i)
-                for(std::size_t j = 0; j < flavor_number; ++j)
-                    if(jParams("hybridisation")("matrix")(i)(j).string() != "") {
-                        std::size_t nFit  = std::max(self.size()/8, static_cast<std::size_t>(1));
-                        
-                        for(std::size_t n = self.size() - nFit;  n < self.size(); ++n)
-                            alpha(i, j) -= sm[1](i, j)/(self[n](i, j) - sm[0](i, j)) - iomega(n);
-                        
-                        alpha(i, j) /= static_cast<double>(nFit);
-                    }
-            
-            std::cout << "Ok" << std::endl;
-            */
-            
-            std::cout << "Adding self-energy high frequency tail ... ";
-            
-            auto const omegaHF = iomega(self.size());
-            
-            for(std::size_t n = self.size(); n < hyb.size(); ++n) {
-                io::cmat temp; temp.resize(flavor_number, flavor_number);
-                
-                for(std::size_t i = 0; i < flavor_number; ++i)
-                    for(std::size_t j = 0; j < flavor_number; ++j)
-                        temp(i, j) = sm[0](i, j) + sm[1](i, j)/(iomega(n) - std::complex<double>(alpha(i, j).real(), alpha(i, j).imag()*(omegaHF/iomega(n)).real()));
-                
-                self.push_back(temp);
-            }
-            
-            std::cout << "OK" << std::endl;
-            
-            
-            std::cout << "Adding green function high frequency tail ... ";
-            
+            if(selfDyson.size()) jObservables["self-energy-dyson"] = write_functions(jParams, jHybMatrix, selfDyson, selfMoments);
+        }
+        
+        std::cout << "Ok" << std::endl;
+        
+        
+        std::cout << "Adding green function high frequency tail ... " << std::flush;
+        
+        {
             for(std::size_t n = green.size(); n < hyb.size(); ++n) {
-                io::cmat green_inv; green_inv.resize(flavor_number, flavor_number);
+                io::cmat green_inv(jHybMatrix.size(), jHybMatrix.size());
                 
-                for(std::size_t i = 0; i < flavor_number; ++i)
-                    for(std::size_t j = 0; j < flavor_number; ++j)
-                        green_inv(i, j) = (i == j ? iomega(n) + jParams("mu").real64() : .0) - jAtomic("hloc")("one body")(i)(j).real64() - hyb[n](i, j) - self[n](i, j);
-                
+                for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                    for(std::size_t j = 0; j < jHybMatrix.size(); ++j)
+                        green_inv(i, j) = (i == j ? iomega(n) + mu : .0) - oneBody(i, j) - hyb[n](i, j) - self[n](i, j);
+
                 green.push_back(linalg::inv(green_inv));
             }
-            
-            std::cout << "OK" << std::endl;
-            
+
+            jObservables["green"] = write_functions(jParams, jHybMatrix, green, greenMoments);
         }
         
+        std::cout << "Ok" << std::endl;
+        
+        
+        std::cout << "Calculating energy ... " << std::flush;
         
         {
-            std::map<std::string, io::cvec> function_entries = get_function_entries(green, jParams("hybridisation")("matrix"));
+            jsx::value jHamiltonianEff = get_effective_hamiltonian(jParams);
             
-            jsx::value jGreen;
-            
-            for(auto& function : function_entries) {
-                jGreen[function.first]["function"] = std::move(function.second);
-                
-                if(gm_entries.size()) {
-                    jGreen[function.first]["moments"] = jsx::array(3);
-                    
-                    jGreen[function.first]["moments"](0) =  gm_entries[0][function.first].real();
-                    jGreen[function.first]["moments"](1) = -gm_entries[1][function.first].real();
-                    jGreen[function.first]["moments"](2) =  gm_entries[2][function.first].real() + hm_entries[0][function.first].real();
-                }
-            }
-            
-            jObservables["green"] = std::move(jGreen);
+            double energy = linalg::trace(jDensityMatrix, jHamiltonianEff).real();
+            if(jParams.is("dyn")) energy += jsx::at<io::rvec>(jMeasurements("dynE"))[0];
+            jObservables["scalar"]["energy"] = energy;
         }
         
+        std::cout << "Ok" << std::endl;
         
+        
+        std::cout << "Calculating occupation ... " << std::flush;
+        
+        io::cmat occupation(jHybMatrix.size(), jHybMatrix.size()), correlation(jHybMatrix.size(), jHybMatrix.size());
         {
-            std::map<std::string, io::cvec> function_entries = get_function_entries(self, jParams("hybridisation")("matrix"));
+            jsx::value jn = jsx::array_t(jHybMatrix.size());
             
-            jsx::value jSelf;
+            for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                linalg::mult('c', 'n', 1., jParams("operators")(i), jParams("operators")(i), .0, jn(i));
             
-            for(auto& function : function_entries) {
-                jSelf[function.first]["function"] = std::move(function.second);
-                
-                if(sm_entries.size()) {
-                    jSelf[function.first]["moments"] = jsx::array(2);
+            for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                for(std::size_t j = 0; j < jHybMatrix.size(); ++j) {
+                    std::string entry = jHybMatrix(i)(j).string();
                     
-                    jSelf[function.first]["moments"](0) = sm_entries[0][function.first].real();
-                    jSelf[function.first]["moments"](1) = sm_entries[1][function.first].real();
+                    if(!entry.empty()) {
+                        jsx::value jOccupation;
+                        linalg::mult('c', 'n', 1., jParams("operators")(i), jParams("operators")(j), .0, jOccupation);
+                        occupation(i, j) = linalg::trace(jDensityMatrix, jOccupation);
+                    }
+                    
+                    jsx::value jCorrelation;
+                    linalg::mult('n', 'n', 1., jn(i), jn(j), .0, jCorrelation);
+                    correlation(i, j) = linalg::trace(jDensityMatrix, jCorrelation);
                 }
-            }
             
-            jObservables["self-energy"] =  std::move(jSelf);
+            auto occupation_entries = get_entries(occupation, jHybMatrix);
+            
+            for(auto const& entry : occupation_entries)
+                if(jParams("complex hybridisation").boolean()) {
+                    jObservables["occupation"][entry.first] = jsx::object_t{{"real", entry.second.real()}, {"imag", entry.second.imag()}};
+                } else {
+                    jObservables["occupation"][entry.first] = entry.second.real();
+                }
+            
+    
+            
+            occupation = get_matrix(occupation_entries, jHybMatrix);
         }
         
-            
-        mpi::write(jObservables, "observables.json");
+        std::cout << "Ok" << std::endl;
         
+        
+        //----------------------------------------------------------------------------------------------------------------------------------------------------
+        //----------------------------------------------------------------------------------------------------------------------------------------------------
+        //----------------------------------------------------------------------------------------------------------------------------------------------------
+        
+        
+        if(jParams.is("quantum number susceptibility") ? jParams("quantum number susceptibility").boolean() : false) {
+            for(auto jqn : jParams("quantum numbers").object()) {
+                
+                std::cout << "Reading " << jqn.first << " susceptibility ... " << std::flush;
+                
+                auto const qn = jsx::at<io::rvec>(jqn.second);
+                
+                double moment = 0;
+                io::rvec function(jsx::at<io::rvec>(jMeasurements("susceptibility flavor")("0_0")).size(), .0);
+                for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                    for(std::size_t j = 0; j < jHybMatrix.size(); ++j) {
+                        double const fact = qn.at(i)*qn.at(j);
+                        auto const meas = jsx::at<io::rvec>(jMeasurements("susceptibility flavor")(std::to_string(i) + "_" + std::to_string(j)));
+                        
+                        function[0] += fact*meas[0]/(2.*beta);
+                        
+                        for(std::size_t n = 1; n < function.size(); ++n) function[n] += fact*beta*meas[n]/(4*M_PI*M_PI*n*n);
+                        
+                        if(i == j) moment -= fact*(jsx::at<io::rvec>(jMeasurements("flavor k"))[2*i] + jsx::at<io::rvec>(jMeasurements("flavor k"))[2*i + 1])/beta;
+                    }
+                function[0] += beta*jObservables("scalar")(jqn.first + jqn.first).real64();
+                function[0] -= beta*jObservables("scalar")(jqn.first).real64()*jObservables("scalar")(jqn.first).real64();
+                
+                std::cout << "Ok" << std::endl;
+                
+                
+                std::cout << "Adding " << jqn.first << " susceptibility high frequency tail ... " << std::flush;
+                
+                std::size_t const nFit = std::max(static_cast<int>(function.size()/10.), 1);
+                
+                double A = .0, B = .0;
+                for(std::size_t n = function.size() - nFit; n < function.size(); ++n) {
+                    A += moment*function[n] + (4*M_PI*M_PI*n*n/(beta*beta))*function[n]*function[n]; B += function[n]*function[n];
+                }
+                double const alpha = -A/B;
+                
+                std::size_t const nTail = std::max(static_cast<int>(beta*jParams("susceptibility tail").real64()/(2*M_PI)), 1);
+                for(std::size_t n = function.size(); n < nTail; ++n)
+                    function.push_back(-moment/((4*M_PI*M_PI*n*n/(beta*beta)) + alpha));
+                
+                jObservables["susceptibility"][jqn.first]["function"] = function;
+                jObservables["susceptibility"][jqn.first]["moment"] = jsx::array_t{{ moment }};
+                
+                std::cout << "Ok" << std::endl;
+            }
+        }
+    
+        
+        io::rmat moments(jHybMatrix.size(), jHybMatrix.size());
+        if((jParams.is("occupation susceptibility bulla") ? jParams("occupation susceptibility bulla").boolean() : false) ||
+           (jParams.is("occupation susceptibility direct") ? jParams("occupation susceptibility direct").boolean() : false))
+        {
+            std::cout << "Calculating occupation susceptibility moments ... " << std::flush;
+            
+            jsx::value jHamiltonian = get_hamiltonian(jParams);
+            {
+                jsx::value jn = jsx::array_t(jHybMatrix.size()), jC = jsx::array_t(jHybMatrix.size());
+                for(std::size_t i = 0; i < jHybMatrix.size(); ++i) {
+                    linalg::mult('c', 'n', 1., jParams("operators")(i), jParams("operators")(i), .0, jn(i));
+                    
+                    linalg::mult('n', 'n',  1., jHamiltonian, jn(i), .0, jC(i));
+                    linalg::mult('n', 'n', -1., jn(i), jHamiltonian, 1., jC(i));
+                }
+                
+                for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                    for(std::size_t j = 0; j < jHybMatrix.size(); ++j) {
+                        jsx::value moment;
+                        
+                        linalg::mult('n', 'n',  1., jC(i), jn(j), .0, moment);
+                        linalg::mult('n', 'n', -1., jn(j), jC(i), 1., moment);
+                        
+                        moments(i, j) = linalg::trace(jDensityMatrix, moment).real();
+                        if(i == j) moments(i, j) -= (jsx::at<io::rvec>(jMeasurements("flavor k"))[2*i] + jsx::at<io::rvec>(jMeasurements("flavor k"))[2*i + 1])/beta;
+                    }
+            }
+            
+            std::cout << "Ok" << std::endl;
+        }
+        
+        
+        if(jParams.is("occupation susceptibility bulla") ? jParams("occupation susceptibility bulla").boolean() : false) {
+            
+            std::cout << "Reading bulla occupation susceptibility ... " << std::flush;
+
+            std::vector<std::vector<io::rvec>> susceptibilities(jHybMatrix.size(), std::vector<io::rvec>(jHybMatrix.size()));
+            {
+                auto constants = moments;
+                for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                    for(std::size_t j = 0; j < jHybMatrix.size(); ++j) {
+                        io::rvec measA = jsx::at<io::rvec>(jMeasurements("susceptibility flavor")(std::to_string(i) + "_" + std::to_string(j)));
+                        io::rvec measB = jsx::at<io::rvec>(jMeasurements("susceptibility bulla")(std::to_string(i) + "_" + std::to_string(j)));
+                        
+                        io::rvec function(measA.size(), .0);
+                        
+                        function[0] = beta*(correlation(i, j).real() - occupation(i, i).real()*occupation(j, j).real()) + (measB[0] + measA[0]/beta)/2.;
+                        
+                        if(i == j) constants(i, j) += (jsx::at<io::rvec>(jMeasurements("flavor k"))[2*i] + jsx::at<io::rvec>(jMeasurements("flavor k"))[2*i + 1])/beta;
+
+                        for(std::size_t n = 1; n < function.size(); ++n)
+                            function[n] = -beta*beta*(constants(i, j) - measB[n] - measA[n]/beta)/(4*M_PI*M_PI*n*n);
+                        
+                        susceptibilities[i][j] = std::move(function);
+                    }
+            }
+
+            if( ! jParams("complex hybridisation").boolean()) {
+                for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                    for(std::size_t j = i; j < jHybMatrix.size(); ++j)
+                        for(std::size_t n = 0; n < susceptibilities[i][j].size(); ++n) {
+                            double temp = (susceptibilities[i][j][n] + susceptibilities[j][i][n])/2.;
+                            susceptibilities[i][j][n] = susceptibilities[j][i][n] = temp;
+                        }
+            }
+            
+            std::cout << "Ok" << std::endl;
+            
+            
+            std::cout << "Adding occupation susceptibility high frequency tail ... " << std::flush;
+            
+            for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                for(std::size_t j = 0; j < jHybMatrix.size(); ++j){
+                    double const moment = moments(i, j);
+                    auto& function = susceptibilities[i][j];
+                    std::size_t const nFit = std::max(static_cast<int>(function.size()/10.), 1);
+                    
+                    double A = .0, B = .0;
+                    for(std::size_t n = function.size() - nFit; n < function.size(); ++n) {
+                        A += moment*function[n] + (4*M_PI*M_PI*n*n/(beta*beta))*function[n]*function[n]; B += function[n]*function[n];
+                    }
+                    double const alpha = -A/B;
+                    
+                    std::size_t const nTail = std::max(static_cast<int>(beta*jParams("susceptibility tail").real64()/(2*M_PI)), 1);
+                    for(std::size_t n = function.size(); n < nTail; ++n)
+                        function.push_back(-moment/((4*M_PI*M_PI*n*n/(beta*beta)) + alpha));
+                }
+            
+            std::cout << "Ok" << std::endl;
+            
+            for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                for(std::size_t j = 0; j < jHybMatrix.size(); ++j) {
+                    jObservables["occupation-susceptibility-bulla"][std::to_string(i) + "_" + std::to_string(j)]["function"] = susceptibilities[i][j];
+                    jObservables["occupation-susceptibility-bulla"][std::to_string(i) + "_" + std::to_string(j)]["moment"] = jsx::array_t{{ moments(i, j) }};
+                }
+        }
+        
+        
+        if(jParams.is("occupation susceptibility direct") ? jParams("occupation susceptibility direct").boolean() : false) {
+            
+            std::cout << "Reading direct occupation susceptibility ... " << std::flush;
+            
+            std::vector<std::vector<io::rvec>> susceptibilities(jHybMatrix.size(), std::vector<io::rvec>(jHybMatrix.size()));
+            for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                for(std::size_t j = 0; j < jHybMatrix.size(); ++j) {
+                    susceptibilities[i][j] = jsx::at<io::rvec>(jMeasurements("susceptibility direct")(std::to_string(i) + "_" + std::to_string(j)));
+                    susceptibilities[i][j][0] -= occupation(i,i).real()*occupation(j, j).real()*beta;
+                }
+            
+            if( ! jParams("complex hybridisation").boolean()) {
+                for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                    for(std::size_t j = i; j < jHybMatrix.size(); ++j)
+                        for(std::size_t n = 0; n < susceptibilities[i][j].size(); ++n) {
+                            double temp = (susceptibilities[i][j][n] + susceptibilities[j][i][n])/2.;
+                            susceptibilities[i][j][n] = susceptibilities[j][i][n] = temp;
+                        }
+            }
+            
+            for(std::size_t i = 0; i < jHybMatrix.size(); ++i)
+                for(std::size_t j = 0; j < jHybMatrix.size(); ++j) {
+                    jObservables["occupation-susceptibility-direct"][std::to_string(i) + "_" + std::to_string(j)]["function"] = susceptibilities[i][j];
+                    jObservables["occupation-susceptibility-direct"][std::to_string(i) + "_" + std::to_string(j)]["moment"] = jsx::array_t{{ moments(i, j) }};
+                }
+            
+            
+            std::cout << "Ok" << std::endl;
+        }
+        
+        
+        if(jParams.is("probabilities")) {
+            std::cout << "Reading impurity probabilities ... " << std::flush;
+            
+            jsx::value jHamiltonianEff = get_effective_hamiltonian(jParams);
+            
+            std::vector<io::rvec> data;
+            
+            for(int sector = 0; sector < jParams("hloc")("eigen values").size(); ++sector)
+                for(int i = 0; i < jsx::at<io::rvec>(jParams("hloc")("eigen values")(sector)).size(); ++i) {
+                    std::vector<double> temp(jParams("probabilities").size() + 1);
+                    temp.back() = std::abs(jsx::at<io::cmat>(jDensityMatrix(sector)("matrix"))(i, i).real());     // take abs(real) value ?
+                    data.push_back(temp);
+                }
+            
+            for(int qn = 0; qn < jParams("probabilities").size(); ++qn) {
+                std::string const name = jParams("probabilities")(qn).string();
+                
+                if(jParams("quantum numbers").is(name)) {
+                    jsx::value jQuantumNumber = ga::construct_sector_qn(jParams("hloc"), jParams("quantum numbers")(name));
+                    
+                    int index = 0;
+                    for(int sector = 0; sector < jParams("hloc")("eigen values").size(); ++sector)
+                        for(int i = 0; i < jsx::at<io::rvec>(jParams("hloc")("eigen values")(sector)).size(); ++i)
+                            data[index++][qn] = truncate(jQuantumNumber(sector).real64(), 8);
+                    
+                } else if(jParams("observables").is(name)) {
+                    jsx::value jObservable = ga::construct_observable(jParams("hloc"), jParams("observables")(name));
+                    
+                    int index = 0;
+                    for(int sector = 0; sector < jParams("hloc")("eigen values").size(); ++sector)
+                        for(int i = 0; i < jsx::at<io::rvec>(jParams("hloc")("eigen values")(sector)).size(); ++i)
+                            data[index++][qn]= truncate(jsx::at<io::rmat>(jObservable(sector)("matrix"))(i, i), 8);
+                    
+                } else if(name == "energy") {
+                    int index = 0;
+                    for(int sector = 0; sector < jParams("hloc")("eigen values").size(); ++sector)
+                        for(int i = 0; i < jsx::at<io::rvec>(jParams("hloc")("eigen values")(sector)).size(); ++i)
+                            data[index++][qn] = truncate(jsx::at<io::cmat>(jHamiltonianEff(sector)("matrix"))(i, i).real(), 8);
+                    
+                } else
+                    throw std::runtime_error("quantum number " + name + " for labeling probabilities not found");
+            }
+            
+            if(jParams("probabilities").size()) std::sort(data.begin(), data.end(), VecLess(jParams("probabilities").size() + 1, 0, jParams("probabilities").size()));
+            
+            jsx::array_t temp;
+            for(auto& entry : data) temp.push_back(entry);
+            jObservables["probabilities"]["quantum numbers"] = std::move(temp);
+            
+ 
+            {
+                jsx::value jTransformation = jParams("hloc")("transformation"), jTemp;
+                linalg::make_operator_complex(jTransformation);
+                
+                linalg::mult('n', 'c', 1., jDensityMatrix, jTransformation, .0, jTemp);
+                linalg::mult('n', 'n', 1., jTransformation, jTemp, .0, jDensityMatrix);
+            }
+ 
+            jsx::value jOccupationStates = ga::construct_occupation_states(jParams("hloc"));
+            
+            data.clear(); int index = 0;
+            for(int sector = 0; sector < jParams("hloc")("eigen values").size(); ++sector)
+                for(int i = 0; i < jsx::at<io::rvec>(jParams("hloc")("eigen values")(sector)).size(); ++i) {
+                    io::rvec temp = jsx::at<io::rvec>(jOccupationStates(index++));
+                    temp.push_back(jsx::at<io::cmat>(jDensityMatrix(sector)("matrix"))(i, i).real());       // take abs(real) value ?
+                    data.push_back(temp);
+                }
+
+            std::sort(data.begin(), data.end(), VecLess(jHybMatrix.size() + 1, jHybMatrix.size(), jHybMatrix.size() + 1));
+            
+            temp.clear();
+            for(auto& entry : data) temp.push_back(entry);
+            jObservables["probabilities"]["occupation numbers"] = std::move(temp);
+            
+            std::cout << "Ok" << std::endl;
+        }
+        
+        
+        mpi::write(jObservables, std::string(argv[1]) + ".obs.json");
     }
     catch(std::exception& exc) {
         std::cerr << exc.what() << "( Thrown from worker " << mpi::rank() << " )" << std::endl;

@@ -51,6 +51,7 @@
                                ! calculation.
      &           itest,
      &           iun,
+     &           cun,        
      &           k_minus_k_num,
      &           k_minus_k_num_c,
      &           lmax_leg,
@@ -97,6 +98,7 @@
      &           b_extval,
      &           betta_t,
      &           chem_pot,
+     &           chem_pot_old,        
      &           chem_pot_0,
      &           chem_pot_1,
      &           chem_pot_2,

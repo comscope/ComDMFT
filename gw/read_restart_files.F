@@ -256,11 +256,11 @@ c
       include 'mpif.h'
 #endif
       integer :: mpierr
-      integer :: i_len,ind_k,k0,ispin,iatom,ii
+      integer :: i_len,ind_k,k0,ispin,iatom,ii,i_tau,ind_tau
       logical :: oexists
       character*31 :: k0_ch
-      character*31 :: me3_k_ch
-      character*31 :: me3_tau_ch
+c$$$      character*31 :: me3_k_ch
+      character*31 :: tau_ch
       character*3 ubi_l
       integer :: ng(7)
       integer :: nv(7)
@@ -966,15 +966,42 @@ c
         enddo
       endif
       if (ubi .eq. ' gw'.or. ubi .eq. ' qp') then
-        write(me3_k_ch,*)me3_k
-        me3_k_ch = adjustl(me3_k_ch)
-        write(me3_tau_ch,*)me3_tau
-        me3_tau_ch = adjustl(me3_tau_ch)
-        open(3,file=allfile(1:i_len)//'_sig_c_tau_old_'//trim(me3_k_ch)
-     $    //'_'//trim(me3_tau_ch)//'_'//trim(ubi_l)//'.rst',
-     $    status='old',form='unformatted')        
-        read(3) sig_c_tau_old
-        close(3)
+c$$$        write(me3_k_ch,*)me3_k
+c$$$        me3_k_ch = adjustl(me3_k_ch)
+c$$$        write(me3_tau_ch,*)me3_tau
+c$$$  me3_tau_ch = adjustl(me3_tau_ch)
+
+        
+        do ind_k=1,ndim3_k(me3_k+1)
+          k0=n3_mpi_k(me3_k+1)+ind_k
+          write(k0_ch,*)k0
+          k0_ch=adjustl(k0_ch)                      
+          do ind_tau=1,ndim3_tau
+            i_tau=me3_tau*ndim3_tau+ind_tau-1
+            write(tau_ch,*) i_tau            
+            
+            tau_ch=adjustl(tau_ch)            
+            
+c$$$  write(me3_k_ch,*)me3_k
+c$$$  me3_k_ch = adjustl(me3_k_ch)
+c$$$  write(me3_tau_ch,*)me3_tau
+c$$$  me3_tau_ch = adjustl(me3_tau_ch)
+c$$$  do 
+            open(3,file=allfile(1:i_len)//'_sig_c_tau_old_'
+     $        //trim(k0_ch)
+     $        //'_'//trim(tau_ch)//'_'//trim(ubi_l)//'.rst',
+     $        form='unformatted')
+            do ispin=1, nspin_0
+              read(3) sig_c_tau_old(:,:,:,ind_tau,ind_k,ispin)
+            enddo
+            close(3)
+          enddo
+        enddo        
+c$$$        open(3,file=allfile(1:i_len)//'_sig_c_tau_old_'//trim(me3_k_ch)
+c$$$     $    //'_'//trim(me3_tau_ch)//'_'//trim(ubi_l)//'.rst',
+c$$$     $    status='old',form='unformatted')        
+c$$$        read(3) sig_c_tau_old
+c$$$        close(3)
       endif
 
 #ifdef MPI
@@ -1041,12 +1068,12 @@ c
       include 'mpif.h'
 #endif
 c
-      integer :: i_len,ind_k,k0,ispin
+      integer :: i_len,ind_k,k0,ispin,i_tau,ind_tau
       integer :: ii
       integer :: mpierr
       character*31 :: k0_ch
-      character*31 :: me3_k_ch
-      character*31 :: me3_tau_ch
+c$$$      character*31 :: me3_k_ch
+      character*31 :: tau_ch
       character*3  :: ubi_l
       integer :: ng(6)
       integer :: nv(6)
@@ -1191,15 +1218,43 @@ c
       endif
 #endif
       if (ubi .eq. ' gw' .or. (ubi .eq. ' qp')) then
-        write(me3_k_ch,*)me3_k
-        me3_k_ch = adjustl(me3_k_ch)
-        write(me3_tau_ch,*)me3_tau
-        me3_tau_ch = adjustl(me3_tau_ch)
-        open(3,file=allfile(1:i_len)//'_g_full_tau_'//trim(me3_k_ch)
-     $    //'_'//trim(me3_tau_ch)//'_'//trim(ubi_l)//'.rst',
-     $    status='old',form='unformatted')        
-        read(3) g_full
-        close(3)
+
+
+        do ind_k=1,ndim3_k(me3_k+1)
+          k0=n3_mpi_k(me3_k+1)+ind_k
+          write(k0_ch,*)k0
+          k0_ch=adjustl(k0_ch)                      
+          do ind_tau=1,ndim3_tau
+            i_tau=me3_tau*ndim3_tau+ind_tau-1
+            write(tau_ch,*) i_tau            
+            
+            tau_ch=adjustl(tau_ch)            
+            
+c$$$  write(me3_k_ch,*)me3_k
+c$$$  me3_k_ch = adjustl(me3_k_ch)
+c$$$  write(me3_tau_ch,*)me3_tau
+c$$$  me3_tau_ch = adjustl(me3_tau_ch)
+c$$$  do 
+            open(3,file=allfile(1:i_len)//'_g_full_tau_'
+     $        //trim(k0_ch)
+     $        //'_'//trim(tau_ch)//'_'//trim(ubi_l)//'.rst',
+     $        form='unformatted')
+            do ispin=1, nspin_0
+              read(3) g_full(:,:,:,ind_tau,ind_k,ispin)
+            enddo
+            close(3)
+          enddo
+        enddo        
+        
+c$$$        write(me3_k_ch,*)me3_k
+c$$$        me3_k_ch = adjustl(me3_k_ch)
+c$$$        write(me3_tau_ch,*)me3_tau
+c$$$        me3_tau_ch = adjustl(me3_tau_ch)
+c$$$        open(3,file=allfile(1:i_len)//'_g_full_tau_'//trim(me3_k_ch)
+c$$$     $    //'_'//trim(me3_tau_ch)//'_'//trim(ubi_l)//'.rst',
+c$$$     $    status='old',form='unformatted')        
+c$$$        read(3) g_full
+c$$$        close(3)
       endif
 #endif
 

@@ -279,6 +279,7 @@ for ii in range(1,119):
 # Data for element_rmt taken from the species files of Elk 3.1.12
 # for elements 1-104. The data for elements 105-118 are set based
 # on similarity to the lower atomic number elements.
+# The rmt are given in Bohr.
 element_rmt[1]   = 1.4
 element_rmt[2]   = 1.4
 element_rmt[3]   = 1.8
@@ -430,59 +431,59 @@ element_idmd[2]  = [0,1]
 
 element_lmb[3]   = 1
 element_ntle[3]  = [3,1]
-element_augm[3]  = ["LOC","APW","LOC","APW"]
-element_atocc[3] = [2.0,1.0,0.0,0.0]
-element_ptnl[3]  = [1.8,2.8,3.8,2.8]
-element_idmd[3]  = [0,0,1,0]
+element_augm[3]  = ["LOC","APW","LOC", "APW"]
+element_atocc[3] = [2.0,1.0,0.0, 0.0]
+element_ptnl[3]  = [1.8,2.8,3.8, 2.8]
+element_idmd[3]  = [0,0,1, 0]
 
 element_lmb[4]   = 1
 element_ntle[4]  = [2,1]
-element_augm[4]  = ["APW","LOC","APW"]
-element_atocc[4] = [2.0,0.0,0.0]
-element_ptnl[4]  = [2.8,3.8,2.8]
-element_idmd[4]  = [0,1,0]
+element_augm[4]  = ["APW","LOC", "APW"]
+element_atocc[4] = [2.0,0.0, 0.0]
+element_ptnl[4]  = [2.8,3.8, 2.8]
+element_idmd[4]  = [0,1, 0]
 
 element_lmb[5]   = 1
 element_ntle[5]  = [2,2]
-element_augm[5]  = ["APW","LOC","APW","LOC"]
-element_atocc[5] = [2.0,0.0,1.0,0.0]
-element_ptnl[5]  = [2.8,3.8,2.8,3.8]
-element_idmd[5]  = [0,1,0,1]
+element_augm[5]  = ["APW","LOC", "APW","LOC"]
+element_atocc[5] = [2.0,0.0, 1.0,0.0]
+element_ptnl[5]  = [2.8,3.8, 2.8,3.8]
+element_idmd[5]  = [0,1, 0,1]
 
 element_lmb[6]   = 1
 element_ntle[6]  = [2,2]
-element_augm[6]  = ["APW","LOC","APW","LOC"]
-element_atocc[6] = [2.0,0.0,2.0,0.0]
-element_ptnl[6]  = [2.8,3.8,2.8,3.8]
-element_idmd[6]  = [0,1,0,1]
+element_augm[6]  = ["APW","LOC", "APW","LOC"]
+element_atocc[6] = [2.0,0.0, 2.0,0.0]
+element_ptnl[6]  = [2.8,3.8, 2.8,3.8]
+element_idmd[6]  = [0,1, 0,1]
 
 element_lmb[7]   = 1
 element_ntle[7]  = [2,2]
-element_augm[7]  = ["APW","LOC","APW","LOC"]
-element_atocc[7] = [2.0,0.0,3.0,0.0]
-element_ptnl[7]  = [2.8,3.8,2.8,3.8]
-element_idmd[7]  = [0,1,0,1]
+element_augm[7]  = ["APW","LOC", "APW","LOC"]
+element_atocc[7] = [2.0,0.0, 3.0,0.0]
+element_ptnl[7]  = [2.8,3.8, 2.8,3.8]
+element_idmd[7]  = [0,1, 0,1]
 
 element_lmb[8]   = 1
 element_ntle[8]  = [2,2]
-element_augm[8]  = ["APW","LOC","APW","LOC"]
-element_atocc[8] = [2.0,0.0,4.0,0.0]
-element_ptnl[8]  = [2.8,3.8,2.8,3.8]
-element_idmd[8]  = [0,1,0,1]
+element_augm[8]  = ["APW","LOC", "APW","LOC"]
+element_atocc[8] = [2.0,0.0, 4.0,0.0]
+element_ptnl[8]  = [2.8,3.8, 2.8,3.8]
+element_idmd[8]  = [0,1, 0,1]
 
 element_lmb[9]   = 1
 element_ntle[9]  = [2,2]
-element_augm[9]  = ["APW","LOC","APW","LOC"]
-element_atocc[9] = [2.0,0.0,5.0,0.0]
-element_ptnl[9]  = [2.8,3.8,2.8,3.8]
-element_idmd[9]  = [0,1,0,1]
+element_augm[9]  = ["APW","LOC", "APW","LOC"]
+element_atocc[9] = [2.0,0.0, 5.0,0.0]
+element_ptnl[9]  = [2.8,3.8, 2.8,3.8]
+element_idmd[9]  = [0,1, 0,1]
 
 element_lmb[10]   = 1
 element_ntle[10]  = [2,2]
-element_augm[10]  = ["APW","LOC","APW","LOC"]
-element_atocc[10] = [2.0,0.0,6.0,0.0]
-element_ptnl[10]  = [2.8,3.8,2.8,3.8]
-element_idmd[10]  = [0,1,0,1]
+element_augm[10]  = ["APW","LOC", "APW","LOC"]
+element_atocc[10] = [2.0,0.0, 6.0,0.0]
+element_ptnl[10]  = [2.8,3.8, 2.8,3.8]
+element_idmd[10]  = [0,1, 0,1]
 
 element_lmb[11]   = 1
 element_ntle[11]  = [3,2]
@@ -675,10 +676,10 @@ element_idmd[37]  = [0,0,1, 0,1, 0,1]
 
 element_lmb[38]   = 2
 element_ntle[38]  = [3,2,2]
-element_augm[38]  = ["LOC","APW","LOC", "APW","LOC", "APW","LOC"]
+element_augm[38]  = ["LOC","APW","LOC", "LOC","APW", "LOC","APW"]
 element_atocc[38] = [2.0,2.0,0.0, 6.0,0.0, 10.0,0.0]
 element_ptnl[38]  = [4.8,5.8,6.8, 4.8,5.8, 3.8,4.8]
-element_idmd[38]  = [0,0,1, 0,1, 0,1]
+element_idmd[38]  = [0,0,1, 0,0, 0,0]
 
 element_lmb[39]   = 2
 element_ntle[39]  = [3,2,2]
@@ -735,6 +736,14 @@ element_augm[46]  = ["LOC","APW","LOC", "APW","LOC", "APW","LOC"]
 element_atocc[46] = [2.0,1.0,0.0, 6.0,0.0, 9.0,0.0]
 element_ptnl[46]  = [4.8,5.8,6.8, 4.8,5.8, 4.8,5.8]
 element_idmd[46]  = [0,0,1, 0,1, 0,1]
+
+#Maybe the basis below is better for Ag
+#element_lmb[47]   = 2
+#element_ntle[47]  = [3,2,2]
+#element_augm[47]  = ["LOC","LOC","APW", "LOC","APW", "LOC","APW"]
+#element_atocc[47] = [2.0,1.0,0.0, 6.0,0.0, 10.0,0.0]
+#element_ptnl[47]  = [4.8,5.8,6.8, 4.8,5.8, 4.8,5.8]
+#element_idmd[47]  = [0,0,0, 0,0, 0,0]
 
 element_lmb[47]   = 2
 element_ntle[47]  = [3,2,2]
@@ -885,10 +894,10 @@ element_idmd[67]  = [0,0,1, 0,1, 0,1, 0,1]
 
 element_lmb[68]   = 3
 element_ntle[68]  = [3,2,2,2]
-element_augm[68]  = ["LOC","APW","LOC", "APW","LOC", "APW","LOC", "APW","LOC"]
+element_augm[68]  = ["LOC","APW","LOC", "APW","LOC", "APW","LOC", "LOC","APW"]
 element_atocc[68] = [2.0,2.0,0.0, 6.0,0.0, 1.0,0.0, 11.0,0.0]
 element_ptnl[68]  = [5.8,6.8,7.8, 5.8,6.8, 5.8,6.8, 4.8,5.8]
-element_idmd[68]  = [0,0,1, 0,1, 0,1, 0,1]
+element_idmd[68]  = [0,0,1, 0,1, 0,1, 0,0]
 
 element_lmb[69]   = 3
 element_ntle[69]  = [3,2,2,2]
@@ -1149,8 +1158,12 @@ def parse_arguments():
     prs = ArgumentParser()
     prs.add_argument("--version",action='version',
                      version=versionstr)
-    prs.add_argument("-m","--method",dest="method",help="the method to run, default is qp",
+    prs.add_argument("-m","--method",dest="method",help="The method to run, default is qp",
                      default="qp",choices=["dft","hf","gw","qp"])
+    prs.add_argument("--code",dest="code",help="The code suite to generate inputs for",
+                     default="comsuite",choices=["comsuite","elk","wien2k"])
+    prs.add_argument("--cell",dest="cell",help="The kind of unit cell to use",
+                     default="primitive",choices=["primitive","conventional"])
     prs.add_argument("--dft-it",dest="dftit",type=int,
                      help="The modified number of DFT iterations")
     prs.add_argument("--hf-it",dest="hfit",type=int,
@@ -1159,14 +1172,16 @@ def parse_arguments():
                      help="The modified number of GW iterations")
     prs.add_argument("--qp-it",dest="qpit",type=int,
                      help="The modified number of QP iterations")
-    prs.add_argument("-k","--Kmax",dest="Kmax",help="the planewave cutoff",
+    prs.add_argument("-k","--Kmax",dest="Kmax",help="The planewave cutoff",
                      default="0")
-    prs.add_argument("-r","--restart",help="restart an old calculation",
+    prs.add_argument("-r","--restart",help="Restart an old calculation",
                      action="store_true",default=False)
     prs.add_argument('--band',dest="band",default='Y',choices=['Y','N'],
-                     help="generate bandstructure data")
+                     help="Generate bandstructure data")
     prs.add_argument('--dos',dest="dos",default='Y',choices=['Y','N'],
-                     help="generate DOS data")
+                     help="Generate DOS data")
+    prs.add_argument('-T','--temperature',dest="temperature",default=1000.0,type=float,
+                     help="The temperature (K), the default is 1000.0 K")
     prs.add_argument("ciffile",help="the ciffile of the input structure")
     args = prs.parse_args()
     return args
@@ -1263,6 +1278,55 @@ def establish_method(ini_struct,method):
         print(error)
     return ini_struct
 
+def rkm_fact(ielm):
+    """
+    Following the Wien2K scheme for the muffin-tin radius adjustment.
+    These factors are used to compute the relative size of two atoms.
+    I.e. for a pair of atoms of ielm and jelm separated by a distance
+    D (and Radius(ielm)+Radius(jelm) > D) then the new radii are 
+    computed as
+
+      Radius(ielm) = 0.5*(1+(rkm_fact(ielm)-rkm_fact(jelm))*0.005)*D
+      Radius(jelm) = 0.5*(1-(rkm_fact(ielm)-rkm_fact(jelm))*0.005)*D
+
+    This function returns the rkm_fact factors that Wien2K uses.
+    See Wien2K setrmt_lapw for details.
+    """
+    if ielm == 3 or ielm == 13 or ielm == 14:
+      # Li, Al, Si
+      return 45.0
+    elif ielm == 4 or ielm == 5:
+      # Be, B
+      return 50.0
+    elif ielm == 6 or ielm == 15:
+      # C, P
+      return 55.0
+    elif ielm == 7 or ielm == 16:
+      # N, S
+      return 60.0
+    elif (ielm == 8 or (ielm >= 11 and ielm <= 13) or ielm == 17 or 
+          ielm == 19 or ielm == 20 or ielm == 37 or ielm == 38 or
+          ielm == 55 or ielm == 56):
+      # O, Na, Mg, Cl, K, Ca, Rb, Sr, Cs, Ba
+      return 65.0
+    elif ielm == 9:
+      # F
+      return 70.0
+    elif ((ielm >= 21 and ielm <= 24) or (ielm >= 39 and ielm <= 42) or
+          (ielm >= 31 and ielm <= 35)):
+      # Sc-Cr, Ga-Br, Y-Mo
+      return 75.0
+    elif ((ielm >= 25 and ielm <= 30) or (ielm >= 44 and ielm <= 53) or 
+          ielm == 57 or ielm == 58 or (ielm >= 72 and ielm <= 75)):
+      # Mn-Zn, Ru-I, La, Ce, Hf-Re
+      return 80.0
+    elif ((ielm >= 59 and ielm <= 71) or (ielm >= 76 and ielm <= 85) or
+          (ielm >= 87 and ielm <= 118)):
+      # Pr-Lu, Os-At, Fr-Og
+      return 85.0
+    else:
+      return 60.0
+
 def establish_mt_radii(ini_struct):
     """
     Takes the elements of the sites, the radii stored in element_rmt,
@@ -1315,11 +1379,11 @@ def establish_mt_radii(ini_struct):
                 nmj = chemical_chrg[elj]
                 rmj = element_rmt[nmj]
                 if rmi+rmj > rr:
+                    fi = rkm_fact(nmi)
+                    fj = rkm_fact(nmj)
+                    rmi = 0.5*(1.0+(fi-fj)*0.005)*rr
+                    rmj = 0.5*(1.0-(fi-fj)*0.005)*rr
                     scale = rr/(rmi+rmj)
-                else:
-                    scale = 1.0
-                rmi = scale*rmi
-                rmj = scale*rmj
                 if nmi in element_rad:
                     element_rad[nmi] = min(element_rad[nmi],rmi)
                 else:
@@ -1443,6 +1507,7 @@ def establish_r_grid(ini_struct):
     """
     Vcel  = ini_struct["cell_volume"]
     Vatm  = ini_struct["atoms_volume"]
+    SpGr  = ini_struct["spacegroup"]
     pfac  = Vatm/Vcel  # packing factor
     scale = 1.0
     if pfac < 0.3:
@@ -1460,18 +1525,62 @@ def establish_r_grid(ini_struct):
     c     = sqrt(c[0]*c[0]+c[1]*c[1]+c[2]*c[2])
     mdiv  = []
     nrdiv = []
-    nr    = 2*int(ceil(scale*r43*Kmax/pi*a))
-    mdiv.append(nr)
-    nr    = 2*int(ceil(scale*r43*Kmax/pi*b))
-    mdiv.append(nr)
-    nr    = 2*int(ceil(scale*r43*Kmax/pi*c))
-    mdiv.append(nr)
-    nr    = 2*int(ceil(scale*Kmax/pi*a))
-    nrdiv.append(nr)
-    nr    = 2*int(ceil(scale*Kmax/pi*b))
-    nrdiv.append(nr)
-    nr    = 2*int(ceil(scale*Kmax/pi*c))
-    nrdiv.append(nr)
+    mra   = 2*int(ceil(scale*r43*Kmax/pi*a))
+    mrb   = 2*int(ceil(scale*r43*Kmax/pi*b))
+    mrc   = 2*int(ceil(scale*r43*Kmax/pi*c))
+    nra   = 2*int(ceil(scale*Kmax/pi*a))
+    nrb   = 2*int(ceil(scale*Kmax/pi*b))
+    nrc   = 2*int(ceil(scale*Kmax/pi*c))
+    #
+    maxplw = 400000
+    l1     = 2*nra+8
+    l2     = 2*nrb+8
+    l3     = 2*nrc+8
+    pi     = acos(-1.0)
+    # pi/6 comes from dividing the volume of a sphere by the volume of a
+    # cube with a side equal to the sphere diameter
+    numplw = (2*l1+1)*(2*l2+1)*(2*l3+1)*(pi/6.0)
+    while numplw > maxplw:
+        #
+        # The maxplw parameter in GW set_control.F sets an upper limit 
+        # on the number of plane waves. If the mdiv number of grid points
+        # exceed this limit the calculation will crash with the error
+        # messages:
+        #
+        #    ERROR from GETPLW : In sphere    0.0000 generated      0 vectors
+        #
+        # one should either increase maxplw in the code or reduce the 
+        # the number of grid points. In this script the only intervention
+        # we can enforce is to reduce the number of grid points, which is 
+        # done here.
+        #
+        fac    = (float(maxplw)/float(numplw))**(1.0/3.0)
+        nra    = int(nra*fac)
+        nrb    = int(nrb*fac)
+        nrc    = int(nrc*fac)
+        l1     = 2*nra+8
+        l2     = 2*nrb+8
+        l3     = 2*nrc+8
+        numplw = (2*l1+1)*(2*l2+1)*(2*l3+1)*(pi/6.0)
+    #
+    if SpGr == 166:
+        #
+        # The number of grid points along all lattice vectors has to
+        # be the same to ensure that the realspace grid is 
+        # commensurate with the space group symmetry.
+        #
+        mra = min(mra,mrb,mrc)
+        mrb = mra
+        mrc = mra
+        nra = min(nra,nrb,nrc)
+        nrb = nra
+        nrc = nra
+    mdiv.append(mra)
+    mdiv.append(mrb)
+    mdiv.append(mrc)
+    nrdiv.append(nra)
+    nrdiv.append(nrb)
+    nrdiv.append(nrc)
     ini_struct["mdiv"]  = mdiv
     ini_struct["nrdiv"] = nrdiv
     return ini_struct
@@ -1602,7 +1711,7 @@ def write_inifile(ini_struct,inifile):
         restart="T"
     else:
         restart="F"
-    inifile.write("          temperature=   1000.00  restart=%s\n" % restart)
+    inifile.write("          temperature=%10.2f  restart=%s\n" % (ini_struct["temperature"],restart))
     inifile.write("FILES\n")
     inifile.write("  allfile=mdl\n")
     if True:
@@ -1720,7 +1829,7 @@ def write_inifile(ini_struct,inifile):
     inifile.write("DOS   emindos=-15.000  emaxdos= 15.000   ndos=  800\n")
     inifile.write("      n_cont_frac=  30 e_small=2.e-02\n")
     inifile.write("      dos=%s           bandstructure=%s\n" % (dos,band))
-    inifile.write("K_POINT  ndiv=   4   4   4  metal=T n_k_div=  9 k_line=010\n")
+    inifile.write("K_POINT  ndiv=   4   4   4  metal=T n_k_div= 27 k_line=010\n")
     inifile.write("MULTI_SCF vv0=  1.00\n")
     inifile.write("MAGNET  b_extval=   0.000000 iter_h_ext=0000100\n")
     inifile.write("        b_ext=  0.000  0.000  1.000\n")
@@ -1747,7 +1856,7 @@ def write_inifile(ini_struct,inifile):
                 print(error)
             number = chemical_chrg[symbol]
             smt    = element_rad[number]*rmt_reduce
-            inifile.write("  txtel=%s   z=%5.1f magn_shift= 0.000\n" %
+            inifile.write("  txtel=%s   z=%5.1f magn_shift= 0.050\n" %
                           (symb2,float(number)))
             inifile.write("  smt=%8.5f h= 0.0120 nrad= 1216 z_dop=0.000\n" % 
                           smt)
@@ -1815,6 +1924,30 @@ def write_kpathfile(ini_struct,kpathfile):
         kpathfile.write("%s %12.8f %12.8f %12.8f\n" %
                         (point0,kpoint0[0],kpoint0[1],kpoint0[2]))
 
+def write_plot1dfile(ini_struct,plot1dfile):
+    """
+    Take a dictionary with all the relevant information for the
+    structure, extract the Kpath, and write the data to the
+    plot1dfile for the Elk code.
+    """
+    kpath = ini_struct["kpath"]
+    if not kpath:
+        raise ValueError("None is an invalid value")
+    kpoints = kpath["kpoints"]
+    temp = itertools.chain.from_iterable(kpath["path"])
+    path = []
+    for point in temp:
+        path.append(point)
+    length = len(path)
+    plot1dfile.write("plot1d\n")
+    plot1dfile.write("  %d\n" % length)
+    plot1dfile.write("  200\n")
+    for ii in range(0,length):
+        point = str(path[ii])
+        kpoint = kpoints[point]
+        plot1dfile.write("%12.8f %12.8f %12.8f\n" %
+                        (kpoint[0],kpoint[1],kpoint[2]))
+
 def write_kpointfile(ini_struct,kpointfile):
     """
     Take a dictionary with all the relevant information for the
@@ -1833,6 +1966,44 @@ def write_kpointfile(ini_struct,kpointfile):
         point  = str.replace(point,"\\Sigma","s")
         kpointfile.write("  %12.8f %12.8f %12.8f   %s\n" %
                          (kpoint[0],kpoint[1],kpoint[2],point))
+
+def write_klistfile(ini_struct,kpointfile):
+    """
+    Take a dictionary with all the relevant information for the
+    structure, extract the Kpoints, and write the data to the
+    Wien2k klistfile.
+
+    The Wien2K klist format is special in that the k-points are
+    given in terms of integers instead of fractional coordinates.
+    So we need to convert all fractional coordinates of each
+    k-point to integers first.
+    """
+    import fractions
+    if not ini_struct["kpoints"]:
+        raise ValueError("None is an invalid value")
+    (kpoints,kpath) = ini_struct["kpoints"]
+    length = len(kpath)
+    for ii in range(0,length):
+        point  = str(kpath[ii])
+        kpoint = kpoints[ii]
+        fracx  = fractions.Fraction.from_float(kpoint[0]).limit_denominator(10000)
+        fracy  = fractions.Fraction.from_float(kpoint[1]).limit_denominator(10000)
+        fracz  = fractions.Fraction.from_float(kpoint[2]).limit_denominator(10000)
+        idv    = fracx.denominator
+        if fracy.denominator != fracx.denominator:
+            idv *= fracy.denominator
+        if (fracz.denominator != fracy.denominator and 
+            fracz.denominator != fracx.denominator):
+            idv *= fracz.denominator
+        point = str.replace(point,"\\Gamma","G")
+        # Cannot replace Sigma with S because S is already taken
+        point = str.replace(point,"\\Sigma","s")
+        isx   = int(kpoint[0]*idv+0.5)
+        isy   = int(kpoint[1]*idv+0.5)
+        isz   = int(kpoint[2]*idv+0.5)
+        kpointfile.write("%-10s%5d%5d%5d%5d%5.2f%5.2f%5.2f%3s\n" %
+                         (point,isx,isy,isz,idv,2.0,0.0,0.0,"   "))
+    kpointfile.write("END\n")
 
 def any2utf8(infile):
     """
@@ -1897,58 +2068,11 @@ def any2utf8(infile):
     #
     return outfile
 
-    
-def execute_with_arguments(args):
+def write_comsuite(ini):
     """
-    Run the input generator for the method and ciffile as specified by the 
-    command line arguments.
+    Take the input data and generate the input files for the Comsuite of
+    programs.
     """
-    #
-    # Convert data from CifFile to MatDeLab.ini
-    #
-    tmpfile = any2utf8(args.ciffile)
-    struct = cif2matdelab.structure(tmpfile)
-    struct.prints()
-    Kmax   = float(args.Kmax)
-    method = str(args.method)
-    ini = {}
-    ini["par"] = 1.0
-    ini["b_a"] = 1.0
-    ini["c_a"] = 1.0
-    ini["restart"] = args.restart
-    ini["band"]    = (args.band == 'Y')
-    ini["dos"]     = (args.dos  == 'Y')
-    ini = cif2matdelab.retr_cell_volume(struct,ini)
-    ini = cif2matdelab.retr_lattice_vecs(struct,ini)
-    ini = cif2matdelab.retr_sites(struct,ini)
-    ini = cif2matdelab.retr_distance_matrix(struct,ini)
-    ini = cif2matdelab.retr_lattice_type(struct,ini)
-    if True:
-        ini = cif2matdelab.retr_symmetry_generators(struct,ini)
-    else:
-        ini = cif2matdelab.retr_symmetry_operations(struct,ini)
-    ini = cif2matdelab.retr_kpath(struct,ini)
-    ini = cif2matdelab.retr_kpoints(struct,ini)
-    #
-    # Convert some data items into useful information
-    #
-    ini = translate_elements(ini)
-    ini = establish_mt_radii(ini)
-    ini = establish_atoms_volume(ini)
-    ini = establish_Kmin(ini)
-    ini = establish_Kmax(ini,Kmax=Kmax)
-    ini = establish_r_grid(ini)
-    ini = establish_lmax(ini)
-    ini = establish_method(ini,method)
-    if args.dftit:
-        ini["iter_dft"] = args.dftit
-    if args.hfit:
-        ini["iter_hf"]  = args.hfit
-    if args.gwit:
-        ini["iter_gw"]  = args.gwit
-    if args.qpit:
-        ini["iter_qp"]  = args.qpit
-    ini = expand_atomic_basis(ini)
     #
     # Create an .ini file for data of <key> structure
     #
@@ -1958,13 +2082,10 @@ def execute_with_arguments(args):
     # Write MatDeLab.ini
     #
     write_inifile(ini,inifile)
-
-    inifile.close()    
-
     #
     # Close .ini file
     #
-
+    inifile.close()    
     #
     # Create an .kpath file for data of <key> structure
     #
@@ -1993,6 +2114,393 @@ def execute_with_arguments(args):
     except ValueError:
         kpointfile.close()
         os.remove(filename)
+
+def unique_species(ini_struct):
+    """
+    Return the list of different chemical elements there are in the
+    current structure.
+    """
+    natom = ini_struct["natom"]
+    elmlist = []
+    for ii in range(0,natom):
+        symbol = ini_struct["symbol"][ii]
+        if not symbol in elmlist:
+            elmlist.append(symbol)
+    return elmlist
+
+def write_elkfile(ini_struct,elkfile):
+    """
+    Take a dictionary with all the relevant input settings and write an
+    input file for the Elk program.
+    """
+    elkfile.write("tasks\n")
+    elkfile.write("  0\n")
+    if ini_struct["dos"]:
+        elkfile.write("  10\n")
+    if ini_struct["band"]:
+        elkfile.write("  20\n")
+        elkfile.write("  21\n")
+    elkfile.write("\n")
+    elkfile.write("isgkmax\n")
+    elkfile.write("  -3\n")
+    elkfile.write("\n")
+    elkfile.write("spinpol\n")
+    elkfile.write("  .true.\n")
+    elkfile.write("\n")
+    if ini_struct["dos"] or ini_struct["band"]:
+        # vhighq seems rather expensive to run, maybe highq is good enough
+        elkfile.write("highq\n")
+        elkfile.write("  .true.\n")
+        elkfile.write("\n")
+    elkfile.write("tempk\n")
+    elkfile.write("  %s\n" % ini_struct["temperature"])
+    elkfile.write("\n")
+    elkfile.write("scale\n")
+    elkfile.write("  %11.7f\n" % ini_struct["par"])
+    elkfile.write("\n")
+    elkfile.write("avec\n")
+    elkfile.write("  %21.16f %21.16f %21.16f\n" % ini_struct["a"])
+    elkfile.write("  %21.16f %21.16f %21.16f\n" % ini_struct["b"])
+    elkfile.write("  %21.16f %21.16f %21.16f\n" % ini_struct["c"])
+    elk_species_path = os.environ.get('ELK_SPECIES_PATH')
+    if not elk_species_path:
+        error = "Environment variable ELK_SPECIES_PATH not set"
+        elk_species_path = "."
+        print(error)
+    elkfile.write("\n")
+    elkfile.write("atoms\n")
+    natom = ini_struct["natom"]
+    elmlist = unique_species(ini_struct)
+    nelm = len(elmlist)
+    elkfile.write("  %d\n" % nelm)
+    for element in elmlist:
+        elmname = element.strip()
+        elmname = elmname.capitalize()
+        elkfile.write("  '%s.in'\n" % (elk_species_path + "/" + elmname) )
+        elkfile.write("  %d\n" % ini_struct["symbol"].count(element) )
+        for ii in range(0,natom):
+            symbol = ini_struct["symbol"][ii]
+            if element == symbol:
+                elkfile.write("  %21.16f %21.16f %21.16f 0.0 0.0 0.0\n" % (ini_struct["xcoord"][ii],ini_struct["ycoord"][ii],ini_struct["zcoord"][ii]))
+    elkfile.write("\n")
+    elkfile.write("nempty\n")
+    if ini_struct["dos"] or ini_struct["band"]:
+        elkfile.write("  30\n")
+    else:
+        elkfile.write("  5\n")
+    elkfile.write("\n")
+    elkfile.write("ngridk\n")
+    elkfile.write("  %d %d %d\n" % (ini_struct["mdiv"][0],ini_struct["mdiv"][1],ini_struct["mdiv"][2]))
+    elkfile.write("\n")
+    try:
+        write_plot1dfile(ini_struct,elkfile)
+    except ValueError:
+        pass
+
+def write_elk(ini):
+    """
+    Take the input data and generate the input files for the Elk
+    program.
+    """
+    #
+    # Create an .ini file for data of <key> structure
+    #
+    filename = "elk.in"
+    elkfile = open(filename,'w')
+    #
+    # Write elk.in
+    #
+    write_elkfile(ini,elkfile)
+    #
+    # Close elk.in file
+    #
+    elkfile.close()    
+    #
+    # Create an .kpoint file for data of <key> structure
+    #
+    filename = "kpoints"
+    kpointfile = open(filename,'w')
+    #
+    # Write MatDeLab.kpath
+    #
+    try:
+        write_kpointfile(ini,kpointfile)
+        kpointfile.close()
+    except ValueError:
+        kpointfile.close()
+        os.remove(filename)
+
+def write_wien2k(ini):
+    """
+    Take the input data and generate the input files for Wien2K 
+    package.
+    """
+    import sys
+    import subprocess
+    case = ini["cif"].split(".")[0]
+    case_st2 = case+".struct"
+    case_st1 = case_st2+"_st"
+    case_st3 = "/tmp/"+case_st2
+    make_struct = []
+    make_struct.append("cif2struct")
+    make_struct.append("/tmp/"+os.path.basename(ini["cif"]))
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    make_struct = []
+    make_struct.append("cp")
+    make_struct.append(case_st3)
+    make_struct.append(case_st2)
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    make_struct = []
+    make_struct.append("x")
+    make_struct.append("symmetry")
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    make_struct = []
+    make_struct.append("cp")
+    make_struct.append(case_st1)
+    make_struct.append(case_st2)
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    #
+    # Run setrmt_lapw to choose the muffin tin radii.
+    # The -r flag specifies the percentage reduction of the radii from
+    # the just-touching radii. This is a REQUIRED flag because 
+    # setrmt_lapw rounds the radii after calculating them to 2 decimal
+    # places. The test whether the spheres are overlapping uses at
+    # least 5 decimal places. Hence, if the spheres are not reduced
+    # the rounding of the radii may cause the non-overlapping requirement
+    # to be violated, and the calculation will abort!
+    #
+    # - setrmt_lapw case -r 3
+    #
+    case_st2 = case+".struct"
+    case_st1 = case_st2+"_setrmt"
+    make_struct = []
+    make_struct.append("setrmt_lapw")
+    make_struct.append(case)
+    make_struct.append("-r")
+    make_struct.append("3")
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    #
+    make_struct = []
+    make_struct.append("cp")
+    make_struct.append(case_st1)
+    make_struct.append(case_st2)
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+
+    case_ins = case+".inst"
+    make_struct = []
+    make_struct.append("rm")
+    make_struct.append("-f")
+    make_struct.append(case_ins)
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    make_struct = []
+    make_struct.append("instgen_lapw")
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    make_struct = []
+    make_struct.append("x")
+    make_struct.append("lstart")
+    process = subprocess.Popen(make_struct,stdin=subprocess.PIPE)
+    outs,errs = process.communicate(bytes("5\n-6.0\n","utf-8"))
+    case_in2 = case+".in0"
+    case_in1 = case_in2+"_st"
+    make_struct = []
+    make_struct.append("cp")
+    make_struct.append(case_in1)
+    make_struct.append(case_in2)
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    case_in2 = case+".in1"
+    case_in1 = case_in2+"_st"
+    make_struct = []
+    make_struct.append("cp")
+    make_struct.append(case_in1)
+    make_struct.append(case_in2)
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    case_in2 = case+".vsp"
+    case_in1 = case_in2+"_st"
+    make_struct = []
+    make_struct.append("cp")
+    make_struct.append(case_in1)
+    make_struct.append(case_in2)
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    case_in3 = case+".in2"
+    case_in1 = case_in3+"_ls"
+    case_in2 = case_in3+"_sy"
+    #make_struct = []
+    #make_struct.append("cat")
+    #make_struct.append(case_in1)
+    #make_struct.append(case_in2)
+    #make_struct.append(">")
+    #make_struct.append(case_in3)
+    line = "cat "+str(case_in1)+" "+str(case_in2)+" > "+str(case_in3)
+    result = subprocess.run(line,shell=True)
+    #if sys.version_info.major==3:
+    #    result = result.decode()
+    #
+    # If Wien2K thinks there is no inversion symmetry the code needs 
+    # .in1c and .in2c files instead of .in1 and .in2 files. 
+    # To generate the former files just copy the latter.
+    #
+    # - cp case.in1 case.in1c
+    #
+    case_in1 = case+".in1"
+    case_in2 = case_in1+"c"
+    make_struct = []
+    make_struct.append("cp")
+    make_struct.append(case_in1)
+    make_struct.append(case_in2)
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    #
+    # - cp case.in2 case.in2c
+    #
+    case_in1 = case+".in2"
+    case_in2 = case_in1+"c"
+    make_struct = []
+    make_struct.append("cp")
+    make_struct.append(case_in1)
+    make_struct.append(case_in2)
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    #
+    make_struct = []
+    make_struct.append("x")
+    make_struct.append("kgen")
+    process = subprocess.Popen(make_struct,stdin=subprocess.PIPE)
+    line = "0\n"+str(ini["mdiv"][0])+" "+str(ini["mdiv"][1])+" "+str(ini["mdiv"][2])+"\n0"
+    print("line = %s\n" % line)
+    outs,errs = process.communicate(bytes(line,"utf-8"))
+    make_struct = []
+    make_struct.append("x")
+    make_struct.append("dstart")
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    #
+    case_in2 = case+".inm"
+    case_in1 = case_in2+"_st"
+    make_struct = []
+    make_struct.append("cp")
+    make_struct.append(case_in1)
+    make_struct.append(case_in2)
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    case_in2 = case+".inc"
+    case_in1 = case_in2+"_st"
+    make_struct = []
+    make_struct.append("cp")
+    make_struct.append(case_in1)
+    make_struct.append(case_in2)
+    result = subprocess.check_output(make_struct)
+    if sys.version_info.major==3:
+        result = result.decode()
+    #
+    # Create the .klist_band file
+    #
+    case_in1 = case+".klist_band"
+    klist_file = open(case_in1,"w")
+    try:
+        write_klistfile(ini,klist_file)
+        klist_file.close()
+    except ValueError:
+        klist_file.close()
+        os.remove(case_in1)
+
+    
+def execute_with_arguments(args):
+    """
+    Run the input generator for the method and ciffile as specified by the 
+    command line arguments.
+    """
+    #
+    # Convert data from CifFile to MatDeLab.ini
+    #
+    cell    = str(args.cell)
+    tmpfile = any2utf8(args.ciffile)
+    struct  = cif2matdelab.structure(tmpfile,cell)
+    struct.struct.to(fmt="cif",filename="/tmp/"+os.path.basename(str(args.ciffile)))
+    struct.prints()
+    Kmax   = float(args.Kmax)
+    method = str(args.method)
+    code   = str(args.code)
+    ini = {}
+    ini["cif"] = args.ciffile
+    ini["par"] = 1.0
+    ini["b_a"] = 1.0
+    ini["c_a"] = 1.0
+    ini["restart"] = args.restart
+    ini["band"]    = (args.band == 'Y')
+    ini["dos"]     = (args.dos  == 'Y')
+    ini = cif2matdelab.retr_cell_volume(struct,ini)
+    ini = cif2matdelab.retr_lattice_vecs(struct,ini)
+    ini = cif2matdelab.retr_sites(struct,ini)
+    ini = cif2matdelab.retr_distance_matrix(struct,ini)
+    ini = cif2matdelab.retr_lattice_type(struct,ini)
+    if True:
+        ini = cif2matdelab.retr_symmetry_generators(struct,ini)
+    else:
+        ini = cif2matdelab.retr_symmetry_operations(struct,ini)
+    ini = cif2matdelab.retr_kpath(struct,ini)
+    ini = cif2matdelab.retr_kpoints(struct,ini)
+    ini = cif2matdelab.retr_spacegroup_number(struct,ini)
+    #
+    # Convert some data items into useful information
+    #
+    ini = translate_elements(ini)
+    ini = establish_mt_radii(ini)
+    ini = establish_atoms_volume(ini)
+    ini = establish_Kmin(ini)
+    ini = establish_Kmax(ini,Kmax=Kmax)
+    ini = establish_r_grid(ini)
+    ini = establish_lmax(ini)
+    ini = establish_method(ini,method)
+    if args.dftit!=None:
+        ini["iter_dft"] = args.dftit
+    if args.hfit!=None:
+        ini["iter_hf"]  = args.hfit
+    if args.gwit!=None:
+        ini["iter_gw"]  = args.gwit
+    if args.qpit!=None:
+        ini["iter_qp"]  = args.qpit
+    if args.temperature:
+        ini["temperature"]  = args.temperature
+    ini = expand_atomic_basis(ini)
+    #
+    # Create input files
+    #
+    if code == "comsuite":
+        write_comsuite(ini)
+    elif code == "elk":
+        write_elk(ini)
+    elif code == "wien2k":
+        write_wien2k(ini)
+    else:
+        error = "Unknown code suite: "+code+" No input files generated"
+        print(error)
+        
 
 
 def main():

@@ -42,7 +42,8 @@ c      endif
 
 c      open(179, file=trim(ch))
 c      open(180, file=trim(chbk))
-c      write(179,*)'bkk-test',me
+c     write(179,*)'bkk-test',me
+
       iun=993
       if(maswrk) then
         open(iun,file='OUT')
@@ -78,6 +79,8 @@ c      write(179,*)'bkk-test',me
       call read_chemical_potential_rst
       call read_wfn_effhf_rst
 #endif
+
+
       call wannier_interface
 c      close(179)
 c      close(180)
@@ -85,5 +88,8 @@ c      close(180)
         close(iun)
 
       endif
+      deallocate(bound_radfun)
+      deallocate(bound_radfun_overlap)
+      deallocate(bound_radfun_coeff)
       call ending_qft
       end

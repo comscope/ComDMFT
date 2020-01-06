@@ -1,0 +1,58 @@
+{
+    "basis": {
+        "orbitals": "d",
+        "transformation": [ 
+            [ 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 ], 
+            [ 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 ], 
+            [ 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 ], 
+            [ 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 ], 
+            [ 0, 0, 0, 0, 0, 0, 1, 0, 0, 0 ], 
+            [ 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 ] ],
+        "type": "product"
+    },
+
+    "hloc": {
+        "one body": [ 
+            [ -2.4619712, 0, 0, 0, 0, 0 ], 
+            [ 0, -2.4619712, 0, 0, 0, 0 ], 
+            [ 0, 0, -2.4619712, 0, 0, 0 ], 
+            [ 0, 0, 0, -2.4619712, 0, 0 ], 
+            [ 0, 0, 0, 0, -2.4619712, 0 ], 
+            [ 0, 0, 0, 0, 0, -2.4619712 ] ],
+        "two body": {
+            "F0": 1.7037974683544304, 
+            "F2": 2.2329113924050636, 
+            "F4": 1.3955696202531649, 
+            "approximation": "none",
+            "parametrisation": "slater-condon"
+        }
+    },
+
+    "quantum numbers": {
+        "Sz": {}
+    },
+
+    "hybridisation": {
+        "functions": "hyb.json",
+        "matrix": [ 
+            [ "1", "", "", "", "", "" ], 
+            [ "", "1", "", "", "", "" ], 
+            [ "", "", "1", "", "", "" ], 
+            [ "", "", "", "1", "", "" ], 
+            [ "", "", "", "", "1", "" ], 
+            [ "", "", "", "", "", "1" ] ]
+    },
+
+    "beta": 100,
+    "mu": 0,
+
+    "green basis": "matsubara",
+    "green matsubara cutoff": 10,
+    
+    "occupation susceptibility": true,
+    "susceptibility cutoff": 50,
+    "susceptibility tail": 200,
+
+    "thermalisation time": 5,
+    "measurement time" : 20 
+}

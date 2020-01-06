@@ -200,7 +200,7 @@ c$$$        read(10,*) num_cell
         read(10,*) gamma_real
         dc_shift=0.0d0
         read(10,*) beta
-        read(10,*) delta_charge !! for one cell
+        read(10,*) delta_charge !! for one cell. system charge
         read(10,*) is_metal
 c$$$        is_metal=1
         is_recal_ef=is_recal_ef*is_metal
@@ -2265,7 +2265,7 @@ c$$$      call flush(179)
      $    +delta_charge
       else
         nelectron=dble(nint(nelectron_dble*num_cell*2))/2.0d0/num_cell
-     $    +delta_charge
+     $    +delta_charge/2.0d0
       endif
       write(iun,'(a, 3f12.6)')
      $  'nelectron in one cell', nelectron_dble, 
@@ -4017,7 +4017,7 @@ c$$$     $    divisionarray
 
       
       integer :: ik,irk,ibnd,jbnd,kbnd,iomega,
-     $  ii,iio,icell,iatom,iorb,jorb
+     $  ii,iio,icell,iatom,iorb,jorb,nspin,ispin
       double precision :: 
      $  n_electron_all
       complex*16 :: 
@@ -4038,89 +4038,82 @@ c$$$     $    divisionarray
         one_matrix_f(ibnd,ibnd)=1.0d0
       enddo
 
+      nspin=1
+      do icell=1, num_cell
+        do iatom=1, num_atom
+          if (iac(iatom,icell) .lt. 0) then
+            nspin=2
+          endif
+        enddo
+      enddo
 
       n_matrix=0.0d0
 
       do ik=1, ndim_kk_co(me1)
         irk=n_mpi_kk_co(me1)+ik
 
-
-        g_lat_inv_co=0.0d0        
-        do iomega=1,n_omega
-
-          do ibnd=1, num_wancell
-            g_lat_inv_co(ibnd,ibnd,iomega)=frequency(iomega)
-          enddo          
-          g_lat_inv_co(:,:,iomega)=
-     $      g_lat_inv_co(:,:,iomega)-h_nonint_co(:,:,ik)          
+        do ispin=1, nspin
           
+          g_lat_inv_co=0.0d0        
+          do iomega=1,n_omega
+            
+            do ibnd=1, num_wancell
+              g_lat_inv_co(ibnd,ibnd,iomega)=frequency(iomega)
+            enddo
+            
+            g_lat_inv_co(:,:,iomega)=
+     $        g_lat_inv_co(:,:,iomega)-h_nonint_co(:,:,ik)          
+            
 !     embeding self-energy term:E(Sigma-DC)
-          
-          do icell=1, num_cell
-            do iatom=1, num_atom
-              ii=iac(iatom,icell)
-              mat_loc_ackw=0.0d0
-              do iorb=1, num_orb(iatom)
-                do jorb=1, num_orb(iatom)
-                  iio=ioac(iorb,jorb,ii)
-                  if (iio .ne. 0) then
-                    mat_loc_ackw(iorb,jorb)
-     $                =mat_loc_ackw(iorb,jorb)
-     $                +sig(iio,ii,iomega)
-     $                -dc(iio,ii)
-                  endif
-                  
-                  if (iorb .eq. jorb) then
-                    mat_loc_ackw(iorb,jorb)
-     $                =mat_loc_ackw(iorb,jorb)                    
-     $                -dcmplx(0.0d0, gamma_selfenergy) ! add broadening
-                  endif
+            
+            do icell=1, num_cell
+              do iatom=1, num_atom
+
+                if (ispin .eq. 1) then
+                  ii= iac(iatom,icell)
+                else
+                  ii=-iac(iatom,icell)
+                endif
+                mat_loc_ackw=0.0d0
+                do iorb=1, num_orb(iatom)
+                  do jorb=1, num_orb(iatom)
+                    iio=ioac(iorb,jorb,ii)
+                    if (iio .ne. 0) then
+                      mat_loc_ackw(iorb,jorb)
+     $                  =mat_loc_ackw(iorb,jorb)
+     $                  +sig(iio,ii,iomega)
+     $                  -dc(iio,ii)
+                    endif
+                    
+                    if (iorb .eq. jorb) then
+                      mat_loc_ackw(iorb,jorb)
+     $                  =mat_loc_ackw(iorb,jorb)                    
+     $                  -dcmplx(0.0d0, gamma_selfenergy) ! add broadening
+                    endif
+                  enddo
                 enddo
+                
+                tempmat1=0.0d0
+                call zgemm('n','n',num_orb(iatom),num_wancell,
+     $            num_orb(iatom),(1.d0,0.d0),
+     $            mat_loc_ackw,num_orb_max,
+     $            proj_renorm_co(1,1,iatom,icell,ik),num_orb_max,
+     $            (0.d0,0.d0),
+     $            tempmat1,num_orb_max)
+                
+                call zgemm('c','n',num_wancell,num_wancell,
+     $            num_orb(iatom),(-1.d0,0.d0),
+     $            proj_renorm_co(1,1,iatom,icell,ik),num_orb_max,
+     $            tempmat1,num_orb_max,(1.d0,0.d0),
+     $            g_lat_inv_co(1,1,iomega),num_wancell)
               enddo
-              
-              tempmat1=0.0d0
-              call zgemm('n','n',num_orb(iatom),num_wancell,
-     $          num_orb(iatom),(1.d0,0.d0),
-     $          mat_loc_ackw,num_orb_max,
-     $          proj_renorm_co(1,1,iatom,icell,ik),num_orb_max,
-     $          (0.d0,0.d0),
-     $          tempmat1,num_orb_max)
-              
-              call zgemm('c','n',num_wancell,num_wancell,
-     $          num_orb(iatom),(-1.d0,0.d0),
-     $          proj_renorm_co(1,1,iatom,icell,ik),num_orb_max,
-     $          tempmat1,num_orb_max,(1.d0,0.d0),
-     $          g_lat_inv_co(1,1,iomega),num_wancell)
             enddo
           enddo
-        enddo
-        
+          
 c$$$  nimp=0.0d0        
-        
-        gmat=0.0d0        
-        g_lat_inv_co_temp=g_lat_inv_co(:,:,n_omega)        
-        
-        do ibnd=1, num_wann
-          g_lat_inv_co_temp(ibnd,ibnd)
-     $      =g_lat_inv_co_temp(ibnd,ibnd)+ef
-        enddo
-c$$$  write(179,*), iomega, ik, irk
-        call dcmplx_matinv(g_lat_inv_co_temp, gmat,
-     $    num_wann,num_wann)
-        
-        g2mat=(gmat+transpose(dconjg(gmat)))
-     $    /2.0d0*frequency(n_omega)**2
-        g3mat=(gmat-transpose(dconjg(gmat))
-     $    -one_matrix_f*2.0/frequency(n_omega))
-     $    /2.0d0*frequency(n_omega)**3
-
-        exterp_g2=0.0d0
-        exterp_g3=0.0d0        
-        
-        do iomega=1, n_omega
           
           gmat=0.0d0        
-          g_lat_inv_co_temp=g_lat_inv_co(:,:,iomega)        
+          g_lat_inv_co_temp=g_lat_inv_co(:,:,n_omega)        
           
           do ibnd=1, num_wann
             g_lat_inv_co_temp(ibnd,ibnd)
@@ -4130,78 +4123,101 @@ c$$$  write(179,*), iomega, ik, irk
           call dcmplx_matinv(g_lat_inv_co_temp, gmat,
      $      num_wann,num_wann)
           
+          g2mat=(gmat+transpose(dconjg(gmat)))
+     $      /2.0d0*frequency(n_omega)**2
+          g3mat=(gmat-transpose(dconjg(gmat))
+     $      -one_matrix_f*2.0/frequency(n_omega))
+     $      /2.0d0*frequency(n_omega)**3
+          
+          exterp_g2=0.0d0
+          exterp_g3=0.0d0        
+          
+          do iomega=1, n_omega
+            
+            gmat=0.0d0        
+            g_lat_inv_co_temp=g_lat_inv_co(:,:,iomega)        
+            
+            do ibnd=1, num_wann
+              g_lat_inv_co_temp(ibnd,ibnd)
+     $          =g_lat_inv_co_temp(ibnd,ibnd)+ef
+            enddo
+c$$$  write(179,*), iomega, ik, irk
+            call dcmplx_matinv(g_lat_inv_co_temp, gmat,
+     $        num_wann,num_wann)
+            
+            do ibnd=1,num_wann
+              do jbnd=1,num_wann
+                n_matrix(ibnd,jbnd,irk)
+     $            =n_matrix(ibnd,jbnd,irk)
+     $            -1.0d0/beta
+     $            *(
+     $            cdexp(-beta*frequency(iomega))
+     $            *(
+     $            gmat(ibnd,jbnd)
+     $            -one_matrix_f(ibnd,jbnd)/frequency(iomega)
+     $            -g2mat(ibnd,jbnd)/(frequency(iomega))**2
+     $            -g3mat(ibnd,jbnd)/(frequency(iomega))**3                  
+     $            )
+     $            +
+     $            cdexp(beta*frequency(iomega))
+     $            *(
+     $            dconjg(gmat(jbnd,ibnd))
+     $            +one_matrix_f(ibnd,jbnd)/frequency(iomega)
+     $            -g2mat(ibnd,jbnd)/(frequency(iomega))**2
+     $            +g3mat(ibnd,jbnd)/(frequency(iomega))**3                  
+     $            )
+     $            )/nspin
+                
+                exterp_g2(ibnd,jbnd)
+     $            =exterp_g2(ibnd,jbnd)
+     $            -1.0d0/beta
+     $            *(
+     $            cdexp(-beta*frequency(iomega))
+     $            *(
+     $            -g2mat(ibnd,jbnd)/(frequency(iomega))**2
+     $            )
+     $            +
+     $            cdexp(beta*frequency(iomega))
+     $            *(
+     $            -g2mat(ibnd,jbnd)/(frequency(iomega))**2
+     $            )
+     $            )/nspin
+                
+                exterp_g3(ibnd,jbnd)
+     $            =exterp_g3(ibnd,jbnd)
+     $            -1.0d0/beta
+     $            *(
+     $            cdexp(-beta*frequency(iomega))
+     $            *(
+     $            -g3mat(ibnd,jbnd)/(frequency(iomega))**3                  
+     $            )
+     $            +
+     $            cdexp(beta*frequency(iomega))
+     $            *(
+     $            +g3mat(ibnd,jbnd)/(frequency(iomega))**3                  
+     $            )
+     $            )/nspin              
+              enddo
+            enddo
+          enddo
           do ibnd=1,num_wann
             do jbnd=1,num_wann
+!     asymptotic interval
               n_matrix(ibnd,jbnd,irk)
      $          =n_matrix(ibnd,jbnd,irk)
-     $          -1.0d0/beta
+     $          -1.0d0
      $          *(
-     $          cdexp(-beta*frequency(iomega))
-     $          *(
-     $          gmat(ibnd,jbnd)
-     $          -one_matrix_f(ibnd,jbnd)/frequency(iomega)
-     $          -g2mat(ibnd,jbnd)/(frequency(iomega))**2
-     $          -g3mat(ibnd,jbnd)/(frequency(iomega))**3                  
-     $          )
-     $          +
-     $          cdexp(beta*frequency(iomega))
-     $          *(
-     $          dconjg(gmat(jbnd,ibnd))
-     $          +one_matrix_f(ibnd,jbnd)/frequency(iomega)
-     $          -g2mat(ibnd,jbnd)/(frequency(iomega))**2
-     $          +g3mat(ibnd,jbnd)/(frequency(iomega))**3                  
-     $          )
-     $          )
+     $          -one_matrix_f(ibnd,jbnd)/2.0d0            
+     $          +g2mat(ibnd,jbnd)*beta/4.0d0
+     $          )/nspin
               
               exterp_g2(ibnd,jbnd)
      $          =exterp_g2(ibnd,jbnd)
-     $          -1.0d0/beta
+     $          -1.0d0
      $          *(
-     $          cdexp(-beta*frequency(iomega))
-     $          *(
-     $          -g2mat(ibnd,jbnd)/(frequency(iomega))**2
-     $          )
-     $          +
-     $          cdexp(beta*frequency(iomega))
-     $          *(
-     $          -g2mat(ibnd,jbnd)/(frequency(iomega))**2
-     $          )
-     $          )
-
-              exterp_g3(ibnd,jbnd)
-     $          =exterp_g3(ibnd,jbnd)
-     $          -1.0d0/beta
-     $          *(
-     $          cdexp(-beta*frequency(iomega))
-     $          *(
-     $          -g3mat(ibnd,jbnd)/(frequency(iomega))**3                  
-     $          )
-     $          +
-     $          cdexp(beta*frequency(iomega))
-     $          *(
-     $          +g3mat(ibnd,jbnd)/(frequency(iomega))**3                  
-     $          )
-     $          )              
+     $          +g2mat(ibnd,jbnd)*beta/4.0d0
+     $          )/nspin            
             enddo
-          enddo
-        enddo
-        do ibnd=1,num_wann
-          do jbnd=1,num_wann
-!     asymptotic interval
-            n_matrix(ibnd,jbnd,irk)
-     $        =n_matrix(ibnd,jbnd,irk)
-     $        -1.0d0
-     $        *(
-     $        -one_matrix_f(ibnd,jbnd)/2.0d0            
-     $        +g2mat(ibnd,jbnd)*beta/4.0d0
-     $        )
-
-            exterp_g2(ibnd,jbnd)
-     $        =exterp_g2(ibnd,jbnd)
-     $        -1.0d0
-     $        *(
-     $        +g2mat(ibnd,jbnd)*beta/4.0d0
-     $        )            
           enddo
         enddo
 
@@ -4610,7 +4626,10 @@ c$$$     $          eigenval(ibnd,irk),eigenval(ibnd_max,irk)
       call fwrite(MPI_COMM_WORLD,nqdiv,"nqdiv",fid_dat)
       ng(1)=size(nbnd_in_win_co,1)
       call fwrite(MPI_COMM_WORLD,nbnd_in_win_co,ng(1),nv(1),
-     $                "num_band_in",fid_dat)
+     $                "n_dmft_bnd",fid_dat)
+      ng(1)=size(nbnd_in_win_co,1)
+      call fwrite(MPI_COMM_WORLD,nbnd_in_win_co,ng(1),nv(1),
+     $                "n_dmft_wan",fid_dat)     
       ng(1)=size(include_band_new,1)
       ng(2)=size(include_band_new,2)
       call fwrite(MPI_COMM_WORLD,include_band_new,ng,nv,

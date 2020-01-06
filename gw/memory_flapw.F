@@ -8,6 +8,9 @@
 	integer :: me1,nlmb
 	me1=me+1
 	nlmb=nrel*maxb+1
+      etotal=0.0d0
+      etotal_old=0.0d0      
+        
       allocate(ev_bnd(nbasmpw,nbndf,maxval(ndim3_k),nspin_0))
       allocate(z_bnd(nfun,nbndf,maxval(ndim3_k),nspin_0))
       allocate(pd_f(0:maxnrad,maxntle,nlmb,nsort,nspin))

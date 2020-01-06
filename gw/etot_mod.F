@@ -20,6 +20,8 @@
      &	        ebnd_x,
      &          ecor,
      &          etot_hf,
+     $          etotal,
+     $          etotal_old,
      &	        exc_tot_lda,
      &          exch_dft,
      &          gc_sc_val,

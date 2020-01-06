@@ -43,7 +43,10 @@
      &  n_tau,
      &  ubi_num,
      $  ind_low,
-     $  ind_high
+     $  ind_high,
+     $  maxnsym,
+     $  maxmt,
+     $  rmode
 
       integer, allocatable ::
      &  gbs_sym(:,:),
@@ -75,14 +78,23 @@
      &  nrad(:),
      &  ntle(:,:),
      &  ndim_k(:),
-     &  ndim_kk(:)
+     &  ndim_kk(:),
+     $  indmt(:,:,:),
+     $  indfun0(:,:,:,:),
+     $  iat_1(:),
+     $  lc_max(:),
+     $  lm_isz(:,:),
+     $  ncor(:),
+     $  indcor(:,:,:),
+     $  li_cor(:,:),
+     $  dim_radial(:,:,:),
+     $  sort_degen(:)
 
 
       double precision ::
      &  amega,
      &  b_a,
      &  c_a,
-     &  clight,
      &  chem_pot,
      &  chem_pot_qp,
      &  evolt,
@@ -94,7 +106,9 @@
      &  bohr,
      $  cut_froz,
      $  cut_low,
-     $  cut_total
+     $  cut_total,
+     $  clight,
+     $  mt_fac
 
       double precision, allocatable ::
      &  bett(:),
@@ -115,7 +129,21 @@
      &  tau(:,:),
      &  tshift(:,:,:),
      &  u(:,:),
-     &  z(:)
+     &  z(:),
+     $  bound_radfun(:,:,:,:,:),
+     $  bound_radfun_overlap(:,:,:,:,:),
+     $  bound_radfun_coeff(:,:,:,:,:),
+     $  p_f(:,:,:,:,:),
+     $  q_f(:,:,:,:,:),
+     $  eny(:,:,:,:),
+     $  smt(:),
+     $  v_mt_h(:),
+     $  v_mt_xc(:),      
+     $  t1_x(:,:,:,:,:,:),
+     $  t_x(:,:,:,:,:),
+     $  pcor(:),
+     $  qcor(:),
+     $  rl(:,:,:)
 
       logical ::
      &  complex_ro,
@@ -170,11 +198,18 @@
 !     $  write_wan_pdos,
 !     $  cal_photoemission_input,
 !     $  cal_optics_input,
-     $  nbnd_in_froz,
+     $  nbnd_in_froz(2),
      $  num_kpts_fi,
      $  mp_grid_fi(3),
      $  num_iter,
-     $  dis_num_iter      
+     $  dis_num_iter,
+     $  irel_core,
+     $  nrel_core,
+     $  maxl_cor,
+     $  ncormax,
+     $  max_rl,
+     $  nspin_1,
+     $  maxmtcor
 !     $  ndim_mp_grid_fi_max
 
 
@@ -232,7 +267,14 @@
      $  alimj_zaxis(:,:,:),
 c$$$     $  weight_in_froz_win(:,:,:),
      $  atom_xaxis(:,:),
-     $  atom_zaxis(:,:)
+     $  atom_zaxis(:,:),
+     $  ptnl(:,:,:,:),
+     $  weight_in_froz_win(:,:,:),
+     $  weight_low(:,:,:),
+     $  weight_total(:,:,:),
+     $  occ_iwan(:,:,:),
+     $  occ_fwan(:,:,:),
+     $  weight_fwan(:,:,:)            
 !     $  wb(:,:),
 !     $  bk(:,:,:)
 
@@ -249,16 +291,15 @@ c$$$     $  weight_in_froz_win(:,:,:),
      $  ev_wan_bnd(:,:,:),
 !     $  radial_coeff_wan(:,:,:),
      $  alimj_coeff(:,:),
-
-
-
+     $  coeff_radial(:,:,:,:),
 
      $  lte_wan(:,:,:),
      $  gks_wan(:,:,:),
      $  lte_bnd(:,:,:),
      $  gks_bnd(:,:,:),
      $  momentum(:,:,:,:),
-     $  momentum_wan(:,:,:,:)
+     $  momentum_wan(:,:,:,:),
+     $  g_loc_0(:,:,:,:)
 
       logical, allocatable ::
      $  lwindow(:,:)

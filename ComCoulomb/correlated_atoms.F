@@ -18,7 +18,7 @@
 !     $ at_orb_ciw,'ciw_ind',ciw_ind,'corr_iter',corr_iter,
 !     $ 'corr_iter_rel',corr_iter_rel,'iatom_ciw',iatom_ciw,'irel',irel,
 !     $ 'is',is,'lmb',lmb,'maxb',maxb,'mt2ciw',mt2ciw,'mt2ciw_rel_l',
-!     $ mt2ciw_rel_l,'mt2wan',mt2wan,'n_ciw_atom',n_ciw_atom,'n_ciw_max',
+!     $ mt2ciw_rel_l,'mt2allwan',mt2allwan,'n_ciw_atom',n_ciw_atom,'n_ciw_max',      
 !     $ n_ciw_max,'nalimj',nalimj,'natom',natom,'natom_ciw',natom_ciw,
 !     $ 'natom_cor',natom_cor,'natom_iter',natom_iter,'nrel',nrel,
 !     $ 'num_orb_cor',num_orb_cor,'num_orb_iter',num_orb_iter,
@@ -31,17 +31,6 @@
       call read_wann_inip
 
 
-!      write(100,*)'alimj',alimj,'at_bonding',at_bonding,'at_orb_ciw',
-!     $ at_orb_ciw,'ciw_ind',ciw_ind,'corr_iter',corr_iter,
-!     $ 'corr_iter_rel',corr_iter_rel,'iatom_ciw',iatom_ciw,'irel',irel,
-!     $ 'is',is,'lmb',lmb,'maxb',maxb,'mt2ciw',mt2ciw,'mt2ciw_rel_l',
-!     $ mt2ciw_rel_l,'mt2wan',mt2wan,'n_ciw_atom',n_ciw_atom,'n_ciw_max',
-!     $ n_ciw_max,'nalimj',nalimj,'natom',natom,'natom_ciw',natom_ciw,
-!     $ 'natom_cor',natom_cor,'natom_iter',natom_iter,'nrel',nrel,
-!     $ 'num_orb_cor',num_orb_cor,'num_orb_iter',num_orb_iter,
-!     $ 'num_orb_proj',num_orb_proj,'seed_name',seed_name,
-!     $ 'wan_correlated',wan_correlated,'wan_itinerant',wan_itinerant,
-!     $ 'num_wann',num_wann
 
 !      call mpi_bcast(nproc_k,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
 
@@ -53,25 +42,41 @@
       natom_iter=.false.      
       allocate(n_ciw_atom(natom))
       n_ciw_atom=0
+      allocate(n_cw_atom(natom))
+      n_cw_atom=0      
 
       
-      allocate(mt2wan(2*maxb+nrel,nrel*maxb+1,natom)) ! m, li, atom
-      mt2wan=0
+      allocate(mt2allwan(2*maxb+nrel,nrel*maxb+1,natom)) ! m, li, atom
+      mt2allwan=0
+
+      allocate(mt2corwan(2*maxb+nrel,nrel*maxb+1,natom)) ! m, li, atom
+      mt2corwan=0      
+
+      
       allocate(mt2ciw(2*maxb+nrel,nrel*maxb+1,natom)) ! m, li, atom
       mt2ciw=0
+      allocate(mt2cw(2*maxb+nrel,nrel*maxb+1,natom)) ! m, li, atom
+      mt2cw=0            
 
       if (irel .eq. 2) then
         allocate(mt2ciw_rel_l(4*maxb+2,maxb+1,natom)) ! m, li, atom
         mt2ciw_rel_l=0
+        allocate(mt2cw_rel_l(4*maxb+2,maxb+1,natom)) ! m, li, atom
+        mt2cw_rel_l=0                
       endif
         
       allocate(corr_iter(0:maxb,natom)) ! l, atom
       corr_iter=0
+
+      allocate(corr(0:maxb,natom)) ! l, atom
+      corr=0            
       allocate(at_bonding(0:maxb,natom)) ! l, atom
       at_bonding=0      
       if (irel .eq. 2) then
         allocate(corr_iter_rel(nrel*maxb+1,natom)) ! m, li, atom
         corr_iter_rel=0
+        allocate(corr_rel(nrel*maxb+1,natom)) ! m, li, atom
+        corr_rel=0                
         allocate(at_bonding_rel(nrel*maxb+1,natom)) ! m, li, atom
         at_bonding_rel=0        
       endif
@@ -93,8 +98,10 @@
             mval=((alimj(4,iorb,iwan))+lival)/2+1 !from -5, -3, -1, 1, 3, 5 to 1, 2, 3, 4, 5, 6          
           endif
           natom_cor(iatom)=.true.
-          mt2wan(mval,lival,iatom)=iwan
+          mt2allwan(mval,lival,iatom)=iwan
+          mt2corwan(mval,lival,iatom)=iwan                    
           mt2ciw(mval,lival,iatom)=awan
+          mt2cw(mval,lival,iatom)=awan                    
           if (irel .eq. 2) then
             if (lval .eq. 0) then
               mind=mval
@@ -102,10 +109,18 @@
               mind=mval+(ival+1)/2*(2*lval)
             endif
             mt2ciw_rel_l(mind,lval+1,iatom)=awan
+            mt2cw_rel_l(mind,lval+1,iatom)=awan                        
           endif
         enddo
         n_ciw_atom(iatom)=n_ciw_atom(iatom)+1
+        n_cw_atom(iatom)=n_cw_atom(iatom)+1                
       enddo
+
+
+
+
+
+
 
       do awan=1, num_orb_iter
         iwan=wan_itinerant(awan)
@@ -124,7 +139,7 @@
             mval=((alimj(4,iorb,iwan))+lival)/2+1 !from -5, -3, -1, 1, 3, 5 to 1, 2, 3, 4, 5, 6          
           endif
           natom_iter(iatom)=.true.
-          mt2wan(mval,lival,iatom)=iwan
+          mt2allwan(mval,lival,iatom)=iwan          
           mt2ciw(mval,lival,iatom)=awan+num_orb_cor
           if (irel .eq. 2) then
             if (lval .eq. 0) then
@@ -136,7 +151,8 @@
           endif          
         enddo
         n_ciw_atom(iatom)=n_ciw_atom(iatom)+1        
-      enddo      
+      enddo
+
 
       do iatom=1, natom
         isort=is(iatom)
@@ -150,9 +166,9 @@
               inttmp=0
               is_bonding=0
               do mm=1, mudim
-                if (mt2wan(mm,li,iatom) .ne. 0) then
+                if (mt2allwan(mm,li,iatom) .ne. 0) then
                   inttmp=inttmp+1
-                  if (nalimj(mt2wan(mm,li,iatom)) .ne. 1) then
+                  if (nalimj(mt2allwan(mm,li,iatom)) .ne. 1) then
                     is_bonding=is_bonding+1
                   endif
                 endif
@@ -197,9 +213,9 @@
             inttmp=0
             is_bonding=0            
             do mm=1, mudim
-              if (mt2wan(mm,li,iatom) .ne. 0) then
+              if (mt2allwan(mm,li,iatom) .ne. 0) then
                 inttmp=inttmp+1
-                if (nalimj(mt2wan(mm,li,iatom)) .ne. 1) then
+                if (nalimj(mt2allwan(mm,li,iatom)) .ne. 1) then
                   is_bonding=is_bonding+1
                 endif                
               endif
@@ -217,15 +233,100 @@
           endif
         enddo
       enddo
+
+
+      do iatom=1, natom
+        isort=is(iatom)
+        do ll=0, lmb(isort)
+          if (irel .eq. 2) then
+            iistart=-1
+            if (ll .eq. 0) iistart=1
+            do ii=iistart, 1, 2
+              li=2*ll+(ii+1)/2
+              mudim=2*ll+ii+1
+              inttmp=0
+              is_bonding=0
+              do mm=1, mudim
+                if (mt2corwan(mm,li,iatom) .ne. 0) then
+                  inttmp=inttmp+1
+                  if (nalimj(mt2corwan(mm,li,iatom)) .ne. 1) then
+                    is_bonding=is_bonding+1
+                  endif
+                endif
+              enddo
+              if (inttmp .eq. mudim) then
+                corr_rel(li,iatom)=2
+              elseif (inttmp .ne. 0) then
+                corr_rel(li,iatom)=1
+              endif
+              if (is_bonding.eq.0) then
+                at_bonding_rel(li,iatom)=0
+              else
+                at_bonding_rel(li,iatom)=1
+              endif
+            enddo
+            if (ll .eq. 0) then
+              corr_rel(0,iatom)=corr_rel(1,iatom)
+              at_bonding(0,iatom)=at_bonding_rel(1,iatom)              
+            else
+              if ((corr_rel(2*ll,iatom).eq.2)
+     $          .and.
+     $          (corr_rel(2*ll+1,iatom).eq.2)) then
+                corr(ll,iatom)=2
+              elseif ((corr_rel(2*ll,iatom).eq.0)
+     $            .and.
+     $            (corr_rel(2*ll+1,iatom).eq.0)) then
+                corr(ll,iatom)=0                  
+              else
+                corr(ll,iatom)=1
+              endif
+              if ((at_bonding_rel(2*ll,iatom).eq.0)
+     $          .and.
+     $          (at_bonding_rel(2*ll+1,iatom).eq.0)) then
+                at_bonding(ll,iatom)=0
+              else
+                at_bonding(ll,iatom)=1
+              endif                          
+            endif
+          else
+            li=ll+1
+            mudim=2*ll+1
+            inttmp=0
+            is_bonding=0            
+            do mm=1, mudim
+              if (mt2corwan(mm,li,iatom) .ne. 0) then
+                inttmp=inttmp+1
+                if (nalimj(mt2corwan(mm,li,iatom)) .ne. 1) then
+                  is_bonding=is_bonding+1
+                endif                
+              endif
+            enddo
+            if (inttmp .eq. mudim) then
+              corr(ll,iatom)=2                
+            elseif (inttmp .ne. 0) then
+              corr(ll,iatom)=1                
+            endif
+            if (is_bonding .eq.0) then
+              at_bonding(ll,iatom)=0
+            else
+              at_bonding(ll,iatom)=1
+            endif            
+          endif
+        enddo
+      enddo      
+      
+      
       
 
-
-
       natom_ciw=0
+      natom_cw=0
       do iatom=1, natom
         if (n_ciw_atom(iatom) .gt. 0) then
           natom_ciw=natom_ciw+1
         endif
+        if (n_cw_atom(iatom) .gt. 0) then
+          natom_cw=natom_cw+1
+        endif        
       enddo
       allocate(iatom_ciw(natom_ciw))
       iatom_ciw=0
@@ -236,6 +337,20 @@
           cnt=cnt+1
         endif
       enddo
+
+
+
+      allocate(iatom_cw(natom_cw))
+      iatom_cw=0
+      cnt=1
+      do iatom=1, natom
+        if (n_cw_atom(iatom) .gt. 0) then
+          iatom_cw(cnt)=iatom
+          cnt=cnt+1
+        endif
+      enddo            
+
+
 c$$$      allocate(is_ciw(natom))
 c$$$      is_ciw=0
 c$$$
@@ -244,11 +359,13 @@ c$$$        is_ciw(iatom_ciw(iat))=iat
 c$$$      enddo      
 
       n_ciw_max=maxval(n_ciw_atom)
+      n_cw_max=maxval(n_cw_atom)      
       allocate(ciw_ind(n_ciw_max,natom_ciw))
       ciw_ind=0
       allocate(tempind(natom_ciw))
       tempind=0
 
+      
 
       do iwan=1, num_orb_cor
         iatom=alimj(1,1,wan_correlated(iwan))
@@ -267,35 +384,69 @@ c$$$      enddo
       endif
       deallocate(tempind)
 
+
+      allocate(cw_ind(n_cw_max,natom_cw))
+      cw_ind=0
+
+      allocate(tempind(natom_cw))
+      tempind=0
+      do iwan=1, num_orb_cor
+        iatom=alimj(1,1,wan_correlated(iwan))
+        iat=find_ind(iatom, natom_cw, iatom_cw)
+        tempind(iat)=tempind(iat)+1
+        cw_ind(tempind(iat),iat)=iwan
+      enddo
+        
+
+      deallocate(tempind)
+
+      
+
       allocate(at_orb_ciw(2,num_orb_proj)) ! inverse of ciw_ind
       at_orb_ciw=0.0d0
       do iwan=1, num_orb_cor
         iatom=alimj(1,1,wan_correlated(iwan))
-        at_orb_ciw(1,iwan)=iatom
-        iorb=find_ind(iwan, n_ciw_max, ciw_ind(1,iatom))
+        iat=find_ind(iatom, natom_ciw, iatom_ciw)        
+        at_orb_ciw(1,iwan)=iat
+        iat=find_ind(iatom, natom_ciw, iatom_ciw)        
+        iorb=find_ind(iwan, n_ciw_max, ciw_ind(1,iat))        
         at_orb_ciw(2,iwan)=iorb        
       enddo
 
       if (num_orb_iter .gt. 0) then
         do iwan=1, num_orb_iter
           iatom=alimj(1,1,wan_itinerant(iwan))
-          at_orb_ciw(1,iwan+num_orb_cor)=iatom
-          iorb=find_ind(iwan+num_orb_cor, n_ciw_max, ciw_ind(1,iatom))
+          iat=find_ind(iatom, natom_ciw, iatom_ciw)                  
+          at_orb_ciw(1,iwan+num_orb_cor)=iat
+          iat=find_ind(iatom, natom_ciw, iatom_ciw)          
+          iorb=find_ind(iwan+num_orb_cor, n_ciw_max, ciw_ind(1,iat))          
           at_orb_ciw(2,iwan+num_orb_cor)=iorb        
         enddo        
-      endif      
+      endif
+
+      allocate(at_orb_cw(2,num_orb_cor)) ! inverse of ciw_ind
+      at_orb_cw=0.0d0
+      do iwan=1, num_orb_cor
+        iatom=alimj(1,1,wan_correlated(iwan))
+        at_orb_cw(1,iwan)=iatom
+        iat=find_ind(iatom, natom_cw, iatom_cw)                  
+        iorb=find_ind(iwan, n_cw_max, cw_ind(1,iat))
+        at_orb_cw(2,iwan)=iorb        
+      enddo
+      
 
 
       if (maswrk) then
+        write(iun,*) 'for correlated and itinerate orbitals'        
 
         if (irel .le.1) then
           
-          write(iun,*) 'mt2wan'
+          write(iun,*) 'mt2allwan'
           do iatom=1, natom
             isort=is(iatom)            
             do li=1, lmb(isort)+1
               write(iun,'(2i4,4x,1000i4)') iatom,li,
-     $          (mt2wan(mm,li,iatom),mm=1,2*li-1)
+     $          (mt2allwan(mm,li,iatom),mm=1,2*li-1)
             enddo
           enddo
           write(iun,*) 'mt2ciw'
@@ -314,12 +465,12 @@ c$$$      enddo
      $        ll=0, lmb(isort))
           enddo
         else
-          write(iun,*) 'mt2wan'
+          write(iun,*) 'mt2allwan'
           do iatom=1, natom
             isort=is(iatom)            
             do li=1, 2*lmb(isort)+1
               write(iun,'(2i4,4x,1000i4)') iatom,li,
-     $          (mt2wan(mm,li,iatom),mm=1,((li+1)/2)*2)
+     $          (mt2allwan(mm,li,iatom),mm=1,((li+1)/2)*2)
             enddo
           enddo
           write(iun,*) 'mt2ciw'
@@ -366,14 +517,11 @@ c$$$      enddo
           write(iun,'(2i4)') iat,iatom_ciw(iat)
         enddo
 
-c$$$        write(iun,*) 'is_ciw'
-c$$$        do iatom=1, natom
-c$$$          write(iun,'(2i4)') iatom,is_ciw(iatom)
-c$$$        enddo                
         write(iun,*) 'ciw_ind'
         do iat=1, natom_ciw
+          iatom=iatom_ciw(iat)
           write(iun,'(i4,4x,1000i4)') iat,(ciw_ind(ii,iat),
-     $      ii=1, n_ciw_atom(iat))
+     $      ii=1, n_ciw_atom(iatom))
         enddo
 
         write(iun,*) 'at_orb_ciw'
@@ -381,6 +529,139 @@ c$$$        enddo
           write(iun,'(3i4)') iwan,
      $      (at_orb_ciw(ii, iwan), ii=1, 2)
         enddo
+
+
+        write(iun,*) 'for correlated orbitals'        
+
+        if (irel .le.1) then
+
+          write(iun,*) 'mt2corwan'
+          do iatom=1, natom
+            isort=is(iatom)            
+            do li=1, lmb(isort)+1
+              write(iun,'(2i4,4x,1000i4)') iatom,li,
+     $          (mt2corwan(mm,li,iatom),mm=1,2*li-1)
+            enddo
+          enddo          
+          
+          write(iun,*) 'mt2cw'
+          do iatom=1, natom
+            isort=is(iatom)            
+            do li=1, lmb(isort)+1
+              write(iun,'(2i4,4x,1000i4)') iatom,li,
+     $          (mt2cw(mm,li,iatom),mm=1,2*li-1)
+            enddo
+          enddo          
+          write(iun,*) 'corr'
+          do iatom=1, natom
+            isort=is(iatom)            
+            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
+     $        ((corr(ll,iatom), at_bonding(ll,iatom)),
+     $        ll=0, lmb(isort))
+          enddo          
+        else
+
+          write(iun,*) 'mt2corwan'
+          do iatom=1, natom
+            isort=is(iatom)            
+            do li=1, 2*lmb(isort)+1
+              write(iun,'(2i4,4x,1000i4)') iatom,li,
+     $          (mt2corwan(mm,li,iatom),mm=1,((li+1)/2)*2)
+            enddo
+          enddo
+          
+          write(iun,*) 'mt2cw'
+          do iatom=1, natom
+            isort=is(iatom)            
+            do li=1, 2*lmb(isort)+1
+              write(iun,'(2i4,4x,1000i4)') iatom,li,
+     $          (mt2cw(mm,li,iatom),mm=1,((li+1)/2)*2)
+            enddo
+          enddo          
+
+          write(iun,*) 'mt2cw_rel_l'
+          do iatom=1, natom
+            isort=is(iatom)            
+            do li=1, lmb(isort)+1
+              write(iun,'(2i4,4x,1000i4)') iatom,li,
+     $          (mt2cw_rel_l(mm,li,iatom),mm=1,4*lmb(isort)+2)
+            enddo
+          enddo
+          
+          write(iun,*) 'corr_rel'
+          do iatom=1, natom
+            isort=is(iatom)            
+            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
+     $        ((corr_rel(li,iatom),at_bonding_rel(li,iatom)),
+     $        li=1, 2*lmb(isort)+1)
+          enddo
+          
+          write(iun,*) 'corr'
+          do iatom=1, natom
+            isort=is(iatom)            
+            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
+     $        ((corr(ll,iatom),at_bonding(ll,iatom)),
+     $        ll=0, lmb(isort))
+          enddo          
+
+        endif
+        write(iun,*) 'natom_cw', natom_cw        
+        write(iun,*) 'n_cw_max', n_cw_max        
+
+        write(iun,*) 'n_cw_atom'
+        do iatom=1, natom
+          write(iun,'(2i4)') iatom,n_cw_atom(iatom)
+        enddo
+        
+        write(iun,*) 'iatom_cw'
+        do iat=1, natom_cw
+          write(iun,'(2i4)') iat,iatom_cw(iat)
+        enddo        
+
+        write(iun,*) 'cw_ind'
+        do iat=1, natom_cw
+          iatom=iatom_cw(iat)          
+          write(iun,'(i4,4x,1000i4)') iat,(cw_ind(ii,iat),
+     $      ii=1, n_cw_atom(iatom))
+        enddo        
+
+        write(iun,*) 'at_orb_cw'
+        do iwan=1,num_orb_cor
+          write(iun,'(3i4)') iwan,
+     $      (at_orb_cw(ii, iwan), ii=1, 2)
+        enddo
+        
+        do iat=1, natom_cw
+          iatom=iatom_cw(iat)
+          isort=is(iatom)          
+          
+          do l=0, lmb(isort)
+            
+            if ((corr(l,iatom) .eq. 2)
+     $        .and.
+     $        (at_bonding(l,iatom) .eq. 0)
+     $        ) then
+              
+              if (nrel .eq. 1) then
+                mudim=l+l+1
+                do m1=1, mudim
+                  iorb=find_ind(mt2cw(m1,l+1,iatom),
+     $              n_cw_atom(iatom),cw_ind(1:n_cw_atom(iatom),iat))
+                  write(iun,'(5i5)') iat, l, m1, mt2cw(m1,l+1,iatom),
+     $              iorb
+                enddo
+              else
+                mudim=4*l+2                
+                do m1=1, mudim
+                  iorb=find_ind(mt2cw_rel_l(m1,l+1,iatom),
+     $              n_cw_atom(iatom),cw_ind(1:n_cw_atom(iatom),iat))                  
+                  write(iun,'(5i5)') iat, l, m1,
+     $              mt2cw_rel_l(m1,l+1,iatom),iorb
+                enddo
+              endif
+            endif
+          enddo
+        enddo                
 
         do iat=1, natom_ciw
           iatom=iatom_ciw(iat)
@@ -415,6 +696,8 @@ c$$$        enddo
         enddo
 
       endif
+
+      
       end
 
 

@@ -130,6 +130,18 @@ c$$$      open(179, file=trim(ch))
         allocate(ff(0:3))        
         open(unit=10, file='slater.dat', status='old')
         if (
+     $    ((num_orb .eq. 1).and.(is_spinorbit .eq. 0))
+     $    .or.
+     $    ((num_orb .eq. 2).and.(is_spinorbit .eq. 1))        
+     $    ) then        
+          read(10,*) ff(0)
+        elseif (
+     $    ((num_orb .eq. 3).and.(is_spinorbit .eq. 0))
+     $    .or.
+     $    ((num_orb .eq. 6).and.(is_spinorbit .eq. 1))        
+     $    ) then        
+          read(10,*) (ff(ii), ii=0, 1)          
+        elseif (
      $    ((num_orb .eq. 5).and.(is_spinorbit .eq. 0))
      $    .or.
      $    ((num_orb .eq. 10).and.(is_spinorbit .eq. 1))        
@@ -917,19 +929,19 @@ c$$$            enddo
 c$$$          enddo
 c$$$        enddo
 c$$$        close(111)                
-
-        open(unit=111, file='gwc_omega.dat')
-        do im=1, n_magn
-          do iomega=1, n_omega
-            do iorb=1, num_orb
-              do jorb=1, num_orb
-                write(111, '(4(i5,2x), 2f12.6)')
-     $            im,iomega,iorb,jorb,gwc_omega(iorb,jorb,iomega,im)
-              enddo
-            enddo
-          enddo
-        enddo
-        close(111)        
+c$$$
+c$$$        open(unit=111, file='gwc_omega.dat')
+c$$$        do im=1, n_magn
+c$$$          do iomega=1, n_omega
+c$$$            do iorb=1, num_orb
+c$$$              do jorb=1, num_orb
+c$$$                write(111, '(4(i5,2x), 2f12.6)')
+c$$$     $            im,iomega,iorb,jorb,gwc_omega(iorb,jorb,iomega,im)
+c$$$              enddo
+c$$$            enddo
+c$$$          enddo
+c$$$        enddo
+c$$$        close(111)        
         
         
         open(unit=10, file='sig_mat.dat')
@@ -952,7 +964,17 @@ c$$$        close(111)
      $      tau2=1, num_orb),
      $      im=1, n_magn)
         enddo
-        close(10)        
+        close(10)
+        open(unit=10, file='sig_gwc_mat.dat')
+        do iomega=1, n_omega
+          write(10,'(f20.12, 5x, 10000(2f20.12, 2x))')
+     $      dimag(omega(iomega)),
+     $      (((gwc_omega(tau1,tau2,iomega,im),
+     $      tau1=1, num_orb),
+     $      tau2=1, num_orb),
+     $      im=1, n_magn)
+        enddo
+        close(10)                
 
         
       endif
@@ -1211,9 +1233,9 @@ c$$$  wigner 3j symbol
             do i2=-lval, lval
               do i3=-lval, lval
                 do i4=-lval, lval                  
-                  mq=qq*-1
-                  mi1=i1*-1
-                  mi3=i3*-1                
+                  mq=-qq
+                  mi1=-i1
+                  mi3=-i3
                   kk0=kk/2
                   mat(i1+lval+1,i2+lval+1,i3+lval+1,i4+lval+1)
      &              =mat(i1+lval+1,i2+lval+1,i3+lval+1,i4+lval+1)
@@ -1228,6 +1250,7 @@ c$$$  wigner 3j symbol
           enddo
         enddo
       enddo
+
       end
 
 
@@ -1658,126 +1681,73 @@ c$$$  end if
       complex*16,intent(out) :: umatrix(norb,norb,norb,norb)
       
 
-      integer :: kk, ll
+      integer :: kk, ll, lval,norb_2
       complex*16, allocatable :: 
      $  rotmat_cmplx2real(:,:),
      $  rotmat_new(:,:),
      $  umatrix_temp(:,:,:,:),
      $  rotmat_mlms2jmj(:,:)      
 
-
       umatrix=0.0d0            
 
-      if  (is_spinorbit .eq. 0)then      
-        if (norb .eq. 5) then
-          call cal_coulomb_matrix_from_slater(2,slaterf,umatrix)
+      if  (is_spinorbit .eq. 0)then
+        lval=(norb-1)/2
+        call cal_coulomb_matrix_from_slater(lval,slaterf,umatrix)
           
-          allocate(rotmat_cmplx2real(5,5))
-          rotmat_cmplx2real=0.0d0
-          call cal_rotmat_cmplx2real(5,rotmat_cmplx2real)
+        allocate(rotmat_cmplx2real(norb,norb))
+        rotmat_cmplx2real=0.0d0
+        call cal_rotmat_cmplx2real(norb,rotmat_cmplx2real)
           
-          allocate(rotmat_new(5,5))
-          rotmat_new=0.0d0
+        allocate(rotmat_new(norb,norb))
+        rotmat_new=0.0d0
           
-          
-          call zgemm('n','n',norb,norb,norb,(1.d0,0.d0),
-     $      trans_dc,norb,rotmat_cmplx2real,norb,
-     $      (0.d0,0.d0),rotmat_new,norb)
-          
-          call rotate_umatrix(5,umatrix,rotmat_new,0)
-          
-          deallocate(rotmat_cmplx2real)
-          deallocate(rotmat_new)
-          
-        elseif (norb .eq. 7) then
-          call cal_coulomb_matrix_from_slater(3,slaterf,umatrix)
-          
-          allocate(rotmat_cmplx2real(7,7))
-          rotmat_cmplx2real=0.0d0
-          call cal_rotmat_cmplx2real(7,rotmat_cmplx2real)
-          
-          allocate(rotmat_new(7,7))
-          rotmat_new=0.0d0
-          
-          
-          call zgemm('n','n',norb,norb,norb,(1.d0,0.d0),
-     $      trans_dc,norb,rotmat_cmplx2real,norb,
-     $      (0.d0,0.d0),rotmat_new,norb)
-          
-          call rotate_umatrix(7,umatrix,rotmat_new,0)
+        call zgemm('n','n',norb,norb,norb,(1.d0,0.d0),
+     $    trans_dc,norb,rotmat_cmplx2real,norb,
+     $    (0.d0,0.d0),rotmat_new,norb)
         
-          deallocate(rotmat_cmplx2real)
-          deallocate(rotmat_new)
-        endif
+        call rotate_umatrix(norb,umatrix,rotmat_new,0)
+          
+        deallocate(rotmat_cmplx2real)
+        deallocate(rotmat_new)
       else
-        if (norb .eq. 10) then
-          allocate(umatrix_temp(5,5,5,5))
-          call cal_coulomb_matrix_from_slater(2,slaterf,umatrix_temp)
-          do kk=1,2
-            do ll=1,2
-              umatrix(
-     $          (1+(kk-1)*5):(5+(kk-1)*5),
-     $          (1+(kk-1)*5):(5+(kk-1)*5),
-     $          (1+(ll-1)*5):(5+(ll-1)*5),
-     $          (1+(ll-1)*5):(5+(ll-1)*5)
-     $          )
-     $          =umatrix_temp
-            enddo
-          enddo          
-          
-          allocate(rotmat_mlms2jmj(10,10))
-          rotmat_mlms2jmj=0.0d0
-          
-          call cal_rotmat_mlms2jmj(2, rotmat_mlms2jmj)
-          allocate(rotmat_new(10,10))
-          rotmat_new=0.0d0
-          call zgemm('n','n',norb,norb,
-     $      norb,(1.d0,0.d0),
-     $      trans_dc,norb,
-     $      rotmat_mlms2jmj,norb,
-     $      (0.d0,0.d0),
-     $      rotmat_new,norb)        
-          
-          call rotate_umatrix(10, umatrix, rotmat_new,0)
-          deallocate(umatrix_temp)
-          deallocate(rotmat_mlms2jmj)
-          deallocate(rotmat_new)              
-        elseif (norb .eq. 14) then
 !     for wannier90 convension
 c$$$  !        j*2     5 5 5 5 5 5  7 7 7 7  7  7  7  7
 c$$$  !        mj*2   -5-3-1 1 3 5 -7-5-3-1  1  3  5  7
-c$$$  ! default index  1 2 3 4 5 6  7 8 9 10 11 12 13 14
-          allocate(umatrix_temp(7,7,7,7))
-          call cal_coulomb_matrix_from_slater(3,slaterf,umatrix_temp)
-          do kk=1,2
-            do ll=1,2
-              umatrix(
-     $          (1+(kk-1)*7):(7+(kk-1)*7),
-     $          (1+(kk-1)*7):(7+(kk-1)*7),
-     $          (1+(ll-1)*7):(7+(ll-1)*7),
-     $          (1+(ll-1)*7):(7+(ll-1)*7)
-     $          )
-     $          =umatrix_temp
-            enddo
-          enddo          
-          
-          allocate(rotmat_mlms2jmj(14,14))
-          rotmat_mlms2jmj=0.0d0
-          
-          call cal_rotmat_mlms2jmj(3, rotmat_mlms2jmj)
-          allocate(rotmat_new(14,14))
-          call zgemm('n','n',norb,norb,
-     $      norb,(1.d0,0.d0),
-     $      trans_dc,norb,
-     $      rotmat_mlms2jmj,norb,
-     $      (0.d0,0.d0),
-     $      rotmat_new,norb)        
-          
-          call rotate_umatrix(14, umatrix, rotmat_new,0)
-          deallocate(umatrix_temp)
-          deallocate(rotmat_mlms2jmj)
-          deallocate(rotmat_new)
-        endif
+c$$$  ! default index  1 2 3 4 5 6  7 8 9 10 11 12 13 14        
+        lval=(norb/2-1)/2
+        norb_2=norb/2
+        allocate(umatrix_temp(norb_2,norb_2,norb_2,norb_2))
+        call cal_coulomb_matrix_from_slater(lval,slaterf,umatrix_temp)
+        do kk=1,2
+          do ll=1,2
+            umatrix(
+     $        (1+(kk-1)*norb_2):(norb_2+(kk-1)*norb_2),
+     $        (1+(kk-1)*norb_2):(norb_2+(kk-1)*norb_2),
+     $        (1+(ll-1)*norb_2):(norb_2+(ll-1)*norb_2),
+     $        (1+(ll-1)*norb_2):(norb_2+(ll-1)*norb_2)
+     $        )
+     $        =umatrix_temp
+          enddo
+        enddo          
+        
+        allocate(rotmat_mlms2jmj(norb,norb))
+        rotmat_mlms2jmj=0.0d0
+        
+        call cal_rotmat_mlms2jmj(lval, rotmat_mlms2jmj)
+        allocate(rotmat_new(norb,norb))
+        rotmat_new=0.0d0
+        call zgemm('n','n',norb,norb,
+     $    norb,(1.d0,0.d0),
+     $    trans_dc,norb,
+     $    rotmat_mlms2jmj,norb,
+     $    (0.d0,0.d0),
+     $    rotmat_new,norb)        
+        
+        call rotate_umatrix(norb, umatrix, rotmat_new,0)
+        deallocate(umatrix_temp)
+        deallocate(rotmat_mlms2jmj)
+        deallocate(rotmat_new)
+        
       endif
       end
 

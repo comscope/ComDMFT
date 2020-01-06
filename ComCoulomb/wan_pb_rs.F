@@ -577,22 +577,22 @@ c        call flush(179)
               write(iun,*) 'correlated bands from band selection'
               do ik=1, nqdiv
                 write(iun,'(i5, 4x,100(i5,f12.6,2x))')
-     $            ik, ((wanind_cor(ii, ik),
-     $            eigenvalues(wanind_cor(ii, ik), ik)),
+     $            ik, (wanind_cor(ii, ik),
+     $            eigenvalues(wanind_cor(ii, ik), ik),
      $            ii=1, num_orb_cor)
               enddo
               write(iun,*) 'itinerant bands from band selection'
               do ik=1, nqdiv
                 write(iun,'(i5, 4x,100(i5,f12.6,2x))')
-     $            ik, ((wanind_iter(ii, ik),
-     $            eigenvalues(wanind_iter(ii, ik), ik)),
+     $            ik, (wanind_iter(ii, ik),
+     $            eigenvalues(wanind_iter(ii, ik), ik),
      $            ii=1, num_orb_iter)
               enddo              
               write(iun,*) 'the rest bands from band selection'
               do ik=1, nqdiv
                 write(iun,'(i5, 4x,100(i5,f12.6,2x))')
-     $            ik, ((wanind_rest(ii, ik),
-     $            eigenvalues(wanind_rest(ii, ik), ik)),
+     $            ik, (wanind_rest(ii, ik),
+     $            eigenvalues(wanind_rest(ii, ik), ik),
      $            ii=1, num_orb_rest)
               enddo                            
             endif
@@ -1513,7 +1513,7 @@ c     ------- overlap between product FPB and WPB----
 
       allocate(pi_ww(n_ciw_max,n_ciw_max,nwpb_max,nspin,natom_ciw))
       pi_ww=0.0d0
-      allocate(m_pi(n_pbtot,nwpb_max,natom_ciw,
+      allocate(m_pi(n_pbtot,nwpb_max,natom,
      $  ndim3_k(me3_k+1),k_star_max))
       m_pi=0.0d0      
       do iat=1, natom_ciw
@@ -1554,7 +1554,7 @@ c     ------- overlap between product FPB and WPB----
               k=n3_mpi_k(me3_k+1)+ind_k 
               do kst=1,k_star(k)
                 iq=k_list(kst,k)
-                m_pi(ipb,jpb,iat,ind_k,kst)=tmp(jpb,iq)
+                m_pi(ipb,jpb,iatom,ind_k,kst)=tmp(jpb,iq)
               enddo
             enddo
           enddo
@@ -1562,7 +1562,9 @@ c     ------- overlap between product FPB and WPB----
         enddo
       enddo
       deallocate(m_p)
-      
+
+
+
 
 c$$$  c     -------- MTILD is formed here first ----------------------------
 
@@ -2133,6 +2135,12 @@ c$$$  pol_iter_for_u=1
       allocate(chi0_wpb_local(
      $  nwpb_max,natom_ciw,nwpb_max,natom_ciw,ndim3_nu))
       chi0_wpb_local=0.0d0
+      
+      allocate(v_loc(
+     $  num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,
+     $  nspin,nspin))
+      v_loc=0.0d0        
+      
 
       if (pol_iter_for_u .gt. 0) then
         
@@ -2141,10 +2149,6 @@ c$$$  pol_iter_for_u=1
      $    nspin,nspin,ndim3_nu))
         u_loc=0.0d0
 
-        allocate(v_loc(
-     $    num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,
-     $    nspin,nspin))
-        v_loc=0.0d0        
         
         
         allocate(chi0_low_k_den(
@@ -2526,7 +2530,7 @@ c$$$  deallocate(ttt1,ttt2,tmp)
         eig_opt=0.0d0
         indtmp=0        
         do ibnd=1, num_bands
-          if (lwindow(ibnd,irk) .eq. .true.) then
+          if (lwindow(ibnd,irk)) then
             indtmp=indtmp+1                      
             do iwan=1, num_wann
               eig_opt(iwan)=
@@ -2652,7 +2656,7 @@ c$$$  --------- Orthonormalized projector ----------------------
         
         indtmp=0
         do jbnd=1, num_bands
-          if (lwindow(jbnd,irk) .eq. .true.) then
+          if (lwindow(jbnd,irk)) then
             indtmp=indtmp+1            
             do iorb=1, num_orb_proj
               do ibnd=1, num_wann
@@ -3145,8 +3149,8 @@ c$$$  wigner 3j symbol
             do i3=-lval, lval
               do i4=-lval, lval                  
 
-                mi1=i1*-1
-                mi3=i3*-1                
+                mi1=-i1
+                mi3=-i3
                 kk0=kk/2
                 i1mi2=i1-i2
                 i3mi4=i3-i4

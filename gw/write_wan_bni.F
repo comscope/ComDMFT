@@ -105,5 +105,45 @@ c     ------- Reading the type of the functions for L <= L_b ------
       endif
       end
 
+
+      subroutine write_wan_bni2
+      use manager_mod
+      use atom_mod
+      use solid_mod
+      use parallel_mod
+      use units_mod
+      implicit none
+      integer :: iatom,ii,jj,ll,kk,i,isort,l,n
+      complex*16 :: ai
+      double precision :: dblr,dbli
+      if(maswrk) then
+        open(888,file='info2.rst',form='unformatted')
+        write(888)maxnsym
+        write(888)maxmt
+
+        write(888)irel_core
+        write(888)nrel_core
+        write(888)maxl_cor
+        write(888)ncormax
+        write(888)max_rl
+        write(888)nspin_1
+        write(888)maxmtcor
+        
+        write(888)smt
+        write(888)indmt
+        write(888)indfun0
+
+        write(888)iat_1
+        write(888)lc_max
+        write(888)lm_isz
+        write(888)ncor
+        write(888)indcor
+        write(888)li_cor
+        write(888)rl
+        
+        close(888)
+      endif
+      end      
+
       
       

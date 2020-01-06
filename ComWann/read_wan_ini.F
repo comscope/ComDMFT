@@ -12,9 +12,13 @@
         if (adjustl(trim(ubi_txt)) .eq. 'dft') then
           ubi_num=1
           ubi_0='dft'
+c$$$          rmode=1
+c$$$          mt_fac=1.0d0
         elseif (adjustl(trim(ubi_txt)) .eq. 'qp') then
           ubi_num=4
           ubi_0='qp'
+c$$$          rmode=2
+c$$$          mt_fac=0.999d0
         endif
         write(993, *) 'ubi_num=', ubi_num
         write(993,*) 'ubi_0=',ubi_0        
@@ -29,6 +33,8 @@
         read(11,*) cut_low
         read(11,*) cut_froz
         read(11,*) cut_total
+        read(11,*) rmode
+        read(11,*) mt_fac
         write(993,*) 'dis_win_max=',dis_win_max
         write(993,*) 'dis_win_min=',dis_win_min
         write(993,*) 'dis_froz_max=',dis_froz_max
@@ -42,7 +48,9 @@ c$$$        cut_froz=0.15d0
 c$$$        cut_total=0.0d0
         write(993, *) 'cut_low=', cut_low
         write(993, *) 'cut_froz=', cut_froz
-        write(993, *) 'cut_total=', cut_total        
+        write(993, *) 'cut_total=', cut_total
+        write(993, *) 'rmode=', rmode
+        write(993, *) 'mt_fac=', mt_fac
       endif
       if(goparr) then
         call mpi_bcast(rstpath,1000,
@@ -66,7 +74,11 @@ c$$$        cut_total=0.0d0
         call mpi_bcast(cut_froz,1,mpi_double_precision,0,
      $    MPI_COMM_WORLD,mpierr)                
         call mpi_bcast(cut_total,1,mpi_double_precision,0,
-     $    MPI_COMM_WORLD,mpierr)                        
+     $    MPI_COMM_WORLD,mpierr)
+        call mpi_bcast(rmode,1,mpi_integer,0,
+     $    MPI_COMM_WORLD,mpierr)                                        
+        call mpi_bcast(mt_fac,1,mpi_double_precision,0,
+     $    MPI_COMM_WORLD,mpierr)                                
       endif
       if (.not. ((ubi_num .eq. 1) .or. (ubi_num .eq. 4))) then
         write(993,*) 'Please enter correct cal_mode either dft or qp'
@@ -140,6 +152,7 @@ c$$$        cut_total=0.0d0
       end
 
 
+
       subroutine cal_num_bands(ispin)
       use comwann_mod
 
@@ -178,7 +191,89 @@ c$$$        cut_total=0.0d0
         write(iun,*) 'ind_high', ind_high
       endif
 
-      end
+      end      
+
+c$$$      subroutine cal_num_bands(ispin)
+c$$$      use comwann_mod
+c$$$
+c$$$      implicit none
+c$$$      integer, intent(in) :: ispin
+c$$$      integer :: ind(1),ik, counter,iq
+c$$$      double precision :: meanval, std
+c$$$      double precision, allocatable :: tempvec(:)
+c$$$
+c$$$      ind_low=10000
+c$$$      ind_high=-10000          
+c$$$      do ik=1, npnt
+c$$$        allocate(tempvec(n_bnd(ik,ispin)))
+c$$$        if (ubi_num .ge. 4) then
+c$$$          tempvec=(e_qp(:,ik,ispin)-chem_pot)*rydberg          
+c$$$        else
+c$$$          tempvec=(e_bnd(:,ik,ispin)-chem_pot)*rydberg
+c$$$        endif
+c$$$        ind=maxloc(tempvec,mask=tempvec .lt. dis_win_min)
+c$$$        if (ind(1) .lt. ind_low) then
+c$$$          ind_low=ind(1)
+c$$$        endif
+c$$$        ind=minloc(tempvec,mask=tempvec .gt. dis_win_max)
+c$$$        if (ind(1) .gt. ind_high) then
+c$$$          ind_high=ind(1)
+c$$$        endif
+c$$$        deallocate(tempvec)
+c$$$      enddo
+c$$$
+c$$$      if (npnt .gt. 1) then
+c$$$        do counter=1, ind_high-ind_low-1
+c$$$          meanval=0.0d0
+c$$$          std=0.0d0
+c$$$          do ik=1, nqdiv
+c$$$            iq=i_kref(ik)
+c$$$            if (ubi_num .ge. 4) then          
+c$$$              meanval=meanval
+c$$$     $         +(e_qp(ind_low+counter,iq,ispin)-chem_pot)
+c$$$     $          *rydberg
+c$$$            else
+c$$$              meanval=meanval
+c$$$     $         +(e_bnd(ind_low+counter,iq,ispin)-chem_pot)
+c$$$     $          *rydberg
+c$$$            endif
+c$$$          enddo
+c$$$          meanval=meanval/dble(nqdiv)
+c$$$
+c$$$
+c$$$          do ik=1, nqdiv
+c$$$            iq=i_kref(ik)
+c$$$            if (ubi_num .ge. 4) then          
+c$$$              std=std
+c$$$     $         +((e_qp(ind_low+counter,iq,ispin)-chem_pot)
+c$$$     $          *rydberg-meanval)**2
+c$$$            else
+c$$$              std=std
+c$$$     $         +((e_bnd(ind_low+counter,iq,ispin)-chem_pot)
+c$$$     $          *rydberg-meanval)**2
+c$$$            endif
+c$$$          enddo
+c$$$          std=dsqrt(std/dble(nqdiv))
+c$$$
+c$$$          if (std .gt. 0.5d0) then
+c$$$            exit
+c$$$          endif
+c$$$        enddo
+c$$$        ind_low=ind_low+counter-1
+c$$$      endif
+c$$$
+c$$$      if (irel .eq. 2) then
+c$$$        ind_low=(ind_low/2)*2
+c$$$        ind_high=((ind_high+1)/2)*2+1
+c$$$      endif
+c$$$      num_bands=ind_high-ind_low-1
+c$$$      if (maswrk) then
+c$$$        write(iun,*) 'num_bands', num_bands
+c$$$        write(iun,*) 'ind_low', ind_low
+c$$$        write(iun,*) 'ind_high', ind_high
+c$$$      endif
+c$$$
+c$$$      end
 
       subroutine read_local_axis
 

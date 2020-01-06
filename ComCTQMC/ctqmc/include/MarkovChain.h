@@ -1,192 +1,131 @@
-#ifndef MARKOVCHAIN
-#define MARKOVCHAIN
+#ifndef MARKOVCHAIN_H
+#define MARKOVCHAIN_H
 
 #include <vector>
 
 #include "Utilities.h"
-#include "Updates.h"
 #include "Data.h"
-#include "Weight.h"
-#include "Observables.h"
-#include "Config.h"
+#include "State.h"
+#include "updates/Definition.h"
+#include "updates/Updates.h"
 
-// Irgendwas stimmt da no nit, MarkovChain is nit dr richtig name: MarkovChain -> MonteCarlo,  MonteCarlo -> Simulation
-// isch doch alles hippie-kacke hippie-kacke hippie-kacke
 
-namespace ma {
+namespace mc {
     
-    template<class GreenMeas, class HybFunc>
+    struct TypeId {
+        using FuncPtr = TypeId(*)();
+        TypeId(FuncPtr val) : val_(val) {};
+    private:
+        FuncPtr val_;
+        
+        friend bool operator<(TypeId const& lhs, TypeId const& rhs) {
+            return lhs.val_ < rhs.val_;
+        };
+    };
+    
+    template<typename T> TypeId type_id() {
+        return &type_id<T>;
+    };
+    
+    
     struct MarkovChain {
         MarkovChain() = delete;
-        MarkovChain(jsx::value const& jParams, int const id) :
-        id_(id),
-        urng_(ut::Engine((jParams.is("seed") ? jParams("seed").int64() : 41085) + (jParams.is("seed increment") ? jParams("seed increment").int64() : 857)*id_), ut::UniformDistribution(.0, 1.)),
-        data_(*da::Data<HybFunc>::Instance(jParams)),
-        weight_(*we::Weight<HybFunc>::Instance(jParams, data_, id)), //Soetti z'Config file uebercho ....
-        obs_(*ob::Observables<GreenMeas, HybFunc>::Instance(jParams, data_, weight_)),
-        config_(*new co::ConfigCSQ(jParams("hybridisation")("matrix").size(), weight_.baths())) {
-            auto const& jMatrix = jParams("hybridisation")("matrix");
-            
-            for(std::size_t i = 0; i < jMatrix.size(); ++i) 
-                for(std::size_t j = 0; j < jMatrix.size(); ++j)
-                    if(jMatrix(i)(j).string() != "") {
-                        update_.emplace_back(new Visitor<up::InsertTwo>(2*i + 1, 2*j, data_.hyb().block(i)));
-                        prob_.push_back((prob_.size() ? prob_.back() : .0) + 1.);
-                        
-                        update_.emplace_back(new Visitor<up::EraseTwo>(2*i + 1, 2*j, data_.hyb().block(i)));
-                        prob_.push_back((prob_.size() ? prob_.back() : .0) + 1.);
-                    }
-            
-            update_.emplace_back(new InitVisitor());
-            upd_ = update_.back().get();
+        MarkovChain(jsx::value const& jParams, std::int64_t mcId) :
+        clean_(jParams.is("clean") ? jParams("clean").int64() : 10000),
+        steps_(0),
+        urng_(ut::Engine((jParams.is("seed") ? jParams("seed").int64() : 41085) + (jParams.is("seed increment") ? jParams("seed increment").int64() : 857)*mcId), ut::UniformDistribution(.0, 1.)),
+        upd_(nullptr) {
         };
         MarkovChain(MarkovChain const&) = delete;
         MarkovChain(MarkovChain&&) = delete;
         MarkovChain& operator=(MarkovChain const&) = delete;
         MarkovChain& operator=(MarkovChain&&) = delete;
+        ~MarkovChain() = default;
         
-        int id() {
-            return id_;
-        }
         
-        int udpate() {
-            if(upd_->apply(*this) == tr::Flag::Pending) return 0;
+        template<typename Alloc, typename HybVal, typename Def>
+        void add(Def def, double prob) {
+            updates_.push_back(make_update<Alloc, HybVal>(def));
             
-            upd_ = update_[std::upper_bound(prob_.begin(), prob_.end(), urng_()*prob_.back()) - prob_.begin()].get();
+            prob_.push_back((prob_.size() ? prob_.back() : .0) + prob);
+        };
+        
+        
+        bool cycle(data::Data const& data, state::State& state, imp::itf::Batcher& batcher) {
+            if(upd_ == nullptr) upd_ = updates_[std::upper_bound(prob_.begin(), prob_.end(), urng_()*prob_.back()) - prob_.begin()].get();
             
-            return 1;
-        }
-        
-        void sample() {
-            obs_.sample(data_, weight_);
-        };
-        void store(jsx::value& measurements) {
-            obs_.store(measurements);
-        };
-        
-        int csample() {
-            return obs_.csample(data_, weight_);
-        };        
-        void cstore(jsx::value& measurements) {
-            obs_.cstore(measurements, data_);
-        };
-        
-        void clean() {
-            weight_.clean(data_);
-            obs_.clean();
-        };
-        
-        ~MarkovChain() {
-            delete &config_;
+            if(!upd_->apply(data, state, urng_, batcher)) return false;
             
-            ob::Observables<GreenMeas, HybFunc>::Destroy(&obs_);
-            we::Weight<HybFunc>::Destroy(&weight_);
-            da::Data<HybFunc>::Destroy(&data_);
+            upd_ = nullptr; ++steps_; if(steps_ % clean_ == 0) state.clean(data);
+            
+            return true;
+        };
+        
+        
+        std::int64_t steps() const {
+            return steps_;
         };
         
     private:
         
-        struct AbstractVisitor {
-            virtual tr::Flag apply(MarkovChain&) = 0; // Es wuerd gnueege wenn de kack da 0 oder 1 zrugg git ......
-            virtual ~AbstractVisitor() {};
+        struct BindItf {
+            virtual bool apply(data::Data const&, state::State&, ut::UniformRng&, imp::itf::Batcher&) = 0;
+            virtual ~BindItf() = default;
         };
         
-        template<typename U>
-        struct Visitor : AbstractVisitor {
-            template<typename... Args>
-            Visitor(Args... args) : flag_(tr::Flag::Reject), u_(args...) {};
-            tr::Flag apply(MarkovChain& maCh) {
-                if(flag_ != tr::Flag::Pending) flag_ = maCh.prepare(u_);
-                if(flag_ == tr::Flag::Pending) flag_ = maCh.decide(u_);
-                return flag_;
-            }
+        template<typename Def>
+        struct Bind : BindItf {
+            Bind(Def def, upd::Update<Def>& impl) : def_(def), impl_(impl) {};
+            
+            bool apply(data::Data const& data, state::State& state, ut::UniformRng& urng, imp::itf::Batcher& batcher) {
+                return impl_(def_, data, state, urng, batcher);
+            };
         private:
-            tr::Flag flag_;
-            U u_;
+            Def def_;
+            upd::Update<Def>& impl_;
         };
         
-        struct InitVisitor : AbstractVisitor {    // Isch das die richtig loesig fuer de init scheiss ?
-            InitVisitor() : flag_(tr::Flag::Reject) {};
-            tr::Flag apply(MarkovChain& maCh) {
-                if(flag_ != tr::Flag::Pending) flag_ = maCh.weight_.prepare();
-                if(flag_ == tr::Flag::Pending) flag_ = maCh.weight_.decide();
-                return flag_;
-            }
-        private:
-            tr::Flag flag_;
-        };
-        
-        int const id_;
+        std::int64_t const clean_;
+        std::int64_t steps_;
         
         ut::UniformRng urng_;
-        
-        da::Data<HybFunc> const& data_;                 //delete
-        we::Weight<HybFunc>& weight_;                   //delete
-        ob::Observables<GreenMeas, HybFunc>& obs_;      //delete
-        
-        co::Abstract& config_;                          //delete
-        
-        up::Tuple<tr::Updates, up::InsertTwo, up::EraseTwo> traceUpds_;
-        up::Tuple<ba::Updates, up::InsertTwo, up::EraseTwo> bathUpds_;
-        up::Tuple<dy::Updates, up::InsertTwo, up::EraseTwo> dynUpds_;
-        
         std::vector<double> prob_;
-        std::vector<std::unique_ptr<AbstractVisitor>> update_;
-        AbstractVisitor* upd_;
+        std::vector<std::unique_ptr<BindItf>> updates_;
+        BindItf* upd_;
         
-        // One could also make a class for each update, but not necessary (for now at least)
-        template<typename U>
-        tr::Flag prepare(U& u) {
-            auto& traceUpd = up::get<U>(traceUpds_);
-            auto& bathUpd = up::get<U>(bathUpds_);
-            auto& dynUpd = up::get<U>(dynUpds_);
-            
-            if(config_.propose(u, urng_)) {
-                if(tr::Flag::Pending == traceUpd.surviving(u, weight_.trace())) {
-                    za::Zahl const ratio = config_.ratio(u) * bathUpd.ratio(u, weight_.baths(), data_.hyb()) * dynUpd.ratio(u, weight_.dyn());
-
-                    if(!(ratio == .0)) {
-                        traceUpd.prepare(weight_.trace(), urng_()/ratio);
-                        return tr::Flag::Pending;
-                    }
-
-                    bathUpd.reject(u, weight_.baths());  //besser wenn alli updates da sind, au wenn's nuet machend
-                    dynUpd.reject(weight_.dyn());
-                }
-                traceUpd.reject(weight_.trace());
-            }
-            
-            config_.reject(u);
-            return tr::Flag::Reject;
-        };
+        std::map<TypeId, std::unique_ptr<upd::itf::Update>> impl_;
+       
         
-        template<typename U>
-        tr::Flag decide(U const& u) {
-            auto& traceUpd = up::get<U>(traceUpds_);
-            auto& bathUpd = up::get<U>(bathUpds_);
-            auto& dynUpd = up::get<U>(dynUpds_);
+        template<typename Alloc, typename HybVal, typename Def>
+        std::unique_ptr<BindItf> make_update(Def def) {
+            using Impl = upd::Update<Def>; auto const typeId = type_id<Impl>();
             
-            tr::Flag const flag = traceUpd.decide(weight_.trace());
-            
-            if(flag == tr::Flag::Reject) {
-                config_.reject(u);
-                traceUpd.reject(weight_.trace());
-                bathUpd.reject(u, weight_.baths());
-                dynUpd.reject(weight_.dyn());
-            }
-            
-            if(flag == tr::Flag::Accept) {
-                config_.accept(u);
-                traceUpd.accept(weight_.trace());
-                bathUpd.accept(u, weight_.baths());
-                dynUpd.accept(weight_.dyn());
-                
-                obs_.update(u);
-            }
-            
-            return flag;
-        };
+            if(!impl_.count(typeId)) impl_[typeId].reset(new Impl(ut::Options<Alloc, HybVal>()));
+
+            return std::unique_ptr<BindItf>(new Bind<Def>(def, static_cast<Impl&>(*impl_[typeId])));
+        }
     };
+    
+    
+    
+    
+    template<typename Alloc, typename HybVal>
+    void addUpdates(jsx::value const& jParams, data::Data const& data, MarkovChain& markovChain) {
+        mpi::cout << "Setting default updates ... ";
+        
+        int bath = 0;
+        for(auto const& block : data.hyb().blocks()) {
+            for(auto const& flavorL : block.flavorsL())
+                for(auto const& flavorR : block.flavorsR()) {
+                    markovChain.add<Alloc, HybVal>(upd::InsertTwo(flavorL, flavorR, bath), 1.);
+                    markovChain.add<Alloc, HybVal>(upd::EraseTwo(flavorL, flavorR, bath), 1.);
+                }
+            ++bath;
+        }
+        
+        mpi::cout << "Ok" << std::endl;
+    };
+    
 }
 
 #endif

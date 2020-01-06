@@ -1,0 +1,23 @@
+BASE_CPPFLAGS = -DNDEBUG
+BASE_LDFLAGS = 
+BASE_LIBS = 
+
+LAPACK_CPPFLAGS =
+LAPACK_LDFLAGS =
+LAPACK_LIBS = -lxlopt -lblas -llapack
+
+CUDA_CPPFLAGS = -I/usr/local/cuda-9.1/include/
+CUDA_LDFLAGS = -L/usr/local/cuda-9.1/lib64/ 
+
+NVCC = nvcc
+NVCCFLAGS = -ccbin=xlC -std=c++11 -O3 -Xcompiler -qarch=pwr9 -Xcompiler -qtune=pwr9 -arch=sm_70
+
+
+CXX = xlc++
+CXX_MPI = mpixlC -DHAVE_MPI
+CXXFLAGS = -std=c++11 -O3 -qarch=pwr9 -qtune=pwr9  
+
+CPPFLAGS = $(BASE_CPPFLAGS) $(LAPACK_CPPFLAGS) $(CUDA_CPPFLAGS) 
+LDFLAGS = $(BASE_LDFLAGS) $(LAPACK_LDFLAGS) $(CUDA_LDFLAGS)  
+LIBS = $(BASE_LIBS) $(LAPACK_LIBS) 
+

@@ -5,6 +5,7 @@
       use parallel_mod
       use solid_mod
       use lda_dmft_mod
+      use units_mod      
       implicit none
       logical :: correlation
       integer :: iexit1
@@ -40,6 +41,10 @@ c
 !     endif
       endif
       do while (iter<=iter_max_scf)
+        if (maswrk) write(cun, '(a,3x,i5, a)')
+     $    '************ iteration ', iter,
+     $    ' ************'
+        chem_pot_old=chem_pot
         call ubi_sumus(iter)
         if((iter==iter_dft+1.and.iter_max_scf/=iter_dft).or.
      &    (iter>=iter_dft+1.and.iter_max_scf/=iter_dft.and.
@@ -89,8 +94,13 @@ c     --------------------------------------------------------------------
         call vcoul
         call coulener(ro_vh_new)
 *     admix density for the next iteration
-        if(iter>=1.and.ubi=='dft') call mixro1
-        if(rad_solver==' HF'.and.ubi==' hf') call mixro1
+        if((iter>=1.and.ubi=='dft')
+     $    .or.
+     $    (rad_solver==' HF'.and.ubi==' hf')) then
+          call mixro1
+        else
+          call cal_delta_rho
+        endif
         call writero
         iexit1=0
         if(ubi=='dft'.and.iter==iter_dft) iexit1=1
@@ -106,28 +116,39 @@ c     --------------------------------------------------------------------
         call properties(iexit1)
 c     
 c     Store restart data
-c     
+       if (iter == iter_max_scf) then
         call write_ro_rst
         call write_ro_core_rst
         call write_chemical_potential_rst
         call write_wfn_effhf_rst
         call write_green_effhf_rst
         call write_restart_ubi_rst
-c        call write_wan_bni
-c	call write_gwl_bni
+       endif
+c     call write_wan_bni
+c     call write_gwl_bni
 #ifdef USE_HDF5
-       call write_gwl_bni_hdf5
-       call write_wan_bni_hdf5
+        if (iter == iter_max_scf) then
+        call write_gwl_bni_hdf5
+        call write_wan_bni_hdf5
+        call write_wan_bni2_hdf5
+        endif
 #else
-       call write_gwl_bni
-       call write_wan_bni
+        call write_gwl_bni
+        call write_wan_bni
+        call write_wan_bni2              
 #endif
 
 
 
-	  ubi_0=ubi
-	  iter=iter+1
-      enddo   !!! over iter
-1010  format(/'                iteration ',i3/)
-1020  format(1x,i4,' elements discovered for lattice')
+        ubi_0=ubi
+        iter=iter+1
+        if (maswrk) then
+          write(cun,'(a,e20.12)')
+     $      'chemical potential change',
+     $      (chem_pot-chem_pot_old)*rydberg
+          write(cun, *)
+        endif
+      enddo                     !!! over iter
+ 1010 format(/'                iteration ',i3/)
+ 1020 format(1x,i4,' elements discovered for lattice')
       end

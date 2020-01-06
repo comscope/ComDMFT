@@ -372,43 +372,43 @@
       call fwrite(MPI_COMM_WORLD,is_igbs,"is_igbs",fid_dat)
       call fwrite(MPI_COMM_WORLD,is_iplf_bk,"is_iplf_bk",
      $fid_dat)
-      if(is_augm .eq. .true.) then
+      if(is_augm) then
       nv = 0
       ng(1)=size(augm,1)
       ng(2)=size(augm,2)
       ng(3)=size(augm,3)
       call fwrite(MPI_COMM_WORLD,augm,ng,nv,"augm",fid_dat)
       endif
-      if(is_dr .eq. .true.) then
+      if(is_dr) then
       nv = 0
       ng(1)=size(dr,1)
       ng(2)=size(dr,2)
       call fwrite(MPI_COMM_WORLD,dr,ng,nv,"dr",fid_dat)
       endif
-      if(is_gfun .eq. .true.) then
+      if(is_gfun) then
       nv = 0
       ng(1)=size(gfun,1)
       ng(2)=size(gfun,2)
       call fwrite(MPI_COMM_WORLD,gfun,ng,nv,"gfun",fid_dat)
       endif
-      if(is_gfund .eq. .true.) then
+      if(is_gfund) then
       nv = 0
       ng(1)=size(gfund,1)
       ng(2)=size(gfund,2)
       call fwrite(MPI_COMM_WORLD,gfund,ng,nv,"gfund",fid_dat)
       endif
-      if(is_h .eq. .true.) then
+      if(is_h) then
       nv = 0
       ng(1)=size(h,1)
       call fwrite(MPI_COMM_WORLD,h,ng(1),nv(1),"h",fid_dat)
       endif
-      if(is_ind_wf .eq. .true.) then
+      if(is_ind_wf) then
       nv = 0
       ng(1)=size(ind_wf,1)
       ng(2)=size(ind_wf,2)
       call fwrite(MPI_COMM_WORLD,ind_wf,ng,nv,"ind_wf",fid_dat)
       endif
-      if(is_indbasa .eq. .true.) then
+      if(is_indbasa) then
       nv = 0
       ng(1)=size(indbasa,1)
       ng(2)=size(indbasa,2)
@@ -417,7 +417,7 @@
       call fwrite(MPI_COMM_WORLD,indbasa,ng,nv,"indbasa",
      $fid_dat)
       endif
-      if(is_indfun0 .eq. .true.) then
+      if(is_indfun0) then
       nv = 0
       ng(1)=size(indfun0,1)
       ng(2)=size(indfun0,2)
@@ -426,152 +426,152 @@
       call fwrite(MPI_COMM_WORLD,indfun0,ng,nv,"indfun0",
      $fid_dat)
       endif
-      if(is_io_lem .eq. .true.) then
+      if(is_io_lem) then
       nv = 0
       ng(1)=size(io_lem,1)
       call fwrite(MPI_COMM_WORLD,io_lem,ng(1),nv(1),"io_lem",
      $fid_dat)
       endif
-      if(is_iob2 .eq. .true.) then
+      if(is_iob2) then
       nv = 0
       ng(1)=size(iob2,1)
       call fwrite(MPI_COMM_WORLD,iob2,ng(1),nv(1),"iob2",
      $fid_dat)
       endif
-      if(is_iopb .eq. .true.) then
+      if(is_iopb) then
       nv = 0
       ng(1)=size(iopb,1)
       call fwrite(MPI_COMM_WORLD,iopb,ng(1),nv(1),"iopb",
      $fid_dat)
       endif
-      if(is_lf_isz .eq. .true.) then
+      if(is_lf_isz) then
       nv = 0
       ng(1)=size(lf_isz,1)
       ng(2)=size(lf_isz,2)
       call fwrite(MPI_COMM_WORLD,lf_isz,ng,nv,"lf_isz",fid_dat)
       endif
-      if(is_lfun .eq. .true.) then
+      if(is_lfun) then
       nv = 0
       ng(1)=size(lfun,1)
       call fwrite(MPI_COMM_WORLD,lfun,ng(1),nv(1),"lfun",
      $fid_dat)
       endif
-      if(is_lfun_pb .eq. .true.) then
+      if(is_lfun_pb) then
       nv = 0
       ng(1)=size(lfun_pb,1)
       call fwrite(MPI_COMM_WORLD,lfun_pb,ng(1),nv(1),"lfun_pb",
      $fid_dat)
       endif
-      if(is_lfunm .eq. .true.) then
+      if(is_lfunm) then
       nv = 0
       ng(1)=size(lfunm,1)
       call fwrite(MPI_COMM_WORLD,lfunm,ng(1),nv(1),"lfunm",
      $fid_dat)
       endif
-      if(is_li_val .eq. .true.) then
+      if(is_li_val) then
       nv = 0
       ng(1)=size(li_val,1)
       ng(2)=size(li_val,2)
       call fwrite(MPI_COMM_WORLD,li_val,ng,nv,"li_val",fid_dat)
       endif
-      if(is_lim_pb_mt .eq. .true.) then
+      if(is_lim_pb_mt) then
       nv = 0
       ng(1)=size(lim_pb_mt,1)
       ng(2)=size(lim_pb_mt,2)
       call fwrite(MPI_COMM_WORLD,lim_pb_mt,ng,nv,"lim_pb_mt",
      $fid_dat)
       endif
-      if(is_lm_isz .eq. .true.) then
+      if(is_lm_isz) then
       nv = 0
       ng(1)=size(lm_isz,1)
       ng(2)=size(lm_isz,2)
       call fwrite(MPI_COMM_WORLD,lm_isz,ng,nv,"lm_isz",fid_dat)
       endif
-      if(is_lmb .eq. .true.) then
+      if(is_lmb) then
       nv = 0
       ng(1)=size(lmb,1)
       call fwrite(MPI_COMM_WORLD,lmb,ng(1),nv(1),"lmb",fid_dat)
       endif
-      if(is_lmpb .eq. .true.) then
+      if(is_lmpb) then
       nv = 0
       ng(1)=size(lmpb,1)
       call fwrite(MPI_COMM_WORLD,lmpb,ng(1),nv(1),"lmpb",
      $fid_dat)
       endif
-      if(is_n_pbmt0 .eq. .true.) then
+      if(is_n_pbmt0) then
       nv = 0
       ng(1)=size(n_pbmt0,1)
       call fwrite(MPI_COMM_WORLD,n_pbmt0,ng(1),nv(1),"n_pbmt0",
      $fid_dat)
       endif
-      if(is_nrad .eq. .true.) then
+      if(is_nrad) then
       nv = 0
       ng(1)=size(nrad,1)
       call fwrite(MPI_COMM_WORLD,nrad,ng(1),nv(1),"nrad",
      $fid_dat)
       endif
-      if(is_ntle .eq. .true.) then
+      if(is_ntle) then
       nv = 0
       ng(1)=size(ntle,1)
       ng(2)=size(ntle,2)
       call fwrite(MPI_COMM_WORLD,ntle,ng,nv,"ntle",fid_dat)
       endif
-      if(is_ntle_pb .eq. .true.) then
+      if(is_ntle_pb) then
       nv = 0
       ng(1)=size(ntle_pb,1)
       ng(2)=size(ntle_pb,2)
       call fwrite(MPI_COMM_WORLD,ntle_pb,ng,nv,"ntle_pb",
      $fid_dat)
       endif
-      if(is_r .eq. .true.) then
+      if(is_r) then
       nv = 0
       ng(1)=size(r,1)
       ng(2)=size(r,2)
       call fwrite(MPI_COMM_WORLD,r,ng,nv,"r",fid_dat)
       endif
-      if(is_r_atom .eq. .true.) then
+      if(is_r_atom) then
       nv = 0
       ng(1)=size(r_atom,1)
       ng(2)=size(r_atom,2)
       call fwrite(MPI_COMM_WORLD,r_atom,ng,nv,"r_atom",fid_dat)
       endif
-      if(is_rl .eq. .true.) then
+      if(is_rl) then
       nv = 0
       ng(1)=size(rl,1)
       ng(2)=size(rl,2)
       ng(3)=size(rl,3)
       call fwrite(MPI_COMM_WORLD,rl,ng,nv,"rl",fid_dat)
       endif
-      if(is_smt .eq. .true.) then
+      if(is_smt) then
       nv = 0
       ng(1)=size(smt,1)
       call fwrite(MPI_COMM_WORLD,smt,ng(1),nv(1),"smt",fid_dat)
       endif
-      if(is_txtel .eq. .true.) then
+      if(is_txtel) then
       nv = 0
       ng(1)=size(txtel,1)
       call fwrite(MPI_COMM_WORLD,txtel,ng(1),nv(1),"txtel",
      $fid_dat)
       endif
-      if(is_bett .eq. .true.) then
+      if(is_bett) then
       nv = 0
       ng(1)=size(bett,1)
       call fwrite(MPI_COMM_WORLD,bett,ng(1),nv(1),"bett",
      $fid_dat)
       endif
-      if(is_et_sum_nu .eq. .true.) then
+      if(is_et_sum_nu) then
       nv = 0
       ng(1)=size(et_sum_nu,1)
       call fwrite(MPI_COMM_WORLD,et_sum_nu,ng(1),nv(1),
      $"et_sum_nu",fid_dat)
       endif
-      if(is_ind_nu_int .eq. .true.) then
+      if(is_ind_nu_int) then
       nv = 0
       ng(1)=size(ind_nu_int,1)
       call fwrite(MPI_COMM_WORLD,ind_nu_int,ng(1),nv(1),
      $"ind_nu_int",fid_dat)
       endif
-      if(is_indxcgr .eq. .true.) then
+      if(is_indxcgr) then
       nv = 0
       ng(1)=size(indxcgr,1)
       ng(2)=size(indxcgr,2)
@@ -580,71 +580,71 @@
       call fwrite(MPI_COMM_WORLD,indxcgr,ng,nv,"indxcgr",
      $fid_dat)
       endif
-      if(is_tau_mesh .eq. .true.) then
+      if(is_tau_mesh) then
       nv = 0
       ng(1)=size(tau_mesh,1)
       call fwrite(MPI_COMM_WORLD,tau_mesh,ng(1),nv(1),
      $"tau_mesh",fid_dat)
       endif
-      if(is_w_nu .eq. .true.) then
+      if(is_w_nu) then
       nv = 0
       ng(1)=size(w_nu,1)
       call fwrite(MPI_COMM_WORLD,w_nu,ng(1),nv(1),"w_nu",
      $fid_dat)
       endif
-      if(is_w_nu_d .eq. .true.) then
+      if(is_w_nu_d) then
       nv = 0
       ng(1)=size(w_nu_d,1)
       call fwrite(MPI_COMM_WORLD,w_nu_d,ng(1),nv(1),"w_nu_d",
      $fid_dat)
       endif
-      if(is_e_bnd .eq. .true.) then
+      if(is_e_bnd) then
       nv = 0
       ng(1)=size(e_bnd,1)
       ng(2)=size(e_bnd,2)
       ng(3)=size(e_bnd,3)
       call fwrite(MPI_COMM_WORLD,e_bnd,ng,nv,"e_bnd",fid_dat)
       endif
-      if(is_e_qp .eq. .true.) then
+      if(is_e_qp) then
       nv = 0
       ng(1)=size(e_qp,1)
       ng(2)=size(e_qp,2)
       ng(3)=size(e_qp,3)
       call fwrite(MPI_COMM_WORLD,e_qp,ng,nv,"e_qp",fid_dat)
       endif
-      if(is_g_sym_0 .eq. .true.) then
+      if(is_g_sym_0) then
       nv = 0
       ng(1)=size(g_sym_0,1)
       ng(2)=size(g_sym_0,2)
       call fwrite(MPI_COMM_WORLD,g_sym_0,ng,nv,"g_sym_0",
      $fid_dat)
       endif
-      if(is_gbs .eq. .true.) then
+      if(is_gbs) then
       nv = 0
       ng(1)=size(gbs,1)
       ng(2)=size(gbs,2)
       call fwrite(MPI_COMM_WORLD,gbs,ng,nv,"gbs",fid_dat)
       endif
-      if(is_gbs_sym .eq. .true.) then
+      if(is_gbs_sym) then
       nv = 0
       ng(1)=size(gbs_sym,1)
       ng(2)=size(gbs_sym,2)
       call fwrite(MPI_COMM_WORLD,gbs_sym,ng,nv,"gbs_sym",
      $fid_dat)
       endif
-      if(is_i_kref .eq. .true.) then
+      if(is_i_kref) then
       nv = 0
       ng(1)=size(i_kref,1)
       call fwrite(MPI_COMM_WORLD,i_kref,ng(1),nv(1),"i_kref",
      $fid_dat)
       endif
-      if(is_ifia .eq. .true.) then
+      if(is_ifia) then
       nv = 0
       ng(1)=size(ifia,1)
       call fwrite(MPI_COMM_WORLD,ifia,ng(1),nv(1),"ifia",
      $fid_dat)
       endif
-      if(is_ig_pair .eq. .true.) then
+      if(is_ig_pair) then
       nv = 0
       ng(1)=size(ig_pair,1)
       ng(2)=size(ig_pair,2)
@@ -652,89 +652,89 @@
       call fwrite(MPI_COMM_WORLD,ig_pair,ng,nv,"ig_pair",
      $fid_dat)
       endif
-      if(is_ind_k_star_back .eq. .true.) then
+      if(is_ind_k_star_back) then
       nv = 0
       ng(1)=size(ind_k_star_back,1)
       call fwrite(MPI_COMM_WORLD,ind_k_star_back,ng(1),nv(1),
      $"ind_k_star_back",fid_dat)
       endif
-      if(is_ind_r_star .eq. .true.) then
+      if(is_ind_r_star) then
       nv = 0
       ng(1)=size(ind_r_star,1)
       ng(2)=size(ind_r_star,2)
       call fwrite(MPI_COMM_WORLD,ind_r_star,ng,nv,"ind_r_star",
      $fid_dat)
       endif
-      if(is_ind_r_star_back .eq. .true.) then
+      if(is_ind_r_star_back) then
       nv = 0
       ng(1)=size(ind_r_star_back,1)
       call fwrite(MPI_COMM_WORLD,ind_r_star_back,ng(1),nv(1),
      $"ind_r_star_back",fid_dat)
       endif
-      if(is_indgb .eq. .true.) then
+      if(is_indgb) then
       nv = 0
       ng(1)=size(indgb,1)
       ng(2)=size(indgb,2)
       call fwrite(MPI_COMM_WORLD,indgb,ng,nv,"indgb",fid_dat)
       endif
-      if(is_indplw .eq. .true.) then
+      if(is_indplw) then
       nv = 0
       ng(1)=size(indplw,1)
       ng(2)=size(indplw,2)
       ng(3)=size(indplw,3)
       call fwrite(MPI_COMM_WORLD,indplw,ng,nv,"indplw",fid_dat)
       endif
-      if(is_indpw_gw .eq. .true.) then
+      if(is_indpw_gw) then
       nv = 0
       ng(1)=size(indpw_gw,1)
       ng(2)=size(indpw_gw,2)
       call fwrite(MPI_COMM_WORLD,indpw_gw,ng,nv,"indpw_gw",
      $fid_dat)
       endif
-      if(is_indpw_r .eq. .true.) then
+      if(is_indpw_r) then
       nv = 0
       ng(1)=size(indpw_r,1)
       ng(2)=size(indpw_r,2)
       call fwrite(MPI_COMM_WORLD,indpw_r,ng,nv,"indpw_r",
      $fid_dat)
       endif
-      if(is_ip .eq. .true.) then
+      if(is_ip) then
       nv = 0
       ng(1)=size(ip,1)
       ng(2)=size(ip,2)
       call fwrite(MPI_COMM_WORLD,ip,ng,nv,"ip",fid_dat)
       endif
-      if(is_ip_k .eq. .true.) then
+      if(is_ip_k) then
       nv = 0
       ng(1)=size(ip_k,1)
       ng(2)=size(ip_k,2)
       call fwrite(MPI_COMM_WORLD,ip_k,ng,nv,"ip_k",fid_dat)
       endif
-      if(is_ip_r .eq. .true.) then
+      if(is_ip_r) then
       nv = 0
       ng(1)=size(ip_r,1)
       ng(2)=size(ip_r,2)
       call fwrite(MPI_COMM_WORLD,ip_r,ng,nv,"ip_r",fid_dat)
       endif
-      if(is_iplf_gk .eq. .true.) then
+      if(is_iplf_gk) then
       nv = 0
       ng(1)=size(iplf_gk,1)
       ng(2)=size(iplf_gk,2)
       call fwrite(MPI_COMM_WORLD,iplf_gk,ng,nv,"iplf_gk",
      $fid_dat)
       endif
-      if(is_ir_ref .eq. .true.) then
+      if(is_ir_ref) then
       nv = 0
       ng(1)=size(ir_ref,1)
       call fwrite(MPI_COMM_WORLD,ir_ref,ng(1),nv(1),"ir_ref",
      $fid_dat)
       endif
-      if(is_is .eq. .true.) then
+      if(is_is) then
       nv = 0
       ng(1)=size(is,1)
       call fwrite(MPI_COMM_WORLD,is,ng(1),nv(1),"is",fid_dat)
       endif
-      if(is_itshift_r .eq. .true.) then
+      if(is_itshift_r) then
       nv = 0
       ng(1)=size(itshift_r,1)
       ng(2)=size(itshift_r,2)
@@ -742,88 +742,88 @@
       call fwrite(MPI_COMM_WORLD,itshift_r,ng,nv,"itshift_r",
      $fid_dat)
       endif
-      if(is_k_group .eq. .true.) then
+      if(is_k_group) then
       nv = 0
       ng(1)=size(k_group,1)
       call fwrite(MPI_COMM_WORLD,k_group,ng(1),nv(1),"k_group",
      $fid_dat)
       endif
-      if(is_k_star .eq. .true.) then
+      if(is_k_star) then
       nv = 0
       ng(1)=size(k_star,1)
       call fwrite(MPI_COMM_WORLD,k_star,ng(1),nv(1),"k_star",
      $fid_dat)
       endif
-      if(is_k_sym_0 .eq. .true.) then
+      if(is_k_sym_0) then
       nv = 0
       ng(1)=size(k_sym_0,1)
       ng(2)=size(k_sym_0,2)
       call fwrite(MPI_COMM_WORLD,k_sym_0,ng,nv,"k_sym_0",
      $fid_dat)
       endif
-      if(is_list_sym_k .eq. .true.) then
+      if(is_list_sym_k) then
       nv = 0
       ng(1)=size(list_sym_k,1)
       ng(2)=size(list_sym_k,2)
       call fwrite(MPI_COMM_WORLD,list_sym_k,ng,nv,"list_sym_k",
      $fid_dat)
       endif
-      if(is_n_bnd .eq. .true.) then
+      if(is_n_bnd) then
       nv = 0
       ng(1)=size(n_bnd,1)
       ng(2)=size(n_bnd,2)
       call fwrite(MPI_COMM_WORLD,n_bnd,ng,nv,"n_bnd",fid_dat)
       endif
-      if(is_nbask .eq. .true.) then
+      if(is_nbask) then
       nv = 0
       ng(1)=size(nbask,1)
       call fwrite(MPI_COMM_WORLD,nbask,ng(1),nv(1),"nbask",
      $fid_dat)
       endif
-      if(is_nhsort .eq. .true.) then
+      if(is_nhsort) then
       nv = 0
       ng(1)=size(nhsort,1)
       call fwrite(MPI_COMM_WORLD,nhsort,ng(1),nv(1),"nhsort",
      $fid_dat)
       endif
-      if(is_nplw_r .eq. .true.) then
+      if(is_nplw_r) then
       nv = 0
       ng(1)=size(nplw_r,1)
       call fwrite(MPI_COMM_WORLD,nplw_r,ng(1),nv(1),"nplw_r",
      $fid_dat)
       endif
-      if(is_nplwgw .eq. .true.) then
+      if(is_nplwgw) then
       nv = 0
       ng(1)=size(nplwgw,1)
       call fwrite(MPI_COMM_WORLD,nplwgw,ng(1),nv(1),"nplwgw",
      $fid_dat)
       endif
-      if(is_nrr_red .eq. .true.) then
+      if(is_nrr_red) then
       nv = 0
       ng(1)=size(nrr_red,1)
       ng(2)=size(nrr_red,2)
       call fwrite(MPI_COMM_WORLD,nrr_red,ng,nv,"nrr_red",
      $fid_dat)
       endif
-      if(is_num_r_star .eq. .true.) then
+      if(is_num_r_star) then
       nv = 0
       ng(1)=size(num_r_star,1)
       call fwrite(MPI_COMM_WORLD,num_r_star,ng(1),nv(1),
      $"num_r_star",fid_dat)
       endif
-      if(is_num_sym_k .eq. .true.) then
+      if(is_num_sym_k) then
       nv = 0
       ng(1)=size(num_sym_k,1)
       call fwrite(MPI_COMM_WORLD,num_sym_k,ng(1),nv(1),
      $"num_sym_k",fid_dat)
       endif
-      if(is_pnt .eq. .true.) then
+      if(is_pnt) then
       nv = 0
       ng(1)=size(pnt,1)
       ng(2)=size(pnt,2)
       call fwrite(MPI_COMM_WORLD,pnt,ng,nv,"pnt",fid_dat)
       endif
-      if(is_r0_pair .eq. .true.) then
+      if(is_r0_pair) then
       nv = 0
       ng(1)=size(r0_pair,1)
       ng(2)=size(r0_pair,2)
@@ -831,62 +831,62 @@
       call fwrite(MPI_COMM_WORLD,r0_pair,ng,nv,"r0_pair",
      $fid_dat)
       endif
-      if(is_r_group .eq. .true.) then
+      if(is_r_group) then
       nv = 0
       ng(1)=size(r_group,1)
       call fwrite(MPI_COMM_WORLD,r_group,ng(1),nv(1),"r_group",
      $fid_dat)
       endif
-      if(is_r_pnt .eq. .true.) then
+      if(is_r_pnt) then
       nv = 0
       ng(1)=size(r_pnt,1)
       ng(2)=size(r_pnt,2)
       call fwrite(MPI_COMM_WORLD,r_pnt,ng,nv,"r_pnt",fid_dat)
       endif
-      if(is_r_pnt_ind .eq. .true.) then
+      if(is_r_pnt_ind) then
       nv = 0
       ng(1)=size(r_pnt_ind,1)
       call fwrite(MPI_COMM_WORLD,r_pnt_ind,ng(1),nv(1),
      $"r_pnt_ind",fid_dat)
       endif
-      if(is_shift .eq. .true.) then
+      if(is_shift) then
       nv = 0
       ng(1)=size(shift,1)
       ng(2)=size(shift,2)
       call fwrite(MPI_COMM_WORLD,shift,ng,nv,"shift",fid_dat)
       endif
-      if(is_sovi .eq. .true.) then
+      if(is_sovi) then
       nv = 0
       ng(1)=size(sovi,1)
       call fwrite(MPI_COMM_WORLD,sovi,ng(1),nv(1),"sovi",
      $fid_dat)
       endif
-      if(is_sovr .eq. .true.) then
+      if(is_sovr) then
       nv = 0
       ng(1)=size(sovr,1)
       call fwrite(MPI_COMM_WORLD,sovr,ng(1),nv(1),"sovr",
      $fid_dat)
       endif
-      if(is_sym_label .eq. .true.) then
+      if(is_sym_label) then
       nv = 0
       ng(1)=size(sym_label,1)
       call fwrite(MPI_COMM_WORLD,sym_label,ng(1),nv(1),
      $"sym_label",fid_dat)
       endif
-      if(is_tau .eq. .true.) then
+      if(is_tau) then
       nv = 0
       ng(1)=size(tau,1)
       ng(2)=size(tau,2)
       call fwrite(MPI_COMM_WORLD,tau,ng,nv,"tau",fid_dat)
       endif
-      if(is_tshift .eq. .true.) then
+      if(is_tshift) then
       nv = 0
       ng(1)=size(tshift,1)
       ng(2)=size(tshift,2)
       ng(3)=size(tshift,3)
       call fwrite(MPI_COMM_WORLD,tshift,ng,nv,"tshift",fid_dat)
       endif
-      if(is_tshift_r .eq. .true.) then
+      if(is_tshift_r) then
       nv = 0
       ng(1)=size(tshift_r,1)
       ng(2)=size(tshift_r,2)
@@ -894,30 +894,30 @@
       call fwrite(MPI_COMM_WORLD,tshift_r,ng,nv,"tshift_r",
      $fid_dat)
       endif
-      if(is_u .eq. .true.) then
+      if(is_u) then
       nv = 0
       ng(1)=size(u,1)
       ng(2)=size(u,2)
       call fwrite(MPI_COMM_WORLD,u,ng,nv,"u",fid_dat)
       endif
-      if(is_uj .eq. .true.) then
+      if(is_uj) then
       nv = 0
       ng(1)=size(uj,1)
       ng(2)=size(uj,2)
       call fwrite(MPI_COMM_WORLD,uj,ng,nv,"uj",fid_dat)
       endif
-      if(is_wgt .eq. .true.) then
+      if(is_wgt) then
       nv = 0
       ng(1)=size(wgt,1)
       call fwrite(MPI_COMM_WORLD,wgt,ng(1),nv(1),"wgt",fid_dat)
       endif
-      if(is_igbs .eq. .true.) then
+      if(is_igbs) then
       nv = 0
       ng(1)=size(igbs,1)
       ng(2)=size(igbs,2)
       call fwrite(MPI_COMM_WORLD,igbs,ng,nv,"igbs",fid_dat)
       endif
-      if(is_iplf_bk .eq. .true.) then
+      if(is_iplf_bk) then
       nv = 0
       ng(1)=size(iplf_bk,1)
       ng(2)=size(iplf_bk,2)
@@ -959,40 +959,40 @@
       call fwrite(MPI_COMM_WORLD,is_k_list,"is_k_list",fid_dat)
       call fwrite(MPI_COMM_WORLD,is_ksym_in_npnt,
      $"is_ksym_in_npnt",fid_dat)
-      if(is_cg .eq. .true.) then
+      if(is_cg) then
       nv = 0
       ng(1)=size(cg,1)
       call fwrite(MPI_COMM_WORLD,cg,ng(1),nv(1),"cg",fid_dat)
       endif
-      if(is_cgr .eq. .true.) then
+      if(is_cgr) then
       nv = 0
       ng(1)=size(cgr,1)
       call fwrite(MPI_COMM_WORLD,cgr,ng(1),nv(1),"cgr",fid_dat)
       endif
-      if(is_indxcg .eq. .true.) then
+      if(is_indxcg) then
       nv = 0
       ng(1)=size(indxcg,1)
       call fwrite(MPI_COMM_WORLD,indxcg,ng(1),nv(1),"indxcg",
      $fid_dat)
       endif
-      if(is_jcg .eq. .true.) then
+      if(is_jcg) then
       nv = 0
       ng(1)=size(jcg,1)
       call fwrite(MPI_COMM_WORLD,jcg,ng(1),nv(1),"jcg",fid_dat)
       endif
-      if(is_jcgr .eq. .true.) then
+      if(is_jcgr) then
       nv = 0
       ng(1)=size(jcgr,1)
       call fwrite(MPI_COMM_WORLD,jcgr,ng(1),nv(1),"jcgr",
      $fid_dat)
       endif
-      if(is_k_list .eq. .true.) then
+      if(is_k_list) then
       nv = 0
       ng(1)=size(k_list,1)
       ng(2)=size(k_list,2)
       call fwrite(MPI_COMM_WORLD,k_list,ng,nv,"k_list",fid_dat)
       endif
-      if(is_ksym_in_npnt .eq. .true.) then
+      if(is_ksym_in_npnt) then
       nv = 0
       ng(1)=size(ksym_in_npnt,1)
       call fwrite(MPI_COMM_WORLD,ksym_in_npnt,ng(1),nv(1),
@@ -1024,7 +1024,7 @@
       call fwrite(MPI_COMM_WORLD,is_z_bnd,"is_z_bnd",fid_dat)
       call fwrite(MPI_COMM_WORLD,is_ev_qp,"is_ev_qp",fid_dat)
       call fwrite(MPI_COMM_WORLD,is_z_qp,"is_z_qp",fid_dat)
-      if(is_ev_bnd .eq. .true.) then
+      if(is_ev_bnd) then
       nv = 0
       nv(3)=n3_mpi_k(me3_k+1)
       ng(1)=size(ev_bnd,1)
@@ -1037,7 +1037,7 @@
      $allfile(1:i_len)//'/ev_bnd/'//trim(ubi_l),fid_dat)
       enddo
       endif
-      if(is_q_qp .eq. .true.) then
+      if(is_q_qp) then
       nv = 0
       nv(3)=n3_mpi_k(me3_k+1)
       ng(1)=size(q_qp,1)
@@ -1050,7 +1050,7 @@
      $allfile(1:i_len)//'/q_qp/'//trim(ubi_l),fid_dat)
       enddo
       endif
-      if(is_s_it_r0 .eq. .true.) then
+      if(is_s_it_r0) then
       nv = 0
       nv(3)=n3_mpi_kk(me3_k+1)
       ng(1)=size(s_it_r0,1)
@@ -1062,7 +1062,7 @@
      $allfile(1:i_len)//'/s_it_r0/'//trim(ubi_l),fid_dat)
       enddo
       endif
-      if(is_v_ii .eq. .true.) then
+      if(is_v_ii) then
       nv = 0
       nv(3)=n3_mpi_k(me3_k+1)
       ng(1)=size(v_ii,1)
@@ -1073,7 +1073,7 @@
      $allfile(1:i_len)//'/v_ii/'//trim(ubi_l),fid_dat)
       enddo
       endif
-      if(is_v_mm .eq. .true.) then
+      if(is_v_mm) then
       nv = 0
       nv(3)=n3_mpi_k(me3_k+1)
       ng(1)=size(v_mm,1)
@@ -1084,7 +1084,7 @@
      $allfile(1:i_len)//'/v_mm/'//trim(ubi_l),fid_dat)
       enddo
       endif
-      if(is_w_rs_mi .eq. .true.) then
+      if(is_w_rs_mi) then
       nv = 0
       nv(3)=n3_mpi_kk(me3_k+1)
       ng(1)=size(w_rs_mi,1)
@@ -1095,7 +1095,7 @@
      $allfile(1:i_len)//'/w_rs_mi/'//trim(ubi_l),fid_dat)
       enddo
       endif
-      if(is_z_bnd .eq. .true.) then
+      if(is_z_bnd) then
       nv = 0
       nv(3)=n3_mpi_k(me3_k+1)
       ng(1)=size(z_bnd,1)
@@ -1108,7 +1108,7 @@
      $allfile(1:i_len)//'/z_bnd/'//trim(ubi_l),fid_dat)
       enddo
       endif
-      if(is_ev_qp .eq. .true.) then
+      if(is_ev_qp) then
       nv = 0
       nv(3)=n3_mpi_k(me3_k+1)
       ng(1)=size(ev_qp,1)
@@ -1121,7 +1121,7 @@
      $allfile(1:i_len)//'/ev_qp/'//trim(ubi_l),fid_dat)
       enddo
       endif
-      if(is_z_qp .eq. .true.) then
+      if(is_z_qp) then
       nv = 0
       nv(3)=n3_mpi_k(me3_k+1)
       ng(1)=size(z_qp,1)
@@ -1134,7 +1134,7 @@
      $allfile(1:i_len)//'/z_qp/'//trim(ubi_l),fid_dat)
       enddo
       endif
-      if(is_ab_nu_from_tau .eq. .true.) then
+      if(is_ab_nu_from_tau) then
       nv = 0
       nv(1)=ndim3_tau*me3_tau
       ng(1)=ndim3_tau*nproc_tau
@@ -1143,7 +1143,7 @@
       call fwrite(comm_tau_k,ab_nu_from_tau,ng,nv,
      $allfile(1:i_len)//'/ab_nu_from_tau/'//trim(ubi_l),fid_dat)
       endif
-      if(is_tau_from_nu .eq. .true.) then
+      if(is_tau_from_nu) then
       nv = 0
       nv(2)=ndim3_tau*me3_tau
       ng(1)=size(tau_from_nu,1)

@@ -1,3 +1,5 @@
+include Makefile.in
+
 GUTZ_ROOT2 = ${COMSUITE_BIN}
 
 

@@ -2,7 +2,7 @@ include ../../../Makefile.in
 
 DCPP = 
 
-FFLAGS =  -O3 -mp1 -w -prec_div -pc80 -pad -ip -DINTEL_VML -traceback
+FFLAGS = ${FFLAGS_RISB}
 
 #FFLAGS = -O0 -check bound -check pointer -check arg_temp_created \
 		-traceback 

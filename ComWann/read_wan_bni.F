@@ -3,48 +3,48 @@
       implicit none
       include 'mpif.h'
       integer :: jcg_size,jcgr_size,cg_size,
-     $ indxcg_size,indxcgr_r1size,indxcgr_r2size,
-     $ indxcgr_r3size,indxcgr_r4size,cgr_size,
-     $ iatom,i,isort,l,n,jj,ii,kk,ll,i_len
+     $  indxcg_size,indxcgr_r1size,indxcgr_r2size,
+     $  indxcgr_r3size,indxcgr_r4size,cgr_size,
+     $  iatom,i,isort,l,n,jj,ii,kk,ll,i_len
 !     $ iwan,ii,jj,
 !     $  cnt1,cnt2,kk
-!      character*1 :: dummyc
-!      complex*16 :: ai
-!      double precision :: dblr,dbli
-!      write(179,*)'bk-readini1'
+!     character*1 :: dummyc
+!     complex*16 :: ai
+!     double precision :: dblr,dbli
+!     write(179,*)'bk-readini1'
       i_len=len_trim(rstpath)
       if(maswrk) then
         open(1,file=rstpath(1:i_len)//'/info.rst',
-     $ status='old',form='unformatted')
+     $    status='old',form='unformatted')
         read(1)irel,clight
         write(993, *) 'irel=', irel
         write(993, *) 'clight=', clight
-!        if(irel==0) irel_core=0
-!        irel_core=max(irel,irel_core)
+!     if(irel==0) irel_core=0
+!     irel_core=max(irel,irel_core)
         nrel=1
         if(irel.eq.2) nrel=2
-!        nrel_core=1
-!        if(irel_core.eq.2) nrel_core=2
+!     nrel_core=1
+!     if(irel_core.eq.2) nrel_core=2
         read(1)allfile
         write(993, *) 'allfile=', allfile
         read(1)par,natom,nsort
         write(993, *) 'par=', par
         write(993, *) 'natom=', natom
         write(993, *) 'nsort=', nsort
-!        write(179,*)'bk-readini2'
+!     write(179,*)'bk-readini2'
       endif
       if(goparr) then
         call mpi_bcast(clight,1,mpi_double_precision,
      $    0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(irel,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(nrel,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
-!        call mpi_bcast(nrel_core,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
+!     call mpi_bcast(nrel_core,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(allfile,72,mpi_character,0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(par,1,mpi_double_precision,
      $    0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(natom,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(nsort,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
-c        write(179,*)'bk-readini3'
+c     write(179,*)'bk-readini3'
       endif
       allocate(is(natom))
       allocate(tau(3,natom))
@@ -85,7 +85,7 @@ c        write(179,*)'bk-readini3'
       endif
       allocate(ntle(0:maxb,nsort))
       allocate(augm(maxntle,0:maxb,nsort))
-c      write(179,*)'bk-readini_end6'
+c     write(179,*)'bk-readini_end6'
       if(maswrk) then
 
         read(1)txtel
@@ -109,7 +109,7 @@ c      write(179,*)'bk-readini_end6'
           enddo
         enddo
       endif
-c      write(179,*)'bk-readini_end5'
+c     write(179,*)'bk-readini_end5'
       if(goparr) then
         call mpi_bcast(b_a,1,mpi_double_precision,
      $    0,MPI_COMM_WORLD,mpierr)
@@ -136,83 +136,83 @@ c      write(179,*)'bk-readini_end5'
      $    0,MPI_COMM_WORLD,mpierr)
 
       endif
-c      write(179,*)'bk-readini_end4'   
+c     write(179,*)'bk-readini_end4'   
       allocate(lfun(nsort))  
       allocate(lfunm(nsort))
       if(maswrk) then
-       read(1)lfun
-       do isort=1,nsort
+        read(1)lfun
+        do isort=1,nsort
           write(993,*) 'lfun(isort)=', lfun(isort)
-       enddo  
-       read(1)lfunm
-       do isort=1,nsort
+        enddo  
+        read(1)lfunm
+        do isort=1,nsort
           write(993,*) 'lfunm(isort)=', lfunm(isort)
-       enddo
-       read(1)maxlfun,maxb,maxel,
-     $   maxnrad
-       write(993,*) 'maxlfun,maxb,maxel,maxnrad ',maxlfun,
-     $   maxb,maxel,maxnrad
-       read(1)irel,
-     $   iun,magn,
-     $   nrel,nspin,limlb,nfun,nqdiv
-       iun=993
-       write(993,*) 'irel,iun,magn,nrel,nspin,limlb,nfun,nqdiv',
-     $   irel,iun,
-     $   magn,nrel,nspin,limlb,nfun,nqdiv
-       read(1)amega
-       write(993,*) 'amega', amega
-       read(1)n_tau
-       write(993,*) 'n_tau',n_tau
-       read(1)npnt
-       write(993,*) 'npnt',npnt
-       read(1)maxylm
-       write(993,*) 'maxylm',maxylm
-       read(1)cg_size
-       write(993,*) 'cg_size',cg_size
-       read(1)jcg_size
-       write(993,*) 'jcg_size',jcg_size
-       read(1)jcgr_size
-       write(993,*) 'jcgr_size',jcgr_size
-       read(1)indxcg_size
-       write(993,*) 'indxcg_size',indxcg_size
-       read(1)indxcgr_r1size
-       write(993,*) 'indxcgr_r1size',indxcgr_r1size
-       read(1)indxcgr_r2size
-       write(993,*) 'indxcgr_r2size',indxcgr_r2size
-       read(1)indxcgr_r3size
-       write(993,*) 'indxcgr_r3size',indxcgr_r3size
-       read(1)indxcgr_r4size
-       write(993,*) 'indxcgr_r4size',indxcgr_r4size       
-       read(1)cgr_size
-       write(993,*) 'cgr_size',cgr_size       
-       read(1)complex_ro
-       write(993,*) 'complex_ro',complex_ro
-       read(1)maxplw
-       write(993,*) 'maxplw',maxplw
-       read(1)nplwdif
-       write(993,*) 'nplwdif',nplwdif
-       read(1)ngroup
-       write(993,*) 'ngroup',ngroup
-       read(1)nbndtm
-       write(993,*) 'nbndtm',nbndtm
-       read(1)maxia
-       write(993,*) 'maxia',maxia
-       read(1)maxib
-       write(993,*) 'maxib',maxib
-       read(1)maxic
-       write(993,*) 'maxic',maxic
-       read(1)nplwbas
-       write(993,*) 'nplwbas',nplwbas
-       read(1)numplw
-       write(993,*) 'numplw',numplw
-       read(1)maxwig
-       write(993,*) 'maxwig',maxwig
-       read(1)maxwig_j
-       write(993,*) 'maxwig_j',maxwig_j
-       read(1)maxwf
-       write(993,*) 'maxwf',maxwf
-       read(1)nspin_0
-       write(993,*) 'nspin_0',nspin_0
+        enddo
+        read(1)maxlfun,maxb,maxel,
+     $    maxnrad
+        write(993,*) 'maxlfun,maxb,maxel,maxnrad ',maxlfun,
+     $    maxb,maxel,maxnrad
+        read(1)irel,
+     $    iun,magn,
+     $    nrel,nspin,limlb,nfun,nqdiv
+        iun=993
+        write(993,*) 'irel,iun,magn,nrel,nspin,limlb,nfun,nqdiv',
+     $    irel,iun,
+     $    magn,nrel,nspin,limlb,nfun,nqdiv
+        read(1)amega
+        write(993,*) 'amega', amega
+        read(1)n_tau
+        write(993,*) 'n_tau',n_tau
+        read(1)npnt
+        write(993,*) 'npnt',npnt
+        read(1)maxylm
+        write(993,*) 'maxylm',maxylm
+        read(1)cg_size
+        write(993,*) 'cg_size',cg_size
+        read(1)jcg_size
+        write(993,*) 'jcg_size',jcg_size
+        read(1)jcgr_size
+        write(993,*) 'jcgr_size',jcgr_size
+        read(1)indxcg_size
+        write(993,*) 'indxcg_size',indxcg_size
+        read(1)indxcgr_r1size
+        write(993,*) 'indxcgr_r1size',indxcgr_r1size
+        read(1)indxcgr_r2size
+        write(993,*) 'indxcgr_r2size',indxcgr_r2size
+        read(1)indxcgr_r3size
+        write(993,*) 'indxcgr_r3size',indxcgr_r3size
+        read(1)indxcgr_r4size
+        write(993,*) 'indxcgr_r4size',indxcgr_r4size       
+        read(1)cgr_size
+        write(993,*) 'cgr_size',cgr_size       
+        read(1)complex_ro
+        write(993,*) 'complex_ro',complex_ro
+        read(1)maxplw
+        write(993,*) 'maxplw',maxplw
+        read(1)nplwdif
+        write(993,*) 'nplwdif',nplwdif
+        read(1)ngroup
+        write(993,*) 'ngroup',ngroup
+        read(1)nbndtm
+        write(993,*) 'nbndtm',nbndtm
+        read(1)maxia
+        write(993,*) 'maxia',maxia
+        read(1)maxib
+        write(993,*) 'maxib',maxib
+        read(1)maxic
+        write(993,*) 'maxic',maxic
+        read(1)nplwbas
+        write(993,*) 'nplwbas',nplwbas
+        read(1)numplw
+        write(993,*) 'numplw',numplw
+        read(1)maxwig
+        write(993,*) 'maxwig',maxwig
+        read(1)maxwig_j
+        write(993,*) 'maxwig_j',maxwig_j
+        read(1)maxwf
+        write(993,*) 'maxwf',maxwf
+        read(1)nspin_0
+        write(993,*) 'nspin_0',nspin_0
 
       endif
 
@@ -237,16 +237,16 @@ c      write(179,*)'bk-readini_end4'
         call mpi_bcast(jcg_size,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(jcgr_size,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(indxcg_size,1,mpi_integer,0,MPI_COMM_WORLD,
-     $     mpierr)
+     $    mpierr)
         call mpi_bcast(cgr_size,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(indxcgr_r1size,1,
-     $     mpi_integer,0,MPI_COMM_WORLD,mpierr)
+     $    mpi_integer,0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(indxcgr_r2size,1,
-     $     mpi_integer,0,MPI_COMM_WORLD,mpierr)
+     $    mpi_integer,0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(indxcgr_r3size,1,
-     $     mpi_integer,0,MPI_COMM_WORLD,mpierr)
+     $    mpi_integer,0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(indxcgr_r4size,1,
-     $     mpi_integer,0,MPI_COMM_WORLD,mpierr)
+     $    mpi_integer,0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(maxplw,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(nplwdif,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(ngroup,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
@@ -264,9 +264,9 @@ c      write(179,*)'bk-readini_end4'
       endif
       
       nbasmpw=nrel*nbndtm
-c      write(179,*)'bk-nbasmpw',nbasmpw
+c     write(179,*)'bk-nbasmpw',nbasmpw
 
-c      write(179,*)'bk-readini_end3'
+c     write(179,*)'bk-readini_end3'
       allocate(ind_wf(maxlfun,nsort))
       allocate(indbas(maxntle,limlb,natom))
       allocate(indbasa(2,maxntle,limlb,nsort))
@@ -280,7 +280,7 @@ c      write(179,*)'bk-readini_end3'
       allocate(jcgr(jcgr_size))
       allocate(indxcg(indxcg_size))
       allocate(indxcgr(indxcgr_r1size,indxcgr_r2size,
-     $   indxcgr_r3size,0:indxcgr_r4size-1))
+     $  indxcgr_r3size,0:indxcgr_r4size-1))
       allocate(cgr(cgr_size))
       allocate(gbs(3,maxplw))
       allocate(gbs_sym(nplwdif,ngroup))
@@ -297,210 +297,210 @@ c      write(179,*)'bk-readini_end3'
       
       allocate(sovr(numplw))
       if(complex_ro) allocate(sovi(numplw))
- 
+      
       allocate(tshift(3,natom,ngroup))
       allocate(u(maxwig,48))
       allocate(uj(maxwig_j,48))
       allocate(li_val(maxlfun,nsort))
- 
-c      write(179,*)'bk-readini_end2'
+      
+c     write(179,*)'bk-readini_end2'
       if(maswrk) then
-       read(1)ind_wf
-       do isort=1,nsort
-        do ii=1,maxlfun
-!         write(993, '(a,i10)')'ind_wf(1:maxlfun,isort)',
+        read(1)ind_wf
+        do isort=1,nsort
+          do ii=1,maxlfun
+!     write(993, '(a,i10)')'ind_wf(1:maxlfun,isort)',
 !     $      ind_wf(ii,isort)
+          enddo
         enddo
-       enddo
-       read(1)indbas  
-       do ii=1,maxntle
-        do jj=1,limlb
-         do kk=1,natom
-!           write(993,'(a,i10)')'indbas',indbas(ii,jj,kk)
-         enddo
-        enddo
-       enddo
-       read(1)io_lem     
-       do ii=1,natom
-!         write(993,'(a,i10)')'io_lem',io_lem(ii)
-       enddo
-       read(1)lf_isz 
-       do ii=1,maxel
-        do jj=1,nsort
-!         write(993,'(a,i10)')'lf_isz',lf_isz(ii,jj)
-        enddo
-       enddo
-       read(1)gbas
-       do ii=1,3
-        do jj=1,3
-!         write(993,'(a,f20.10)')'gbas',gbas(ii,jj)
-        enddo
-       enddo
-       read(1)dr
-       do ii=0,maxnrad
-        do jj=1,nsort
-!         write(993,'(a,f20.10)')'dr',dr(ii,jj)
-        enddo
-       enddo
-       read(1)indbasa
-       do ll=1,2
+        read(1)indbas  
         do ii=1,maxntle
-         do jj=1,limlb
-          do kk=1,nsort
-!           write(993,'(a,i10)')'indbasa',indbasa(ll,ii,jj,kk)
+          do jj=1,limlb
+            do kk=1,natom
+!     write(993,'(a,i10)')'indbas',indbas(ii,jj,kk)
+            enddo
           enddo
-         enddo
         enddo
-       enddo
-       read(1)r
-       do ii=0,maxnrad
-        do jj=1,nsort
-!         write(993,'(a,f20.10)')'r',r(ii,jj)
+        read(1)io_lem     
+        do ii=1,natom
+!     write(993,'(a,i10)')'io_lem',io_lem(ii)
         enddo
-       enddo
-       read(1)bett
-       do ii=1,(maxylm+1)**2
-!         write(993,'(a,f20.10)')'bett',bett(ii)
-       enddo
-       read(1)cg
-       do ii=1,cg_size
-!         write(993,'(a,f20.10)')'cg',cg(ii)
-       enddo
-       read(1)jcg
-       do ii=1,jcg_size
-!         write(993,'(a,f20.10)')'jcg',jcg(ii)
-       enddo
-       read(1)jcgr
-       do ii=1,jcgr_size
-c$$$         write(993,'(a,f20.10)')'jcgr',jcgr(ii)
-       enddo
-       read(1)indxcg
-       do ii=1,indxcg_size
-!         write(993,'(a,f20.10)')'indxcg',indxcg(ii)
-       enddo
-       read(1)indxcgr
-       do ii=1,indxcgr_r1size
-        do jj=1,indxcgr_r2size
-         do kk=1,indxcgr_r3size
-          do ll=1,indxcgr_r4size
-!            write(993,'(a,f20.10)')'indxcgr',indxcgr(ii,jj,kk,ll)
+        read(1)lf_isz 
+        do ii=1,maxel
+          do jj=1,nsort
+!     write(993,'(a,i10)')'lf_isz',lf_isz(ii,jj)
           enddo
-         enddo
         enddo
-       enddo
-       read(1)cgr
-       do ii=1,cgr_size
-!         write(993,*)'cgr',cgr
-       enddo
+        read(1)gbas
+        do ii=1,3
+          do jj=1,3
+!     write(993,'(a,f20.10)')'gbas',gbas(ii,jj)
+          enddo
+        enddo
+        read(1)dr
+        do ii=0,maxnrad
+          do jj=1,nsort
+!     write(993,'(a,f20.10)')'dr',dr(ii,jj)
+          enddo
+        enddo
+        read(1)indbasa
+        do ll=1,2
+          do ii=1,maxntle
+            do jj=1,limlb
+              do kk=1,nsort
+!     write(993,'(a,i10)')'indbasa',indbasa(ll,ii,jj,kk)
+              enddo
+            enddo
+          enddo
+        enddo
+        read(1)r
+        do ii=0,maxnrad
+          do jj=1,nsort
+!     write(993,'(a,f20.10)')'r',r(ii,jj)
+          enddo
+        enddo
+        read(1)bett
+        do ii=1,(maxylm+1)**2
+!     write(993,'(a,f20.10)')'bett',bett(ii)
+        enddo
+        read(1)cg
+        do ii=1,cg_size
+!     write(993,'(a,f20.10)')'cg',cg(ii)
+        enddo
+        read(1)jcg
+        do ii=1,jcg_size
+!     write(993,'(a,f20.10)')'jcg',jcg(ii)
+        enddo
+        read(1)jcgr
+        do ii=1,jcgr_size
+c$$$  write(993,'(a,f20.10)')'jcgr',jcgr(ii)
+        enddo
+        read(1)indxcg
+        do ii=1,indxcg_size
+!     write(993,'(a,f20.10)')'indxcg',indxcg(ii)
+        enddo
+        read(1)indxcgr
+        do ii=1,indxcgr_r1size
+          do jj=1,indxcgr_r2size
+            do kk=1,indxcgr_r3size
+              do ll=1,indxcgr_r4size
+!     write(993,'(a,f20.10)')'indxcgr',indxcgr(ii,jj,kk,ll)
+              enddo
+            enddo
+          enddo
+        enddo
+        read(1)cgr
+        do ii=1,cgr_size
+!     write(993,*)'cgr',cgr
+        enddo
 
-       read(1)gbs
-       do ii=1,3
-        do jj=1,maxplw
-!         write(993,'(a,f20.10)')'gbs',gbs(ii,jj)
+        read(1)gbs
+        do ii=1,3
+          do jj=1,maxplw
+!     write(993,'(a,f20.10)')'gbs',gbs(ii,jj)
+          enddo
         enddo
-       enddo
-       read(1)gbs_sym
-       do ii=1,nplwdif
-        do jj=1,ngroup
-!         write(993,'(a,i10)')'gbs_sym',gbs_sym(ii,jj)
+        read(1)gbs_sym
+        do ii=1,nplwdif
+          do jj=1,ngroup
+!     write(993,'(a,i10)')'gbs_sym',gbs_sym(ii,jj)
+          enddo
         enddo
-       enddo
-       read(1)i_kref
-       do ii=1,nqdiv
-!         write(993,'(a,i10)')'i_kref',i_kref(ii)
-       enddo
-       read(1)igbs
-       do ii=1,3
-        do jj=1,maxplw
-!         write(993,'(a,i10)')'igbs',igbs(ii,jj)
+        read(1)i_kref
+        do ii=1,nqdiv
+!     write(993,'(a,i10)')'i_kref',i_kref(ii)
         enddo
-       enddo 
-       read(1)indgb      
-       do ii=1,nbndtm
-        do jj=1,nqdiv
-!         write(993,'(a,i10)')'indgb',indgb(ii,jj)
+        read(1)igbs
+        do ii=1,3
+          do jj=1,maxplw
+!     write(993,'(a,i10)')'igbs',igbs(ii,jj)
+          enddo
+        enddo 
+        read(1)indgb      
+        do ii=1,nbndtm
+          do jj=1,nqdiv
+!     write(993,'(a,i10)')'indgb',indgb(ii,jj)
+          enddo
         enddo
-       enddo
-       read(1)indplw
-       do ii=-maxia,maxia
-        do jj=-maxib,maxib
-         do ll=-maxic,maxic
-!           write(993,'(a,i10)')'indplw',indplw(ii,jj,ll)
-         enddo
+        read(1)indplw
+        do ii=-maxia,maxia
+          do jj=-maxib,maxib
+            do ll=-maxic,maxic
+!     write(993,'(a,i10)')'indplw',indplw(ii,jj,ll)
+            enddo
+          enddo
         enddo
-       enddo
-       read(1)ip       
-       do ii=1,natom
-        do jj=1,48
-!         write(993,'(a,i10)')'ip',ip(ii,jj)
+        read(1)ip       
+        do ii=1,natom
+          do jj=1,48
+!     write(993,'(a,i10)')'ip',ip(ii,jj)
+          enddo
         enddo
-       enddo
-       read(1)iplf_bk
-       do ii=1,nplwbas
-        do jj=1,nqdiv
-!         write(993,'(a,i10)')'iplf_bk',iplf_bk(ii,jj)
+        read(1)iplf_bk
+        do ii=1,nplwbas
+          do jj=1,nqdiv
+!     write(993,'(a,i10)')'iplf_bk',iplf_bk(ii,jj)
+          enddo
         enddo
-       enddo
-       read(1)k_group
-       do ii=1,nqdiv
-!         write(993,'(a,i10)')'k_group',k_group(ii)
-       enddo
-       read(1)nbask
-       do ii=1,npnt
-!         write(993,'(a,i10)')'nbask',nbask(ii)
-       enddo
-       read(1)nrdiv
-       do ii=1,3
-!         write(993,'(a,i10)')'nrdiv',nrdiv(ii)
-       enddo
-       read(1)pnt
-       do ii=1,3
-        do jj=1,nqdiv
-!         write(993,'(a,f20.10)')'pnt',pnt(ii,jj)
+        read(1)k_group
+        do ii=1,nqdiv
+!     write(993,'(a,i10)')'k_group',k_group(ii)
         enddo
-       enddo
-       read(1)shift
-       do ii=1,3
-        do jj=1,48
-!         write(993,'(a,f20.10)')'shift',shift(ii,jj)
+        read(1)nbask
+        do ii=1,npnt
+!     write(993,'(a,i10)')'nbask',nbask(ii)
         enddo
-       enddo
-       read(1)sovr
-       do ii=1,numplw
-!         write(993,'(a,f20.10)')'sovr',sovr(ii)
-       enddo
-       if(complex_ro) then
+        read(1)nrdiv
+        do ii=1,3
+!     write(993,'(a,i10)')'nrdiv',nrdiv(ii)
+        enddo
+        read(1)pnt
+        do ii=1,3
+          do jj=1,nqdiv
+!     write(993,'(a,f20.10)')'pnt',pnt(ii,jj)
+          enddo
+        enddo
+        read(1)shift
+        do ii=1,3
+          do jj=1,48
+!     write(993,'(a,f20.10)')'shift',shift(ii,jj)
+          enddo
+        enddo
+        read(1)sovr
+        do ii=1,numplw
+!     write(993,'(a,f20.10)')'sovr',sovr(ii)
+        enddo
+        if(complex_ro) then
           read(1)sovi
-         do ii=1,numplw
-!          write(993,'(a,f20.10)')'sovi',sovi(ii)
-         enddo
-       endif
-       read(1)tshift
-       do ii=1,3
-        do jj=1,natom
-         do ll=1,ngroup
-!           write(993,'(a,f20.10)')'tshift',tshift(ii,jj,ll)
-         enddo
+          do ii=1,numplw
+!     write(993,'(a,f20.10)')'sovi',sovi(ii)
+          enddo
+        endif
+        read(1)tshift
+        do ii=1,3
+          do jj=1,natom
+            do ll=1,ngroup
+!     write(993,'(a,f20.10)')'tshift',tshift(ii,jj,ll)
+            enddo
+          enddo
         enddo
-       enddo
-       read(1)u
-       do ii=1,maxwig
-        do jj=1,48
-!         write(993,'(a,f20.10)')'u',u(ii,jj)
+        read(1)u
+        do ii=1,maxwig
+          do jj=1,48
+!     write(993,'(a,f20.10)')'u',u(ii,jj)
+          enddo
         enddo
-       enddo
-       read(1)uj
-       do ii=1,maxwig_j
-        do jj=1,48
-!         write(993,*)'uj',uj(ii,jj)
+        read(1)uj
+        do ii=1,maxwig_j
+          do jj=1,48
+!     write(993,*)'uj',uj(ii,jj)
+          enddo
         enddo
-       enddo
-       read(1)li_val
-       do ii=1,maxlfun
-        do jj=1,nsort
-!         write(993,*)'li_val',li_val(ii,jj)
+        read(1)li_val
+        do ii=1,maxlfun
+          do jj=1,nsort
+!     write(993,*)'li_val',li_val(ii,jj)
+          enddo
         enddo
-       enddo
 
 
       endif
@@ -531,15 +531,15 @@ c$$$         write(993,'(a,f20.10)')'jcgr',jcgr(ii)
         call mpi_bcast(jcg,jcg_size,mpi_integer,
      $    0,MPI_COMM_WORLD,
      $    mpierr)
-c$$$        write(*,*) 'jcgr_size', jcgr_size
+c$$$  write(*,*) 'jcgr_size', jcgr_size
         call mpi_bcast(jcgr,jcgr_size,mpi_integer,
      $    0,MPI_COMM_WORLD,
      $    mpierr)
         call mpi_bcast(indxcg,indxcg_size,mpi_integer,0,
      $    MPI_COMM_WORLD,mpierr)
         call mpi_bcast(indxcgr,
-     $     indxcgr_r1size*indxcgr_r2size*indxcgr_r3size*indxcgr_r4size,
-     $     mpi_integer,0,MPI_COMM_WORLD,mpierr)
+     $    indxcgr_r1size*indxcgr_r2size*indxcgr_r3size*indxcgr_r4size,
+     $    mpi_integer,0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(cgr,cgr_size,mpi_double_complex,
      $    0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(gbs,3*maxplw,mpi_double_precision,
@@ -557,7 +557,7 @@ c$$$        write(*,*) 'jcgr_size', jcgr_size
         call mpi_bcast(indbasa,2*maxntle*limlb*nsort,mpi_integer,
      $    0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(indplw,(2*maxia+1)*(2*maxib+1)*(2*maxic+1),
-     $     mpi_integer,
+     $    mpi_integer,
      $    0,MPI_COMM_WORLD,mpierr)
         call mpi_bcast(ip,natom*48,mpi_integer,
      $    0,MPI_COMM_WORLD, mpierr)
@@ -578,7 +578,7 @@ c$$$        write(*,*) 'jcgr_size', jcgr_size
      $    0,MPI_COMM_WORLD,mpierr)
         if(complex_ro) then
           call mpi_bcast(sovi,numplw,mpi_double_precision,
-     $       0,MPI_COMM_WORLD,mpierr)
+     $      0,MPI_COMM_WORLD,mpierr)
         endif
         call mpi_bcast(tshift,3*natom*ngroup,mpi_double_precision,
      $    0,MPI_COMM_WORLD,mpierr)

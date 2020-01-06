@@ -406,877 +406,877 @@
         call mpi_bcast(is_iplf_bk,1,mpi_logical,0,MPI_COMM_WORLD,
      $    mpierr)
       endif
-      if(is_augm .eq. .true.) then
+      if(is_augm) then
         allocate(augm(maxntle,0:maxb,nsort))
       endif
-      if(is_dr .eq. .true.) then
+      if(is_dr) then
         allocate(dr(0:maxnrad,nsort))
       endif
-      if(is_gfun .eq. .true.) then
+      if(is_gfun) then
         allocate(gfun(maxwf,nspin))
       endif
-      if(is_gfund .eq. .true.) then
+      if(is_gfund) then
         allocate(gfund(maxwf,nspin))
       endif
-      if(is_h .eq. .true.) then
+      if(is_h) then
         allocate(h(nsort))
       endif
-      if(is_ind_wf .eq. .true.) then
+      if(is_ind_wf) then
         allocate(ind_wf(maxlfun,nsort))
       endif
-      if(is_indbasa .eq. .true.) then
+      if(is_indbasa) then
         allocate(indbasa(2,maxntle,limlb,nsort))
       endif
-      if(is_indfun0 .eq. .true.) then
+      if(is_indfun0) then
         allocate(indfun0(2,maxntle,nrel*maxb+1,nsort))
       endif
-      if(is_io_lem .eq. .true.) then
+      if(is_io_lem) then
         allocate(io_lem(natom))
       endif
-      if(is_iob2 .eq. .true.) then
+      if(is_iob2) then
         allocate(iob2(natom))
       endif
-      if(is_iopb .eq. .true.) then
+      if(is_iopb) then
         allocate(iopb(natom))
       endif
-      if(is_lf_isz .eq. .true.) then
+      if(is_lf_isz) then
         allocate(lf_isz(maxel,nsort))
       endif
-      if(is_lfun .eq. .true.) then
+      if(is_lfun) then
         allocate(lfun(nsort))
       endif
-      if(is_lfun_pb .eq. .true.) then
+      if(is_lfun_pb) then
         allocate(lfun_pb(nsort))
       endif
-      if(is_lfunm .eq. .true.) then
+      if(is_lfunm) then
         allocate(lfunm(nsort))
       endif
-      if(is_li_val .eq. .true.) then
+      if(is_li_val) then
         allocate(li_val(maxlfun,nsort))
       endif
-      if(is_lim_pb_mt .eq. .true.) then
+      if(is_lim_pb_mt) then
         allocate(lim_pb_mt(0:maxpb,nsort))
       endif
-      if(is_lm_isz .eq. .true.) then
+      if(is_lm_isz) then
         allocate(lm_isz(maxel,nsort))
       endif
-      if(is_lmb .eq. .true.) then
+      if(is_lmb) then
         allocate(lmb(nsort))
       endif
-      if(is_lmpb .eq. .true.) then
+      if(is_lmpb) then
         allocate(lmpb(nsort))
       endif
-      if(is_n_pbmt0 .eq. .true.) then
+      if(is_n_pbmt0) then
         allocate(n_pbmt0(nsort))
       endif
-      if(is_nrad .eq. .true.) then
+      if(is_nrad) then
         allocate(nrad(nsort))
       endif
-      if(is_ntle .eq. .true.) then
+      if(is_ntle) then
         allocate(ntle(0:maxb,nsort))
       endif
-      if(is_ntle_pb .eq. .true.) then
+      if(is_ntle_pb) then
         allocate(ntle_pb(0:maxpb,nsort))
       endif
-      if(is_r .eq. .true.) then
+      if(is_r) then
         allocate(r(0:maxnrad,nsort))
       endif
-      if(is_r_atom .eq. .true.) then
+      if(is_r_atom) then
         allocate(r_atom(0:nrmax,nsort))
       endif
-      if(is_rl .eq. .true.) then
+      if(is_rl) then
         allocate(rl(0:maxnrad,0:max_rl,nsort))
       endif
-      if(is_smt .eq. .true.) then
+      if(is_smt) then
         allocate(smt(nsort))
       endif
-      if(is_txtel .eq. .true.) then
+      if(is_txtel) then
         allocate(txtel(nsort))
       endif
-      if(is_bett .eq. .true.) then
+      if(is_bett) then
         allocate(bett((maxylm+1)**2))
       endif
-      if(is_et_sum_nu .eq. .true.) then
+      if(is_et_sum_nu) then
         allocate(et_sum_nu(0:n_nu))
       endif
-      if(is_ind_nu_int .eq. .true.) then
+      if(is_ind_nu_int) then
         allocate(ind_nu_int(n_nu))
       endif
-      if(is_indxcgr .eq. .true.) then
+      if(is_indxcgr) then
         allocate(indxcgr(nrel_core*limlb1,nrel_core*limlb1,2,
      $    0:3*(magn-1)))
       endif
-      if(is_tau_mesh .eq. .true.) then
+      if(is_tau_mesh) then
         allocate(tau_mesh(0:n_tau))
       endif
-      if(is_w_nu .eq. .true.) then
+      if(is_w_nu) then
         allocate(w_nu(0:n_nu))
       endif
-      if(is_w_nu_d .eq. .true.) then
+      if(is_w_nu_d) then
         allocate(w_nu_d(0:n_nu_d))
       endif
-      if(is_e_bnd .eq. .true.) then
+      if(is_e_bnd) then
         allocate(e_bnd(nbndf,npnt,nspin_0))
       endif
-      if(is_e_qp .eq. .true.) then
+      if(is_e_qp) then
         allocate(e_qp(nbndf,npnt,nspin_0))
       endif
-      if(is_g_sym_0 .eq. .true.) then
+      if(is_g_sym_0) then
         allocate(g_sym_0(nqdiv,ngroup))
       endif
-      if(is_gbs .eq. .true.) then
+      if(is_gbs) then
         allocate(gbs(3,maxplw))
       endif
-      if(is_gbs_sym .eq. .true.) then
+      if(is_gbs_sym) then
         allocate(gbs_sym(nplwdif,ngroup))
       endif
-      if(is_i_kref .eq. .true.) then
+      if(is_i_kref) then
         allocate(i_kref(nqdiv))
       endif
-      if(is_ifia .eq. .true.) then
+      if(is_ifia) then
         allocate(ifia(48))
       endif
-      if(is_ig_pair .eq. .true.) then
+      if(is_ig_pair) then
         allocate(ig_pair(nqdiv,natom,natom))
       endif
-      if(is_ind_k_star_back .eq. .true.) then
+      if(is_ind_k_star_back) then
         allocate(ind_k_star_back(nqdiv))
       endif
-      if(is_ind_r_star .eq. .true.) then
+      if(is_ind_r_star) then
         allocate(ind_r_star(max_r_star,nr_red))
       endif
-      if(is_ind_r_star_back .eq. .true.) then
+      if(is_ind_r_star_back) then
         allocate(ind_r_star_back(nr_full))
       endif
-      if(is_indgb .eq. .true.) then
+      if(is_indgb) then
         allocate(indgb(nbndtm,nqdiv))
       endif
-      if(is_indplw .eq. .true.) then
+      if(is_indplw) then
         allocate(indplw(-maxia:maxia,-maxib:maxib,-maxic:maxic))
       endif
-      if(is_indpw_gw .eq. .true.) then
+      if(is_indpw_gw) then
         allocate(indpw_gw(nplw_gw,nqdiv))
       endif
-      if(is_indpw_r .eq. .true.) then
+      if(is_indpw_r) then
         allocate(indpw_r(nplw_rm,nqdiv))
       endif
-      if(is_ip .eq. .true.) then
+      if(is_ip) then
         allocate(ip(natom,48))
       endif
-      if(is_ip_k .eq. .true.) then
+      if(is_ip_k) then
         allocate(ip_k(nqdiv,ngroup))
       endif
-      if(is_ip_r .eq. .true.) then
+      if(is_ip_r) then
         allocate(ip_r(nr_full,ngroup))
       endif
-      if(is_iplf_gk .eq. .true.) then
+      if(is_iplf_gk) then
         allocate(iplf_gk(nplwdif,nqdiv))
       endif
-      if(is_ir_ref .eq. .true.) then
+      if(is_ir_ref) then
         allocate(ir_ref(nr_full))
       endif
-      if(is_is .eq. .true.) then
+      if(is_is) then
         allocate(is(natom))
       endif
-      if(is_itshift_r .eq. .true.) then
+      if(is_itshift_r) then
         allocate(itshift_r(3,nr_full,ngroup))
       endif
-      if(is_k_group .eq. .true.) then
+      if(is_k_group) then
         allocate(k_group(nqdiv))
       endif
-      if(is_k_star .eq. .true.) then
+      if(is_k_star) then
         allocate(k_star(npnt))
       endif
-      if(is_k_sym_0 .eq. .true.) then
+      if(is_k_sym_0) then
         allocate(k_sym_0(nqdiv,ngroup))
       endif
-      if(is_list_sym_k .eq. .true.) then
+      if(is_list_sym_k) then
         allocate(list_sym_k(ngroup,nqdiv))
       endif
-      if(is_n_bnd .eq. .true.) then
+      if(is_n_bnd) then
         allocate(n_bnd(npnt,nspin_0),STAT=ierr)
       endif
-      if(is_nbask .eq. .true.) then
+      if(is_nbask) then
         allocate(nbask(npnt),STAT=ierr)
       endif
-      if(is_nhsort .eq. .true.) then
+      if(is_nhsort) then
         allocate(nhsort(nsort))
       endif
-      if(is_nplw_r .eq. .true.) then
+      if(is_nplw_r) then
         allocate(nplw_r(npnt))
       endif
-      if(is_nplwgw .eq. .true.) then
+      if(is_nplwgw) then
         allocate(nplwgw(npnt))
       endif
-      if(is_nrr_red .eq. .true.) then
+      if(is_nrr_red) then
         allocate(nrr_red(3,nqdiv*natom*natom))
       endif
-      if(is_num_r_star .eq. .true.) then
+      if(is_num_r_star) then
         allocate(num_r_star(nr_red))
       endif
-      if(is_num_sym_k .eq. .true.) then
+      if(is_num_sym_k) then
         allocate(num_sym_k(nqdiv))
       endif
-      if(is_pnt .eq. .true.) then
+      if(is_pnt) then
         allocate(pnt(3,nqdiv))
       endif
-      if(is_r0_pair .eq. .true.) then
+      if(is_r0_pair) then
         allocate(r0_pair(nqdiv,natom,natom))
       endif
-      if(is_r_group .eq. .true.) then
+      if(is_r_group) then
         allocate(r_group(nr_full))
       endif
-      if(is_r_pnt .eq. .true.) then
+      if(is_r_pnt) then
         allocate(r_pnt(3,nr_full))
       endif
-      if(is_r_pnt_ind .eq. .true.) then
+      if(is_r_pnt_ind) then
         allocate(r_pnt_ind(nr_full))
       endif
-      if(is_shift .eq. .true.) then
+      if(is_shift) then
         allocate(shift(3,48))
       endif
-      if(is_sovi .eq. .true.) then
+      if(is_sovi) then
         allocate(sovi(numplw))
       endif
-      if(is_sovr .eq. .true.) then
+      if(is_sovr) then
         allocate(sovr(numplw))
       endif
-      if(is_sym_label .eq. .true.) then
+      if(is_sym_label) then
         allocate(sym_label(npnt))
       endif
-      if(is_tau .eq. .true.) then
+      if(is_tau) then
         allocate(tau(3,natom))
       endif
-      if(is_tshift .eq. .true.) then
+      if(is_tshift) then
         allocate(tshift(3,natom,ngroup))
       endif
-      if(is_tshift_r .eq. .true.) then
+      if(is_tshift_r) then
         allocate(tshift_r(3,nr_full,ngroup))
       endif
-      if(is_u .eq. .true.) then
+      if(is_u) then
         allocate(u(maxwig,48))
       endif
-      if(is_uj .eq. .true.) then
+      if(is_uj) then
         allocate(uj(maxwig_j,48))
       endif
-      if(is_wgt .eq. .true.) then
+      if(is_wgt) then
         allocate(wgt(nqdiv))
       endif
-      if(is_igbs .eq. .true.) then
+      if(is_igbs) then
         allocate(igbs(3,maxplw))
       endif
-      if(is_iplf_bk .eq. .true.) then
+      if(is_iplf_bk) then
         allocate(iplf_bk(nplwbas,nqdiv))
       endif
       if(maswrk) then
-        if(is_augm .eq. .true.) then
+        if(is_augm) then
           read(1)augm
         endif
-        if(is_dr .eq. .true.) then
+        if(is_dr) then
           read(1)dr
         endif
-        if(is_gfun .eq. .true.) then
+        if(is_gfun) then
           read(1)gfun
         endif
-        if(is_gfund .eq. .true.) then
+        if(is_gfund) then
           read(1)gfund
         endif
-        if(is_h .eq. .true.) then
+        if(is_h) then
           read(1)h
         endif
-        if(is_ind_wf .eq. .true.) then
+        if(is_ind_wf) then
           read(1)ind_wf
         endif
-        if(is_indbasa .eq. .true.) then
+        if(is_indbasa) then
           read(1)indbasa
         endif
-        if(is_indfun0 .eq. .true.) then
+        if(is_indfun0) then
           read(1)indfun0
         endif
-        if(is_io_lem .eq. .true.) then
+        if(is_io_lem) then
           read(1)io_lem
         endif
-        if(is_iob2 .eq. .true.) then
+        if(is_iob2) then
           read(1)iob2
         endif
-        if(is_iopb .eq. .true.) then
+        if(is_iopb) then
           read(1)iopb
         endif
-        if(is_lf_isz .eq. .true.) then
+        if(is_lf_isz) then
           read(1)lf_isz
         endif
-        if(is_lfun .eq. .true.) then
+        if(is_lfun) then
           read(1)lfun
         endif
-        if(is_lfun_pb .eq. .true.) then
+        if(is_lfun_pb) then
           read(1)lfun_pb
         endif
-        if(is_lfunm .eq. .true.) then
+        if(is_lfunm) then
           read(1)lfunm
         endif
-        if(is_li_val .eq. .true.) then
+        if(is_li_val) then
           read(1)li_val
         endif
-        if(is_lim_pb_mt .eq. .true.) then
+        if(is_lim_pb_mt) then
           read(1)lim_pb_mt
         endif
-        if(is_lm_isz .eq. .true.) then
+        if(is_lm_isz) then
           read(1)lm_isz
         endif
-        if(is_lmb .eq. .true.) then
+        if(is_lmb) then
           read(1)lmb
         endif
-        if(is_lmpb .eq. .true.) then
+        if(is_lmpb) then
           read(1)lmpb
         endif
-        if(is_n_pbmt0 .eq. .true.) then
+        if(is_n_pbmt0) then
           read(1)n_pbmt0
         endif
-        if(is_nrad .eq. .true.) then
+        if(is_nrad) then
           read(1)nrad
         endif
-        if(is_ntle .eq. .true.) then
+        if(is_ntle) then
           read(1)ntle
         endif
-        if(is_ntle_pb .eq. .true.) then
+        if(is_ntle_pb) then
           read(1)ntle_pb
         endif
-        if(is_r .eq. .true.) then
+        if(is_r) then
           read(1)r
         endif
-        if(is_r_atom .eq. .true.) then
+        if(is_r_atom) then
           read(1)r_atom
         endif
-        if(is_rl .eq. .true.) then
+        if(is_rl) then
           read(1)rl
         endif
-        if(is_smt .eq. .true.) then
+        if(is_smt) then
           read(1)smt
         endif
-        if(is_txtel .eq. .true.) then
+        if(is_txtel) then
           read(1)txtel
         endif
-        if(is_bett .eq. .true.) then
+        if(is_bett) then
           read(1)bett
         endif
-        if(is_et_sum_nu .eq. .true.) then
+        if(is_et_sum_nu) then
           read(1)et_sum_nu
         endif
-        if(is_ind_nu_int .eq. .true.) then
+        if(is_ind_nu_int) then
           read(1)ind_nu_int
         endif
-        if(is_indxcgr .eq. .true.) then
+        if(is_indxcgr) then
           read(1)indxcgr
         endif
-        if(is_tau_mesh .eq. .true.) then
+        if(is_tau_mesh) then
           read(1)tau_mesh
         endif
-        if(is_w_nu .eq. .true.) then
+        if(is_w_nu) then
           read(1)w_nu
         endif
-        if(is_w_nu_d .eq. .true.) then
+        if(is_w_nu_d) then
           read(1)w_nu_d
         endif
-        if(is_e_bnd .eq. .true.) then
+        if(is_e_bnd) then
           read(1)e_bnd
         endif
-        if(is_e_qp .eq. .true.) then
+        if(is_e_qp) then
           read(1)e_qp
         endif
-        if(is_g_sym_0 .eq. .true.) then
+        if(is_g_sym_0) then
           read(1)g_sym_0
         endif
-        if(is_gbs .eq. .true.) then
+        if(is_gbs) then
           read(1)gbs
         endif
-        if(is_gbs_sym .eq. .true.) then
+        if(is_gbs_sym) then
           read(1)gbs_sym
         endif
-        if(is_i_kref .eq. .true.) then
+        if(is_i_kref) then
           read(1)i_kref
         endif
-        if(is_ifia .eq. .true.) then
+        if(is_ifia) then
           read(1)ifia
         endif
-        if(is_ig_pair .eq. .true.) then
+        if(is_ig_pair) then
           read(1)ig_pair
         endif
-        if(is_ind_k_star_back .eq. .true.) then
+        if(is_ind_k_star_back) then
           read(1)ind_k_star_back
         endif
-        if(is_ind_r_star .eq. .true.) then
+        if(is_ind_r_star) then
           read(1)ind_r_star
         endif
-        if(is_ind_r_star_back .eq. .true.) then
+        if(is_ind_r_star_back) then
           read(1)ind_r_star_back
         endif
-        if(is_indgb .eq. .true.) then
+        if(is_indgb) then
           read(1)indgb
         endif
-        if(is_indplw .eq. .true.) then
+        if(is_indplw) then
           read(1)indplw
         endif
-        if(is_indpw_gw .eq. .true.) then
+        if(is_indpw_gw) then
           read(1)indpw_gw
         endif
-        if(is_indpw_r .eq. .true.) then
+        if(is_indpw_r) then
           read(1)indpw_r
         endif
-        if(is_ip .eq. .true.) then
+        if(is_ip) then
           read(1)ip
         endif
-        if(is_ip_k .eq. .true.) then
+        if(is_ip_k) then
           read(1)ip_k
         endif
-        if(is_ip_r .eq. .true.) then
+        if(is_ip_r) then
           read(1)ip_r
         endif
-        if(is_iplf_gk .eq. .true.) then
+        if(is_iplf_gk) then
           read(1)iplf_gk
         endif
-        if(is_ir_ref .eq. .true.) then
+        if(is_ir_ref) then
           read(1)ir_ref
         endif
-        if(is_is .eq. .true.) then
+        if(is_is) then
           read(1)is
         endif
-        if(is_itshift_r .eq. .true.) then
+        if(is_itshift_r) then
           read(1)itshift_r
         endif
-        if(is_k_group .eq. .true.) then
+        if(is_k_group) then
           read(1)k_group
         endif
-        if(is_k_star .eq. .true.) then
+        if(is_k_star) then
           read(1)k_star
         endif
-        if(is_k_sym_0 .eq. .true.) then
+        if(is_k_sym_0) then
           read(1)k_sym_0
         endif
-        if(is_list_sym_k .eq. .true.) then
+        if(is_list_sym_k) then
           read(1)list_sym_k
         endif
-        if(is_n_bnd .eq. .true.) then
+        if(is_n_bnd) then
           read(1)n_bnd
         endif
-        if(is_nbask .eq. .true.) then
+        if(is_nbask) then
           read(1)nbask
         endif
-        if(is_nhsort .eq. .true.) then
+        if(is_nhsort) then
           read(1)nhsort
         endif
-        if(is_nplw_r .eq. .true.) then
+        if(is_nplw_r) then
           read(1)nplw_r
         endif
-        if(is_nplwgw .eq. .true.) then
+        if(is_nplwgw) then
           read(1)nplwgw
         endif
-        if(is_nrr_red .eq. .true.) then
+        if(is_nrr_red) then
           read(1)nrr_red
         endif
-        if(is_num_r_star .eq. .true.) then
+        if(is_num_r_star) then
           read(1)num_r_star
         endif
-        if(is_num_sym_k .eq. .true.) then
+        if(is_num_sym_k) then
           read(1)num_sym_k
         endif
-        if(is_pnt .eq. .true.) then
+        if(is_pnt) then
           read(1)pnt
         endif
-        if(is_r0_pair .eq. .true.) then
+        if(is_r0_pair) then
           read(1)r0_pair
         endif
-        if(is_r_group .eq. .true.) then
+        if(is_r_group) then
           read(1)r_group
         endif
-        if(is_r_pnt .eq. .true.) then
+        if(is_r_pnt) then
           read(1)r_pnt
         endif
-        if(is_r_pnt_ind .eq. .true.) then
+        if(is_r_pnt_ind) then
           read(1)r_pnt_ind
         endif
-        if(is_shift .eq. .true.) then
+        if(is_shift) then
           read(1)shift
         endif
-        if(is_sovi .eq. .true.) then
+        if(is_sovi) then
           read(1)sovi
         endif
-        if(is_sovr .eq. .true.) then
+        if(is_sovr) then
           read(1)sovr
         endif
-        if(is_sym_label .eq. .true.) then
+        if(is_sym_label) then
           read(1)sym_label
         endif
-        if(is_tau .eq. .true.) then
+        if(is_tau) then
           read(1)tau
         endif
-        if(is_tshift .eq. .true.) then
+        if(is_tshift) then
           read(1)tshift
         endif
-        if(is_tshift_r .eq. .true.) then
+        if(is_tshift_r) then
           read(1)tshift_r
         endif
-        if(is_u .eq. .true.) then
+        if(is_u) then
           read(1)u
         endif
-        if(is_uj .eq. .true.) then
+        if(is_uj) then
           read(1)uj
         endif
-        if(is_wgt .eq. .true.) then
+        if(is_wgt) then
           read(1)wgt
         endif
-        if(is_igbs .eq. .true.) then
+        if(is_igbs) then
           read(1)igbs
         endif
-        if(is_iplf_bk .eq. .true.) then
+        if(is_iplf_bk) then
           read(1)iplf_bk
         endif
       endif
       if(goparr) then
-        if(is_augm .eq. .true.) then
+        if(is_augm) then
           call mpi_bcast(augm,3*size(augm),mpi_character,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_dr .eq. .true.) then
+        if(is_dr) then
           call mpi_bcast(dr,1*size(dr),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_gfun .eq. .true.) then
+        if(is_gfun) then
           call mpi_bcast(gfun,1*size(gfun),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_gfund .eq. .true.) then
+        if(is_gfund) then
           call mpi_bcast(gfund,1*size(gfund),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_h .eq. .true.) then
+        if(is_h) then
           call mpi_bcast(h,1*size(h),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_ind_wf .eq. .true.) then
+        if(is_ind_wf) then
           call mpi_bcast(ind_wf,1*size(ind_wf),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_indbasa .eq. .true.) then
+        if(is_indbasa) then
           call mpi_bcast(indbasa,1*size(indbasa),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_indfun0 .eq. .true.) then
+        if(is_indfun0) then
           call mpi_bcast(indfun0,1*size(indfun0),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_io_lem .eq. .true.) then
+        if(is_io_lem) then
           call mpi_bcast(io_lem,1*size(io_lem),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_iob2 .eq. .true.) then
+        if(is_iob2) then
           call mpi_bcast(iob2,1*size(iob2),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_iopb .eq. .true.) then
+        if(is_iopb) then
           call mpi_bcast(iopb,1*size(iopb),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_lf_isz .eq. .true.) then
+        if(is_lf_isz) then
           call mpi_bcast(lf_isz,1*size(lf_isz),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_lfun .eq. .true.) then
+        if(is_lfun) then
           call mpi_bcast(lfun,1*size(lfun),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_lfun_pb .eq. .true.) then
+        if(is_lfun_pb) then
           call mpi_bcast(lfun_pb,1*size(lfun_pb),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_lfunm .eq. .true.) then
+        if(is_lfunm) then
           call mpi_bcast(lfunm,1*size(lfunm),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_li_val .eq. .true.) then
+        if(is_li_val) then
           call mpi_bcast(li_val,1*size(li_val),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_lim_pb_mt .eq. .true.) then
+        if(is_lim_pb_mt) then
           call mpi_bcast(lim_pb_mt,1*size(lim_pb_mt),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_lm_isz .eq. .true.) then
+        if(is_lm_isz) then
           call mpi_bcast(lm_isz,1*size(lm_isz),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_lmb .eq. .true.) then
+        if(is_lmb) then
           call mpi_bcast(lmb,1*size(lmb),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_lmpb .eq. .true.) then
+        if(is_lmpb) then
           call mpi_bcast(lmpb,1*size(lmpb),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_n_pbmt0 .eq. .true.) then
+        if(is_n_pbmt0) then
           call mpi_bcast(n_pbmt0,1*size(n_pbmt0),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_nrad .eq. .true.) then
+        if(is_nrad) then
           call mpi_bcast(nrad,1*size(nrad),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_ntle .eq. .true.) then
+        if(is_ntle) then
           call mpi_bcast(ntle,1*size(ntle),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_ntle_pb .eq. .true.) then
+        if(is_ntle_pb) then
           call mpi_bcast(ntle_pb,1*size(ntle_pb),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_r .eq. .true.) then
+        if(is_r) then
           call mpi_bcast(r,1*size(r),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_r_atom .eq. .true.) then
+        if(is_r_atom) then
           call mpi_bcast(r_atom,1*size(r_atom),mpi_double_precision,
      $      0,MPI_COMM_WORLD,mpierr)
         endif
-        if(is_rl .eq. .true.) then
+        if(is_rl) then
           call mpi_bcast(rl,1*size(rl),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_smt .eq. .true.) then
+        if(is_smt) then
           call mpi_bcast(smt,1*size(smt),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_txtel .eq. .true.) then
+        if(is_txtel) then
           call mpi_bcast(txtel,4*size(txtel),mpi_character,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_bett .eq. .true.) then
+        if(is_bett) then
           call mpi_bcast(bett,1*size(bett),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_et_sum_nu .eq. .true.) then
+        if(is_et_sum_nu) then
           call mpi_bcast(et_sum_nu,1*size(et_sum_nu),
      $      mpi_double_precision,0,MPI_COMM_WORLD,mpierr)
         endif
-        if(is_ind_nu_int .eq. .true.) then
+        if(is_ind_nu_int) then
           call mpi_bcast(ind_nu_int,1*size(ind_nu_int),mpi_integer,
      $      0,MPI_COMM_WORLD,mpierr)
         endif
-        if(is_indxcgr .eq. .true.) then
+        if(is_indxcgr) then
           call mpi_bcast(indxcgr,1*size(indxcgr),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_tau_mesh .eq. .true.) then
+        if(is_tau_mesh) then
           call mpi_bcast(tau_mesh,1*size(tau_mesh),
      $      mpi_double_precision,0,MPI_COMM_WORLD,mpierr)
         endif
-        if(is_w_nu .eq. .true.) then
+        if(is_w_nu) then
           call mpi_bcast(w_nu,1*size(w_nu),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_w_nu_d .eq. .true.) then
+        if(is_w_nu_d) then
           call mpi_bcast(w_nu_d,1*size(w_nu_d),mpi_double_precision,
      $      0,MPI_COMM_WORLD,mpierr)
         endif
-        if(is_e_bnd .eq. .true.) then
+        if(is_e_bnd) then
           call mpi_bcast(e_bnd,1*size(e_bnd),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_e_qp .eq. .true.) then
+        if(is_e_qp) then
           call mpi_bcast(e_qp,1*size(e_qp),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_g_sym_0 .eq. .true.) then
+        if(is_g_sym_0) then
           call mpi_bcast(g_sym_0,1*size(g_sym_0),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_gbs .eq. .true.) then
+        if(is_gbs) then
           call mpi_bcast(gbs,1*size(gbs),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_gbs_sym .eq. .true.) then
+        if(is_gbs_sym) then
           call mpi_bcast(gbs_sym,1*size(gbs_sym),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_i_kref .eq. .true.) then
+        if(is_i_kref) then
           call mpi_bcast(i_kref,1*size(i_kref),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_ifia .eq. .true.) then
+        if(is_ifia) then
           call mpi_bcast(ifia,1*size(ifia),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_ig_pair .eq. .true.) then
+        if(is_ig_pair) then
           call mpi_bcast(ig_pair,1*size(ig_pair),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_ind_k_star_back .eq. .true.) then
+        if(is_ind_k_star_back) then
           call mpi_bcast(ind_k_star_back,1*size(ind_k_star_back),
      $      mpi_integer,0,MPI_COMM_WORLD,mpierr)
         endif
-        if(is_ind_r_star .eq. .true.) then
+        if(is_ind_r_star) then
           call mpi_bcast(ind_r_star,1*size(ind_r_star),mpi_integer,
      $      0,MPI_COMM_WORLD,mpierr)
         endif
-        if(is_ind_r_star_back .eq. .true.) then
+        if(is_ind_r_star_back) then
           call mpi_bcast(ind_r_star_back,1*size(ind_r_star_back),
      $      mpi_integer,0,MPI_COMM_WORLD,mpierr)
         endif
-        if(is_indgb .eq. .true.) then
+        if(is_indgb) then
           call mpi_bcast(indgb,1*size(indgb),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_indplw .eq. .true.) then
+        if(is_indplw) then
           call mpi_bcast(indplw,1*size(indplw),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_indpw_gw .eq. .true.) then
+        if(is_indpw_gw) then
           call mpi_bcast(indpw_gw,1*size(indpw_gw),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_indpw_r .eq. .true.) then
+        if(is_indpw_r) then
           call mpi_bcast(indpw_r,1*size(indpw_r),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_ip .eq. .true.) then
+        if(is_ip) then
           call mpi_bcast(ip,1*size(ip),mpi_integer,0,MPI_COMM_WORLD,
      $      mpierr)
         endif
-        if(is_ip_k .eq. .true.) then
+        if(is_ip_k) then
           call mpi_bcast(ip_k,1*size(ip_k),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_ip_r .eq. .true.) then
+        if(is_ip_r) then
           call mpi_bcast(ip_r,1*size(ip_r),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_iplf_gk .eq. .true.) then
+        if(is_iplf_gk) then
           call mpi_bcast(iplf_gk,1*size(iplf_gk),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_ir_ref .eq. .true.) then
+        if(is_ir_ref) then
           call mpi_bcast(ir_ref,1*size(ir_ref),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_is .eq. .true.) then
+        if(is_is) then
           call mpi_bcast(is,1*size(is),mpi_integer,0,MPI_COMM_WORLD,
      $      mpierr)
         endif
-        if(is_itshift_r .eq. .true.) then
+        if(is_itshift_r) then
           call mpi_bcast(itshift_r,1*size(itshift_r),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_k_group .eq. .true.) then
+        if(is_k_group) then
           call mpi_bcast(k_group,1*size(k_group),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_k_star .eq. .true.) then
+        if(is_k_star) then
           call mpi_bcast(k_star,1*size(k_star),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_k_sym_0 .eq. .true.) then
+        if(is_k_sym_0) then
           call mpi_bcast(k_sym_0,1*size(k_sym_0),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_list_sym_k .eq. .true.) then
+        if(is_list_sym_k) then
           call mpi_bcast(list_sym_k,1*size(list_sym_k),mpi_integer,
      $      0,MPI_COMM_WORLD,mpierr)
         endif
-        if(is_n_bnd .eq. .true.) then
+        if(is_n_bnd) then
           call mpi_bcast(n_bnd,1*size(n_bnd),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_nbask .eq. .true.) then
+        if(is_nbask) then
           call mpi_bcast(nbask,1*size(nbask),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_nhsort .eq. .true.) then
+        if(is_nhsort) then
           call mpi_bcast(nhsort,1*size(nhsort),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_nplw_r .eq. .true.) then
+        if(is_nplw_r) then
           call mpi_bcast(nplw_r,1*size(nplw_r),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_nplwgw .eq. .true.) then
+        if(is_nplwgw) then
           call mpi_bcast(nplwgw,1*size(nplwgw),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_nrr_red .eq. .true.) then
+        if(is_nrr_red) then
           call mpi_bcast(nrr_red,1*size(nrr_red),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_num_r_star .eq. .true.) then
+        if(is_num_r_star) then
           call mpi_bcast(num_r_star,1*size(num_r_star),mpi_integer,
      $      0,MPI_COMM_WORLD,mpierr)
         endif
-        if(is_num_sym_k .eq. .true.) then
+        if(is_num_sym_k) then
           call mpi_bcast(num_sym_k,1*size(num_sym_k),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_pnt .eq. .true.) then
+        if(is_pnt) then
           call mpi_bcast(pnt,1*size(pnt),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_r0_pair .eq. .true.) then
+        if(is_r0_pair) then
           call mpi_bcast(r0_pair,1*size(r0_pair),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_r_group .eq. .true.) then
+        if(is_r_group) then
           call mpi_bcast(r_group,1*size(r_group),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_r_pnt .eq. .true.) then
+        if(is_r_pnt) then
           call mpi_bcast(r_pnt,1*size(r_pnt),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_r_pnt_ind .eq. .true.) then
+        if(is_r_pnt_ind) then
           call mpi_bcast(r_pnt_ind,1*size(r_pnt_ind),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_shift .eq. .true.) then
+        if(is_shift) then
           call mpi_bcast(shift,1*size(shift),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_sovi .eq. .true.) then
+        if(is_sovi) then
           call mpi_bcast(sovi,1*size(sovi),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_sovr .eq. .true.) then
+        if(is_sovr) then
           call mpi_bcast(sovr,1*size(sovr),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_sym_label .eq. .true.) then
+        if(is_sym_label) then
           call mpi_bcast(sym_label,1*size(sym_label),mpi_character,
      $      0,MPI_COMM_WORLD,mpierr)
         endif
-        if(is_tau .eq. .true.) then
+        if(is_tau) then
           call mpi_bcast(tau,1*size(tau),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_tshift .eq. .true.) then
+        if(is_tshift) then
           call mpi_bcast(tshift,1*size(tshift),mpi_double_precision,
      $      0,MPI_COMM_WORLD,mpierr)
         endif
-        if(is_tshift_r .eq. .true.) then
+        if(is_tshift_r) then
           call mpi_bcast(tshift_r,1*size(tshift_r),
      $      mpi_double_precision,0,MPI_COMM_WORLD,mpierr)
         endif
-        if(is_u .eq. .true.) then
+        if(is_u) then
           call mpi_bcast(u,1*size(u),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_uj .eq. .true.) then
+        if(is_uj) then
           call mpi_bcast(uj,1*size(uj),mpi_double_complex,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_wgt .eq. .true.) then
+        if(is_wgt) then
           call mpi_bcast(wgt,1*size(wgt),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_igbs .eq. .true.) then
+        if(is_igbs) then
           call mpi_bcast(igbs,1*size(igbs),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_iplf_bk .eq. .true.) then
+        if(is_iplf_bk) then
           call mpi_bcast(iplf_bk,1*size(iplf_bk),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
@@ -1321,76 +1321,76 @@
         call mpi_bcast(is_ksym_in_npnt,1,mpi_logical,0,
      $    MPI_COMM_WORLD,mpierr)
       endif
-      if(is_cg .eq. .true.) then
+      if(is_cg) then
         allocate(cg(sz_cg))
       endif
-      if(is_cgr .eq. .true.) then
+      if(is_cgr) then
         allocate(cgr(sz_cgr))
       endif
-      if(is_indxcg .eq. .true.) then
+      if(is_indxcg) then
         allocate(indxcg(sz_indxcg))
       endif
-      if(is_jcg .eq. .true.) then
+      if(is_jcg) then
         allocate(jcg(sz_jcg))
       endif
-      if(is_jcgr .eq. .true.) then
+      if(is_jcgr) then
         allocate(jcgr(sz_jcgr))
       endif
-      if(is_k_list .eq. .true.) then
+      if(is_k_list) then
         allocate(k_list(sz_k_list1,sz_k_list2))
       endif
-      if(is_ksym_in_npnt .eq. .true.) then
+      if(is_ksym_in_npnt) then
         allocate(ksym_in_npnt(sz_ksym_in_npnt))
       endif
       if(maswrk) then
-        if(is_cg .eq. .true.) then
+        if(is_cg) then
           read(1)cg
         endif
-        if(is_cgr .eq. .true.) then
+        if(is_cgr) then
           read(1)cgr
         endif
-        if(is_indxcg .eq. .true.) then
+        if(is_indxcg) then
           read(1)indxcg
         endif
-        if(is_jcg .eq. .true.) then
+        if(is_jcg) then
           read(1)jcg
         endif
-        if(is_jcgr .eq. .true.) then
+        if(is_jcgr) then
           read(1)jcgr
         endif
-        if(is_k_list .eq. .true.) then
+        if(is_k_list) then
           read(1)k_list
         endif
-        if(is_ksym_in_npnt .eq. .true.) then
+        if(is_ksym_in_npnt) then
           read(1)ksym_in_npnt
         endif
       endif
       if(goparr) then
-        if(is_cg .eq. .true.) then
+        if(is_cg) then
           call mpi_bcast(cg,1*size(cg),mpi_double_precision,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_cgr .eq. .true.) then
+        if(is_cgr) then
           call mpi_bcast(cgr,1*size(cgr),mpi_double_complex,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_indxcg .eq. .true.) then
+        if(is_indxcg) then
           call mpi_bcast(indxcg,1*size(indxcg),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_jcg .eq. .true.) then
+        if(is_jcg) then
           call mpi_bcast(jcg,1*size(jcg),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_jcgr .eq. .true.) then
+        if(is_jcgr) then
           call mpi_bcast(jcgr,1*size(jcgr),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_k_list .eq. .true.) then
+        if(is_k_list) then
           call mpi_bcast(k_list,1*size(k_list),mpi_integer,0,
      $      MPI_COMM_WORLD,mpierr)
         endif
-        if(is_ksym_in_npnt .eq. .true.) then
+        if(is_ksym_in_npnt) then
           call mpi_bcast(ksym_in_npnt,1*size(ksym_in_npnt),
      $      mpi_integer,0,MPI_COMM_WORLD,mpierr)
         endif
@@ -1425,37 +1425,37 @@
         call mpi_bcast(is_z_qp,1,mpi_logical,0,MPI_COMM_WORLD,
      $    mpierr)
       endif
-      if(is_ab_nu_from_tau .eq. .true.) then
+      if(is_ab_nu_from_tau) then
         allocate(ab_nu_from_tau(ndim3_tau,0:n_nu_d,2))
       endif
-      if(is_tau_from_nu .eq. .true.) then
+      if(is_tau_from_nu) then
         allocate(tau_from_nu(0:n_nu,ndim3_tau,2))
       endif
-      if(is_ev_bnd .eq. .true.) then
+      if(is_ev_bnd) then
         allocate(ev_bnd(nbasmpw,nbndf,ndim3_k(me3_k+1),nspin_0))
       endif
-      if(is_q_qp .eq. .true.) then
+      if(is_q_qp) then
         allocate(q_qp(nbndf,nbndf,ndim3_k(me3_k+1),nspin_0))
       endif
-      if(is_s_it_r0 .eq. .true.) then
+      if(is_s_it_r0) then
         allocate(s_it_r0(nr_red,n_pbmt,ndim3_kk(me3_k+1)))
       endif
-      if(is_v_ii .eq. .true.) then
+      if(is_v_ii) then
         allocate(v_ii(nplw_gw,nplw_gw,ndim3_k(me3_k+1)))
       endif
-      if(is_v_mm .eq. .true.) then
+      if(is_v_mm) then
         allocate(v_mm(nlb2,nlb2,ndim3_k(me3_k+1)))
       endif
-      if(is_w_rs_mi .eq. .true.) then
+      if(is_w_rs_mi) then
         allocate(w_rs_mi(nr_red,n_pbmt,ndim3_kk(me3_k+1)))
       endif
-      if(is_z_bnd .eq. .true.) then
+      if(is_z_bnd) then
         allocate(z_bnd(nfun,nbndf,ndim3_k(me3_k+1),nspin_0))
       endif
-      if(is_ev_qp .eq. .true.) then
+      if(is_ev_qp) then
         allocate(ev_qp(nbasmpw,nbndf,ndim3_k(me3_k+1),nspin_0))
       endif
-      if(is_z_qp .eq. .true.) then
+      if(is_z_qp) then
         allocate(z_qp(nfun,nbndf,ndim3_k(me3_k+1),nspin_0))
       endif
 
@@ -1478,7 +1478,7 @@ c      write(179,*) 'allfile', allfile(1:i_len)
           elseif (k0 .lt. 10000) then
             write(k0_ch, '(i4)') k0
           endif
-          if(is_ev_bnd .eq. .true.) then
+          if(is_ev_bnd) then
             open(3,file=allfilet(1:i_len)//'_ev_bnd_'//trim(k0_ch)
      $        //'_'//trim(ubi)//'.uca',form='unformatted')
             do ispin=1, nspin_0
@@ -1486,7 +1486,7 @@ c      write(179,*) 'allfile', allfile(1:i_len)
             enddo
             close(3)
           endif
-          if(is_q_qp .eq. .true.) then
+          if(is_q_qp) then
             open(3,file=allfilet(1:i_len)//'_q_qp_'//trim(k0_ch)
      $        //'_'//trim(ubi)//'.uca',form='unformatted')
             do ispin=1, nspin_0
@@ -1494,31 +1494,31 @@ c      write(179,*) 'allfile', allfile(1:i_len)
             enddo
             close(3)
           endif
-          if(is_s_it_r0 .eq. .true.) then
+          if(is_s_it_r0) then
             open(3,file=allfilet(1:i_len)//'_s_it_r0_'//trim(k0_ch)
      $        //'_'//trim(ubi)//'.uca',form='unformatted')
             read(3)s_it_r0(:,:,ind_k)
             close(3)
           endif
-          if(is_v_ii .eq. .true.) then
+          if(is_v_ii) then
             open(3,file=allfilet(1:i_len)//'_v_ii_'//trim(k0_ch)
      $        //'_'//trim(ubi)//'.uca',form='unformatted')
             read(3)v_ii(:,:,ind_k)
             close(3)
           endif
-          if(is_v_mm .eq. .true.) then
+          if(is_v_mm) then
             open(3,file=allfilet(1:i_len)//'_v_mm_'//trim(k0_ch)
      $        //'_'//trim(ubi)//'.uca',form='unformatted')
             read(3)v_mm(:,:,ind_k)
             close(3)
           endif
-          if(is_w_rs_mi .eq. .true.) then
+          if(is_w_rs_mi) then
             open(3,file=allfilet(1:i_len)//'_w_rs_mi_'//trim(k0_ch)
      $        //'_'//trim(ubi)//'.uca',form='unformatted')
             read(3)w_rs_mi(:,:,ind_k)
             close(3)
           endif
-          if(is_z_bnd .eq. .true.) then
+          if(is_z_bnd) then
             open(3,file=allfilet(1:i_len)//'_z_bnd_'//trim(k0_ch)
      $        //'_'//trim(ubi)//'.uca',form='unformatted')
             do ispin=1, nspin_0
@@ -1526,7 +1526,7 @@ c      write(179,*) 'allfile', allfile(1:i_len)
             enddo
             close(3)
           endif
-          if(is_ev_qp .eq. .true.) then
+          if(is_ev_qp) then
             open(3,file=allfilet(1:i_len)//'_ev_qp_'//trim(k0_ch)
      $        //'_'//trim(ubi)//'.uca',form='unformatted')
             do ispin=1, nspin_0
@@ -1534,7 +1534,7 @@ c      write(179,*) 'allfile', allfile(1:i_len)
             enddo
             close(3)
           endif
-          if(is_z_qp .eq. .true.) then
+          if(is_z_qp) then
             open(3,file=allfilet(1:i_len)//'_z_qp_'//trim(k0_ch)
      $        //'_'//trim(ubi)//'.uca',form='unformatted')
             do ispin=1, nspin_0
@@ -1557,13 +1557,13 @@ c      write(179,*) 'allfile', allfile(1:i_len)
           elseif (i_tau .lt. 10000) then
             write(tau_ch, '(i4)') i_tau
           endif
-          if(is_ab_nu_from_tau .eq. .true.) then
+          if(is_ab_nu_from_tau) then
             open(3,file=allfilet(1:i_len)//'_ab_nu_from_tau_'
      $        //trim(tau_ch)//'_'//trim(ubi)//'.uca',form='unformatted')
             read(3)ab_nu_from_tau(ind_tau,:,:)
             close(3)
           endif
-          if(is_tau_from_nu .eq. .true.) then
+          if(is_tau_from_nu) then
             open(3,file=allfilet(1:i_len)//'_tau_from_nu_'//trim(tau_ch)
      $        //'_'//trim(ubi)//'.uca',form='unformatted')
             read(3)tau_from_nu(:,ind_tau,:)
@@ -1642,47 +1642,47 @@ c      write(179,*) 'allfile', allfile(1:i_len)
       endif
 
       if(goparr) then
-        if(is_ab_nu_from_tau .eq. .true.) then
+        if(is_ab_nu_from_tau) then
           call mpi_bcast(ab_nu_from_tau,size(ab_nu_from_tau),
      $      mpi_double_precision,0,comm_tau,mpierr)
         endif
-        if(is_tau_from_nu .eq. .true.) then
+        if(is_tau_from_nu) then
           call mpi_bcast(tau_from_nu,size(tau_from_nu),
      $      mpi_double_precision,0,comm_tau,mpierr)
         endif
-        if(is_ev_bnd .eq. .true.) then
+        if(is_ev_bnd) then
           call mpi_bcast(ev_bnd,size(ev_bnd),mpi_double_complex,0,
      $      comm_k,mpierr)
         endif
-        if(is_q_qp .eq. .true.) then
+        if(is_q_qp) then
           call mpi_bcast(q_qp,size(q_qp),mpi_double_complex,0,
      $      comm_k,mpierr)
         endif
-        if(is_s_it_r0 .eq. .true.) then
+        if(is_s_it_r0) then
           call mpi_bcast(s_it_r0,size(s_it_r0),mpi_double_precision,
      $      0,comm_k,mpierr)
         endif
-        if(is_v_ii .eq. .true.) then
+        if(is_v_ii) then
           call mpi_bcast(v_ii,size(v_ii),mpi_double_complex,0,
      $      comm_k,mpierr)
         endif
-        if(is_v_mm .eq. .true.) then
+        if(is_v_mm) then
           call mpi_bcast(v_mm,size(v_mm),mpi_double_complex,0,
      $      comm_k,mpierr)
         endif
-        if(is_w_rs_mi .eq. .true.) then
+        if(is_w_rs_mi) then
           call mpi_bcast(w_rs_mi,size(w_rs_mi),mpi_double_precision,
      $      0,comm_k,mpierr)
         endif
-        if(is_z_bnd .eq. .true.) then
+        if(is_z_bnd) then
           call mpi_bcast(z_bnd,size(z_bnd),mpi_double_complex,0,
      $      comm_k,mpierr)
         endif
-        if(is_ev_qp .eq. .true.) then
+        if(is_ev_qp) then
           call mpi_bcast(ev_qp,size(ev_qp),mpi_double_complex,0,
      $      comm_k,mpierr)
         endif
-        if(is_z_qp .eq. .true.) then
+        if(is_z_qp) then
           call mpi_bcast(z_qp,size(z_qp),mpi_double_complex,0,
      $      comm_k,mpierr)
         endif

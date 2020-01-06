@@ -131,8 +131,8 @@ c     key = 1 : for valence levels
 	            if(irel.le.1) then
 	              fac=cg(icg)*cg(icgg)/df22
 	            else
-	              fac=dreal(cgr(icg)*cgr(icgg))/df22
-	              facj=dimag(cgr(icg)*cgr(icgg))/df22
+	              fac=dreal(cgr(icg)*cgr(icgg)/df22)
+	              facj=dimag(cgr(icg)*cgr(icgg)/df22)
 	            endif
 	            if(irel.le.1) then
 	              t1_x(l22,lf2,lf1,li)=t1_x(l22,lf2,lf1,li)

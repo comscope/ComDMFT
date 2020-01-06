@@ -20,7 +20,9 @@
      $  num_orb_proj,
      $  pol_iter_for_u,
      $  natom_ciw,
+     $  natom_cw,      
      $  n_ciw_max,
+     $  n_cw_max,
      $  nwpb_max,
      $  nwpb_all,
      $  num_kpts
@@ -32,8 +34,10 @@
 
       
       integer, allocatable ::
-     $  mt2wan(:,:,:),
-     &  corr_iter_rel(:,:),
+     $  mt2allwan(:,:,:),
+     $  mt2corwan(:,:,:),            
+     $  corr_iter_rel(:,:),
+     $  corr_rel(:,:),      
      $  alimj(:,:,:),
      $  nalimj(:),
      $  exclude_bands(:),
@@ -44,16 +48,23 @@
      $  wan_correlated(:),
      $  wan_itinerant(:),
      $  mt2ciw(:,:,:),
-     $  mt2ciw_rel_l(:,:,:),      
+     $  mt2cw(:,:,:),      
+     $  mt2ciw_rel_l(:,:,:),
+     $  mt2cw_rel_l(:,:,:),            
      &  corr_iter(:,:),
+     &  corr(:,:),      
      $  at_bonding(:,:),
      $  at_bonding_rel(:,:),
      $  ind_bands_foru(:,:,:),
      $  include_bands_foru(:,:,:,:,:),
      $  n_ciw_atom(:),
+     $  n_cw_atom(:),      
      $  iatom_ciw(:),
+     $  iatom_cw(:),      
      $  ciw_ind(:,:),
+     $  cw_ind(:,:),      
      $  at_orb_ciw(:,:),
+     $  at_orb_cw(:,:),      
      $  nwpb(:)
 
       

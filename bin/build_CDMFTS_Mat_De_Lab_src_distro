@@ -1,0 +1,86 @@
+#!/bin/bash
+date=`date +%Y-%m-%d`
+release=CDMFTS_Mat_De_Lab_1.0.0
+if [[ ! ( $# == 1 || $# == 2 ) ]] ; then
+  echo "Usage: $0 source-directory [distribution-directory]"
+  echo ""
+  echo "The source-directory is the directory in which the source code"
+  echo "lives. The distribution-directory is the directory that the"
+  echo "source will be copied into and which is used to generate the"
+  echo "distribution tar-ball. If the distribution-directory is not"
+  echo "specified ${release}-src.${date}.tar.gz"
+  echo "will be used instead."
+  echo
+  echo "Any artifacts from testing the code are removed and the resulting"
+  echo "directory packaged as a compressed tar-file."
+  echo
+  echo "This script produces two tar-balls:"
+  echo "- ${release}-src.${date}.tar.gz"
+  echo "    which contains the source code"
+  echo "- ${release}-src.${date}-web.tar.gz"
+  echo "    which contains the web pages including the source code"
+  echo "    download"
+  exit 1
+fi
+#
+# Copy the source code to the target area
+#
+source=`pwd`/$1
+if [ $# == 2 ] ; then
+  distro=$2
+else
+  distro=${release}-src.${date}
+fi
+target=`pwd`/${distro}
+echo "Generating source distro"
+echo "Source: " ${source}
+echo "Target: " ${target}
+if [ -d ${target} ] ; then
+  echo "Old version of" $target "already exists!?"
+  echo "Please move or remove it."
+  exit 2
+fi
+cp -a ${source} ${target}
+#
+# Cleanup build and testing artifacts
+#
+echo -n "Cleaning source distro... "
+find ${target} -name "*.o" -exec rm -rf {} \; 
+find ${target} -name "*.exe" -exec rm -rf {} \; 
+find ${target} -name "*.pyc" -exec rm -rf {} \; 
+find ${target} -name "mdl.*" -exec rm -rf {} \;
+find ${target} -name "kpath" -exec rm -rf {} \;
+find ${target} -name "kpoints" -exec rm -rf {} \;
+find ${target} -name "log" -exec rm -rf {} \;
+#find ${target} -name ".git" -exec rm -rf {} \;
+rm -rf ${target}/.git
+echo "OK"
+#
+# Now package it all up
+#
+echo -n "Tarring everything up... "
+tar -vzcf ${target}.tar.gz ${distro} 2>&1 > ${target}.MANIFEST
+echo "OK"
+#
+# Generate the web-pages
+#
+echo "Compiling documentation and web-pages... "
+cp ${target}.tar.gz ${target}/doc/source/.
+cd ${target}/doc
+cat > source/Downloads.rst <<EOF
+#########
+Downloads
+#########
+
+EOF
+echo "* :download:\`"${release} ${date} "<"${distro}".tar.gz>\`" >> source/Downloads.rst
+make html
+echo "OK"
+#
+# Now package the web-pages up
+#
+echo -n "Tarring web-pages up... "
+cd ${target}/doc/build
+tar -vzcf ${target}-web.tar.gz html 2>&1 > ${target}-web.MANIFEST
+echo "OK"
+echo "=== Done ==="

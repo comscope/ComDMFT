@@ -117,12 +117,16 @@ c$$$        temperature=dmft_temperature
         allocate(n_dmft_wan(nqdiv))
       ng(1)=size(n_dmft_bnd,1)
       call fread(MPI_COMM_WORLD,n_dmft_bnd,ng(1),nv(1),
-     $                "num_band_in",fid_f)
+     $                "n_dmft_bnd",fid_f)
 !      if (maswrk)  write(iun,*)'n_dmft_bnd',n_dmft_bnd
         n_dmft_bnd_max=maxval(n_dmft_bnd)
-      n_dmft_wan=n_dmft_bnd
-      if (maswrk)  write(iun,*)'n_dmft_wan',n_dmft_wan
-      n_dmft_wan_max=maxval(n_dmft_wan)
+
+      ng(1)=size(n_dmft_wan,1)
+      call fread(MPI_COMM_WORLD,n_dmft_wan,ng(1),nv(1),
+     $                "n_dmft_wan",fid_f)
+!      if (maswrk)  write(iun,*)'n_dmft_bnd',n_dmft_bnd
+        n_dmft_wan_max=maxval(n_dmft_wan)
+
         allocate(dmft_bnd_index(n_dmft_bnd_max,nqdiv))
       ng(1)=size(dmft_bnd_index,1)
       ng(2)=size(dmft_bnd_index,2)
