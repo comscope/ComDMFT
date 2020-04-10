@@ -58,7 +58,7 @@ def read_comdmft_ini():
 
     open_h_log(control)        
 
-    control['comsuitedir']=os.environ.get('COMSUITE_VER2_HDF')
+    control['comsuitedir']=os.environ.get('COMSUITE_BIN')
     if not control['comsuitedir']:
         print("Error: Environment variable COMSUITE_BIN is not defined.", file=control['h_log'],flush=True)
         sys.exit()

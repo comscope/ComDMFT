@@ -13,7 +13,7 @@ endif
 
 ##### C and C++
 CXX = CC
-CXX_MPI = CC
+CXX_MPI = CC -DHAVE_MPI
 
 ##### lapack library
 LAPACK_LIB = -mkl

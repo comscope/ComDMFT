@@ -116,22 +116,22 @@ c     --------------------------------------------------------------------
         call properties(iexit1)
 c     
 c     Store restart data
-       if (iter == iter_max_scf) then
+c$$$       if (iter == iter_max_scf) then
         call write_ro_rst
         call write_ro_core_rst
         call write_chemical_potential_rst
         call write_wfn_effhf_rst
         call write_green_effhf_rst
         call write_restart_ubi_rst
-       endif
+c$$$       endif
 c     call write_wan_bni
 c     call write_gwl_bni
 #ifdef USE_HDF5
-        if (iter == iter_max_scf) then
+c$$$        if (iter == iter_max_scf) then
         call write_gwl_bni_hdf5
         call write_wan_bni_hdf5
         call write_wan_bni2_hdf5
-        endif
+c$$$        endif
 #else
         call write_gwl_bni
         call write_wan_bni
