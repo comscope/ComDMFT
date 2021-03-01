@@ -39,7 +39,8 @@
      $  is_spinorbit,
      $  is_metal,
      $  num_alimj,
-     $  max_nalimj
+     $  max_nalimj,
+     $  is_qp
 
 
       integer, allocatable ::
@@ -131,7 +132,8 @@
      $  n_matrix(:,:,:)
 
       integer :: mpierr,me, me1,master,nproc,irank,isize
-      logical :: maswrk,zinv_m1_exist
+      logical :: maswrk,zinv_m1_exist,is_trans_basis
+
 
       end
       

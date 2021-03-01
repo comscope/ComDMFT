@@ -8,7 +8,7 @@
       implicit none
       include "mpif.h"
       integer, intent(in) :: key_u
-      integer :: ik,ind_tau,ind_k,k,ii,kst,iq,ind
+      integer :: ik,ind_tau,ind_k,k,ii,kst,iq,ind,ierr
       double precision :: dev0
       double precision, allocatable :: p0(:,:,:)
       complex*16,allocatable :: tmp3(:,:),tmp4(:,:),tmp2(:,:)
@@ -65,5 +65,6 @@ c$$$  endif
         if(ubi==' gw'.or.ubi=='gwg')
      $    call etot_x_from_pw(2)
       endif
+      CALL MPI_BARRIER(MPI_COMM_WORLD,IERR)      
       call timel('**** POLARIZABILITY finished *******')
       end

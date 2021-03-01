@@ -26,7 +26,14 @@ c ----------- Full Potential; L=0 term is absent ---------------
       call bands
       if(iter==1) chem_pot=minval(e_bnd(n_semic+1,:,1:nspin))+0.5d0
 c -----------------------------------------------------------------
-	call search_mu_0(chem_pot,nelec,chem_pot)
+c$$$      call search_mu_0(chem_pot,nelec,chem_pot)
+      call search_mu_brent(chem_pot,nelec,chem_pot)
+
+      do ispin=1,nspin
+        if(ubi=='dft') call output_eigen_states('_dft',0,ispin)
+        if(ubi==' hf') call output_eigen_states('_ hf',1,ispin)
+      enddo                     !! over ispin      
+      
       call timel('**** Search_mu finished ************')
 c -----------------------------------------------------------------
 	call set_g

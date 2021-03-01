@@ -1,19 +1,24 @@
-#ifndef OBSERVABLES_OBSERVABLE_H
-#define OBSERVABLES_OBSERVABLE_H
+#ifndef CTQMC_INCLUDE_OBSERVABLES_OBSERVABLE_H
+#define CTQMC_INCLUDE_OBSERVABLES_OBSERVABLE_H
 
-#include "../Utilities.h"
+#include <vector>
+
 #include "../Data.h"
 #include "../State.h"
 
 namespace obs {
     
-    struct Observable {
-        virtual bool sample(ut::complex const sign, data::Data const& data, state::State& state, imp::itf::Batcher& batcher) = 0;
-        virtual void store(data::Data const& data, jsx::value& measurements, std::int64_t samples) = 0;
-        virtual void finalize(data::Data const& data, jsx::value& measurements, std::int64_t samples) = 0;
-        virtual ~Observable() = default;
-    };
-    
+    namespace itf{
+        
+        template<typename Value>
+        struct Observable {
+            virtual bool sample(Value const sign, data::Data<Value> const& data, state::State<Value>& state, jsx::value& measurements, imp::itf::Batcher<Value>& batcher) = 0;
+            virtual void finalize(data::Data<Value> const& data, jsx::value& measurements) = 0;
+            virtual ~Observable() = default;
+        };
+        
+    }
+
 }
 
 #endif

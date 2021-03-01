@@ -1,6 +1,7 @@
 include ../arch.mk
 #i&&&&&&&&&&&&&&&&&&&&&&&&&&&&        UNIX MPICH MPI       &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
+compfl = -debug -g -CB -check bounds -traceback -check uninit -fp-model precise
 comp = $(PF90) $(FPPFLAGS) -c $(compfl)
 link = $(PF90) $(compfl)
 LIB = $(LAPACK_LIB)
@@ -15,10 +16,13 @@ TARGET = ComLowH
 o_files = \
   comlowh.o \
   comlowh_mod.o \
+  pfit_mod.o \
 
 
 mod_files = \
-  comlowh_mod.mod 
+  comlowh_mod.mod \
+  pfit_mod.mod \
+
 
 ifdef USE_HDF5
   o_files += hdf5io_mod.o

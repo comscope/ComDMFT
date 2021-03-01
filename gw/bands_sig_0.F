@@ -161,11 +161,11 @@ c ------ Recalculation the SIG_C_TAU ----------------------------------
 	if(nproc_k/=1) then
 	  call dgop(e_bnd,n0*npnt*nspin,'  +',comm_pnt)
 	endif
-	do ispin=1,nspin
-	  if(ubi==' hf') call output_eigen_states('__hf',2,ispin)
-	  if(ubi==' qp') call output_eigen_states('__qp',2,ispin)
-	  if(ubi==' gw') call output_eigen_states('__gw',2,ispin)
-	  if(ubi=='gwg') call output_eigen_states('_gwg',2,ispin)
-	enddo
+c$$$	do ispin=1,nspin
+c$$$	  if(ubi==' hf') call output_eigen_states('__hf',2,ispin)
+c$$$	  if(ubi==' qp') call output_eigen_states('__qp',2,ispin)
+c$$$	  if(ubi==' gw') call output_eigen_states('__gw',2,ispin)
+c$$$	  if(ubi=='gwg') call output_eigen_states('_gwg',2,ispin)
+c$$$	enddo
 	deallocate(tmp,a)
       end

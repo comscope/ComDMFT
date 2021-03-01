@@ -1,0 +1,15 @@
+#!/bin/bash -l
+#SBATCH -J temp
+#SBATCH -p regular
+#SBATCH -N 2
+#SBATCH -e temp.%j.err
+#SBATCH -o temp.%j.out
+#SBATCH --mail-type All
+#SBATCH --mail-user sangkookchoi@gmail.com
+#SBATCH -L SCRATCH
+#SBATCH -C haswell
+#SBATCH -t 12:00:00
+
+$COMSUITE_BIN/comdmft.py
+
+

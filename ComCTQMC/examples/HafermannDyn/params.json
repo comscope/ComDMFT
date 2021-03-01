@@ -1,0 +1,63 @@
+{
+    "print" : true,   
+  
+    "beta": 50.0,
+    "mu": -1, 
+  
+    "hybridisation": {
+        "functions": "hyb.json", 
+        "matrix": [
+            [ "A",  "" ], 
+            [  "", "A" ]
+        ]
+    }, 
+
+    "dyn" : {
+        "quantum numbers" : [
+            [1, 1]
+        ],
+        "functions": "dyn.json", 
+        "matrix": [
+            [ "A" ]
+        ]
+    },
+
+    "hloc": {
+        "one body": [
+            [ 0.0, 0.0 ], 
+            [ 0.0, 0.0 ]
+        ],  
+        "two body": [ 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 8.0, 0.0, 0.0, 8.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ]
+    },
+
+    "thermalisation time" : 2,
+    "measurement time" : 16,
+
+    "complex" : false,
+   
+    "partition" : {
+
+        "quantum numbers": {
+            "N": [ 1.0, 1.0 ]
+        },
+
+        "green bulla" : true,
+        "green basis" : "matsubara",
+        "green matsubara cutoff" : 20,
+
+        "quantum number susceptibility" : true,  
+
+        "occupation susceptibility direct" : true,
+        "occupation susceptibility bulla" : true,   
+
+        "density matrix precise" : true,
+
+        "susceptibility cutoff" : 50,
+        "susceptibility tail" : 200
+    },
+    "green":{
+	"cutoff":10,
+	"basis":"matsubara",
+	"meas":["","imprsum"]
+     }
+}

@@ -5,12 +5,14 @@ default: all
 #all: clean_Destdir Common Wannier90 Gw Mqsgw_dmft Ucal Fullgw_dmft Analytical_continuation
 
 ifdef USE_HDF5
-all: com_wannier90 com_comgw com_comlowh com_comdc com_comcoulomb com_comwann com_ctqmc com_evalsim
+all: com_script com_wannier90 com_comgw com_comlowh com_comdc com_comcoulomb com_comwann com_ctqmc
 else
-all: com_wannier90 com_comgw com_comlowh com_comdc com_comcoulomb com_comwann com_ctqmc com_evalsim  com_risb
+all: com_script com_wannier90 com_comgw com_comlowh com_comdc com_comcoulomb com_comwann com_ctqmc com_risb
 endif
 
 
+com_script:
+	cd bin/flapwmbpt_input && $(MAKE) all && cd ../../
 com_wannier90:  	
 	cd wannier90_2.1 && $(MAKE) all && cd ../
 com_comgw:
@@ -24,9 +26,7 @@ com_comcoulomb:
 com_comwann:
 	cd ComWann && $(MAKE) && cd ../  
 com_ctqmc:
-	cd ComCTQMC && cd ctqmc && cd host && $(MAKE) && cd ../ && cd ../ && cd ../
-com_evalsim:
-	cd ComCTQMC && cd evalsim && $(MAKE) && cd ../ && cd ../ 
+	cd ComCTQMC && $(MAKE) && cp ./bin/EVALSIM ../bin && cp ./bin/CTQMC ../bin && cd ../ 
 com_risb:
 	cd ComRISB && $(MAKE) && cd ../
 
@@ -34,16 +34,16 @@ com_risb:
 #clean: clean_Common clean_Wannier90 clean_Gw clean_Mqsgw_dmft clean_Ucal clean_Fullgw_dmft clean_Analytical_continuation clean_Destdir
 
 ifdef USE_HDF5
-clean: clean_wannier90 clean_comgw clean_comlowh clean_comdc clean_comcoulomb clean_comwann clean_ctqmc clean_evalsim clean_Destdir
+clean: clean_script clean_wannier90 clean_comgw clean_comlowh clean_comdc clean_comcoulomb clean_comwann clean_ctqmc clean_Destdir
 else
-clean: clean_wannier90 clean_comgw clean_comlowh clean_comdc clean_comcoulomb clean_comwann clean_ctqmc clean_evalsim clean_comrisb clean_Destdir
+clean: clean_script clean_wannier90 clean_comgw clean_comlowh clean_comdc clean_comcoulomb clean_comwann clean_ctqmc clean_comrisb clean_Destdir
 endif
 
 
-clean_evalsim:
-	cd ComCTQMC && cd evalsim && $(MAKE) clean && cd ../ && cd ../
+clean_script:
+	cd bin && cd flapwmbpt_input && $(MAKE) clean && cd ../ && cd ../
 clean_ctqmc:
-	cd ComCTQMC && cd ctqmc && cd host && $(MAKE) clean && cd ../ && cd ../ && cd ../
+	cd ComCTQMC && $(MAKE) clean && rm ../bin/CTQMC && rm ../bin/EVALSIM && cd ../
 clean_comlowh:
 	cd ComLowH && $(MAKE) clean && cd ../
 clean_comgw:
@@ -81,4 +81,4 @@ clean_comrisb:
 		post_process run_ga.py save_ldag stepin_wien_gutz.py switch_gparam.py \
 		&& cd ..
 clean_Destdir:
-	rm ./bin/rspflapw.exe ./bin/ComLowH ./bin/ComDC ./bin/ComWann ./bin/CTQMC ./bin/EVALSIM ./bin/ComCoulomb
+	rm ./bin/rspflapw.exe ./bin/ComLowH ./bin/ComDC ./bin/ComWann ./bin/ComCoulomb

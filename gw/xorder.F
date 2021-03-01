@@ -1,6 +1,6 @@
       subroutine xorder(nin,a,nout,b,iref)
 **********************************************************
-*       subroutine for ordering area with large          *
+*     subroutine for ordering area with large          *
 *           number of elements by decreasing             *
 *                                                        *
 *       input: nin  -number of elements,a(i=1,nin)-area. *

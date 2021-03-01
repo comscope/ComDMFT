@@ -1,5 +1,5 @@
-#ifndef BASE64
-#define BASE64
+#ifndef INCLUDE_IO_BASE64_H
+#define INCLUDE_IO_BASE64_H
 
 #include <utility>
 #include <cstdlib>

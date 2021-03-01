@@ -1,0 +1,76 @@
+{
+    "beta": 10,
+    "complex": false,
+    "restart": false,
+    "partition fraction": 0.2,
+    "sim per device": 0,
+    "hloc": {
+        "one body": [ 
+            [ 0, 0 ], 
+            [ 0, 0 ] ],
+        "two body": [ 0, 0, 0, 0, 0, 0, 4, 0, 0, 4, 0, 0, 0, 0, 0, 0 ]
+    },
+    "hybridisation": {
+        "functions": "hyb.json",
+        "matrix": [ 
+            [ "A", "" ], 
+            [ "", "A" ] ]
+    },
+    "measurement time": 55,
+    "thermalisation time": 5,
+    "mu": 4,
+    "partition": {
+        "green basis": "matsubara",
+        "green bulla": true,
+        "green matsubara cutoff": 35,
+        "occupation susceptibility bulla": true,
+        "occupation susceptibility direct": false,
+        "quantum number susceptibility": false,
+        "quantum numbers": {
+            "N": [ 1, 1 ],
+            "Sz": [ 0.5, -0.5 ]
+        },
+        "susceptibility cutoff": 50,
+        "susceptibility tail": 200
+    },
+    "green": {
+        "basis": "matsubara",
+        "cutoff": 50,
+        "meas": [ "imprsum" ]
+    },
+    "susc ph": {
+        "basis": "matsubara",
+        "cutoff": 50,
+        "meas": [ "" ]
+    },
+    "susc pp": {
+        "basis": "matsubara",
+        "cutoff": 50,
+        "meas": [ "" ]
+    },
+    "hedin ph": {
+        "basis": "matsubara",
+        "fermion cutoff": 50,
+	"boson cutoff": 20,
+        "meas": [ "imprsum" ]
+    },
+    "hedin pp": {
+        "basis": "matsubara",
+        "fermion cutoff": 50,
+	"boson cutoff": 20,
+        "meas": [ "imprsum" ]
+    },
+    "vertex": {
+        "basis": "matsubara",
+        "fermion cutoff": 50,
+	"boson cutoff": 20,
+        "meas": [ "imprsum" ],
+	"full": true
+    },
+    "kernels": {
+        "asymptotic cutoff": 5,
+        "boson cutoff": 11,
+        "fermion cutoff": 20,
+	"basis": "matsubara"
+    }
+}

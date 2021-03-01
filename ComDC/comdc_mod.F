@@ -16,7 +16,8 @@
 
 
       logical ::
-     $  is_dynamical_f0
+     $  is_dynamical_f0,
+     $  is_trans_dc
 
       integer, allocatable ::
      $  ndim_omega(:),

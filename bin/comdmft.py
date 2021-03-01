@@ -9,6 +9,9 @@ from scipy import *
 import json
 from tabulate import tabulate
 from itertools import chain
+import flapwmbpt_ini
+import prepare_realaxis
+
 # from scipy.interpolate import interp1d
 # trans_basis_mode: 0, use wannier function as basis set
 # trans_basis_mode: 1, use transformation matrix to rotate the basis set. this matrix doesn't change as a function of iteration.
@@ -16,7 +19,10 @@ from itertools import chain
 
 
 def open_h_log(control):
-    control['h_log']=open('./cmd.log', 'a')
+    if (control['restart']):
+        control['h_log']=open('./cmd.log', 'a')
+    else:
+        control['h_log']=open('./cmd.log', 'w')        
     print('',                                 file=control['h_log'],flush=True)
     print('*********************************',file=control['h_log'],flush=True)
     print('             ComDMFT',             file=control['h_log'],flush=True)
@@ -34,16 +40,55 @@ def close_h_log(control):
     control['h_log'].close()
     return None
 
-def read_comdmft_ini():
+def read_comdmft_ini_control():
     vglobl={}
     vlocal={}
-    if sys.version_info.major<3:
-        execfile('comdmft.ini',vglobl,vlocal)
-    else: # sys.version_info.major==3
-        with open('comdmft.ini') as f_ini:
+    with open('comdmft.ini') as f_ini:
+        code = compile(f_ini.read(), "comdmft.ini", 'exec')
+        exec(code, vglobl, vlocal)
+        f_ini.close()
+    control=vlocal['control']
+
+    return control
+
+
+def read_comdmft_ini_postprocessing():
+    vglobl={}
+    vlocal={}
+    with open('comdmft.ini') as f_ini:
+        code = compile(f_ini.read(), "comdmft.ini", 'exec')
+        exec(code, vglobl, vlocal)
+        f_ini.close()
+    control=vlocal['control']
+    postprocessing_dict=vlocal['postprocessing']
+    
+    check_key_in_string('mpi_prefix', control)
+    check_key_in_string('comsuite_dir', postprocessing_dict)
+    if (control['method']=='spectral') | (control['method']=='band'):
+
+        with open(postprocessing_dict['comsuite_dir']+'/comdmft.ini') as f_ini:
             code = compile(f_ini.read(), "comdmft.ini", 'exec')
             exec(code, vglobl, vlocal)
             f_ini.close()
+            control_temp=vlocal['control']
+
+        postprocessing_dict['kpoints']=postprocessing_dict.get('kpoints', os.path.abspath(postprocessing_dict['comsuite_dir']+'/'+control_temp['initial_lattice_dir'])+'/kpoints')
+    if ((control['method']=='dos') | (control['method']=='dos_qp')):
+        check_key_in_string('kmesh', postprocessing_dict)                
+    if ((control['method']=='spectral') | (control['method']=='dos')):
+        check_key_in_string('self energy', postprocessing_dict)                
+
+    postprocessing_dict['broadening']=postprocessing_dict.get('broadening', 0.01)
+    return control, postprocessing_dict
+
+
+def read_comdmft_ini():
+    vglobl={}
+    vlocal={}
+    with open('comdmft.ini') as f_ini:
+        code = compile(f_ini.read(), "comdmft.ini", 'exec')
+        exec(code, vglobl, vlocal)
+        f_ini.close()
     # print vglobl
     # print 'here'
     control=vlocal['control']
@@ -56,7 +101,10 @@ def read_comdmft_ini():
 
 
 
-    open_h_log(control)        
+
+    control['restart']=control.get('restart', False)
+
+    open_h_log(control)                
 
     control['comsuitedir']=os.environ.get('COMSUITE_BIN')
     if not control['comsuitedir']:
@@ -66,27 +114,30 @@ def read_comdmft_ini():
     control['conv_table']=[]
 
     ###    in control
+    control['cal_mu']=control.get('cal_mu', True)
 
     control['top_dir']=os.path.abspath('./')        
-    check_key_in_string('method', control, control)
+    check_key_in_string('method', control)
     control['sigma_mix_ratio']=control.get('sigma_mix_ratio', 0.5)
 
     control['doping']=control.get('doping', 0.0)
+
+    control['dc_mode']=control.get('dc_mode', 'dc_at_gw')    
     
     control['u_mode']=control.get('u_mode', 'bnse')
 
     control['trans_basis_mode']=control.get('trans_basis_mode', 0)
     if (control['trans_basis_mode']==1):
-        check_key_in_string('trans_basis', control,control)
+        check_key_in_string('trans_basis', control)
     elif (control['trans_basis_mode']==2):
-        check_key_in_string('metal_threshold', control,control)
+        check_key_in_string('metal_threshold', control)
 
         
         
-    check_key_in_string('spin_orbit', control, control)
-    check_key_in_string('impurity_problem', control, control)    
-    check_key_in_string('impurity_problem_equivalence', control, control)
-    check_key_in_string('initial_lattice_dir', control, control)
+    check_key_in_string('spin_orbit', control)
+    check_key_in_string('impurity_problem', control)    
+    check_key_in_string('impurity_problem_equivalence', control)
+    check_key_in_string('initial_lattice_dir', control)
     control['initial_lattice_dir']=os.path.abspath(control['initial_lattice_dir'])        
     control['allfile']=find_allfile(control['initial_lattice_dir'])
     if ('dc_directory' not in control):
@@ -105,7 +156,7 @@ def read_comdmft_ini():
     if ('initial_self_energy' in control):
         control['initial_self_energy'] =os.path.abspath(control['initial_self_energy'])
         if (control['trans_basis_mode']!=0):
-            check_key_in_string('trans_basis', control,control)
+            check_key_in_string('trans_basis', control)
 
             
     if ('dc_mat_to_read' in control):
@@ -118,6 +169,7 @@ def read_comdmft_ini():
 
     # mpi_prefix
     if ('mpi_prefix' in control):
+        control['mpi_prefix_flapwmbpt']=control.get('mpi_prefix_flapwmbpt', control['mpi_prefix'])
         control['mpi_prefix_lowh']=control.get('mpi_prefix_lowh', control['mpi_prefix'])
         control['mpi_prefix_impurity']=control.get('mpi_prefix_impurity', control['mpi_prefix'])
         control['mpi_prefix_wannier']=control.get('mpi_prefix_wannier', control['mpi_prefix'])
@@ -128,8 +180,8 @@ def read_comdmft_ini():
 
     # mpi_prefix_coulomb
     if ('mpi_prefix_coulomb' in control):
-        check_key_in_string('nproc_k_coulomb', control, control)
-        check_key_in_string('nproc_tau_coulomb', control, control)
+        check_key_in_string('nproc_k_coulomb', control)
+        check_key_in_string('nproc_tau_coulomb', control)
     else:
         # temp=[int(x) for x in np.loadtxt(control['initial_lattice_dir']+'/k_tau_freq.dat')]
         temp=list(map(int,np.loadtxt(control['initial_lattice_dir']+'/k_tau_freq.dat')))
@@ -165,7 +217,7 @@ def read_comdmft_ini():
         control['iter_num_outer']=1
         control['iter_num_impurity']=0
 
-    control['restart']=control.get('restart', False)
+
 
     if (control['restart']):
         find_place_to_restart(control)
@@ -175,9 +227,12 @@ def read_comdmft_ini():
             print('do_dc',      control['do_dc'],      file=control['h_log'],flush=True)
 
 #   in wan_hmat
-    check_key_in_string('kgrid', wan_hmat, control)
-    check_key_in_string('froz_win_min', wan_hmat, control)
-    check_key_in_string('froz_win_max', wan_hmat, control)
+    check_key_in_string('kgrid', wan_hmat)
+    check_key_in_string('froz_win_min', wan_hmat)
+
+    check_key_in_string('froz_win_max', wan_hmat)    
+    wan_hmat['write_wan']=wan_hmat.get('write_wan', False)
+
     wan_hmat['dis_win_min']=wan_hmat.get('dis_win_min', wan_hmat['froz_win_min'])
     wan_hmat['dis_win_max']=wan_hmat.get('dis_win_max', wan_hmat['froz_win_max']+40.0)
     control['proj_win_min']=control.get('proj_win_min', wan_hmat['dis_win_min'])
@@ -200,7 +255,7 @@ def read_comdmft_ini():
         wan_hmat['radfac']=wan_hmat.get('radfac', 1.0)        
     # in imp
 
-    check_key_in_string('temperature', imp, control)    
+    check_key_in_string('temperature', imp)    
     imp['beta']=1.0/(8.6173303*10**-5*imp['temperature'])
 
     if ('initial_self_energy' in control):
@@ -208,7 +263,7 @@ def read_comdmft_ini():
     else:
         control['n_omega']=int(300.0/(2*pi/imp['beta']))
 
-    control['omega']=(arange(control['n_omega'])*2+1)*pi/imp['beta']
+    control['omega']=(np.arange(control['n_omega'])*2+1)*pi/imp['beta']
 
     for key, value in imp.items():
 
@@ -230,19 +285,21 @@ def read_comdmft_ini():
 
         imp[key]['problem']=control['impurity_problem'][control['impurity_problem_equivalence'].index(int(key))][1]
         if (control['method']=='lda+dmft'):
-            check_key_in_string('f0', imp[key], control)
-            check_key_in_string('f2', imp[key], control)
-            check_key_in_string('f4', imp[key], control)
+            check_key_in_string('f0', imp[key])
+            if ((imp[key]['problem']=='p') | (imp[key]['problem']=='d') | (imp[key]['problem']=='f')):            
+                check_key_in_string('f2', imp[key])
+            if ((imp[key]['problem']=='d') | (imp[key]['problem']=='f')):                        
+                check_key_in_string('f4', imp[key])
             if (imp[key]['problem']=='f'):
-                check_key_in_string('f6', imp[key], control)    
+                check_key_in_string('f6', imp[key])    
         # elif (control['method']=='lqsgw+dmft'):
-        #     check_key_in_string('boson_low_truncation', imp[key], control)
+        #     check_key_in_string('boson_low_truncation', imp[key])
 
-        check_key_in_string('thermalization_time', imp[key], control)
-        check_key_in_string('measurement_time', imp[key], control)
-        check_key_in_string('impurity_matrix', imp[key], control)
+        check_key_in_string('thermalization_time', imp[key])
+        check_key_in_string('measurement_time', imp[key])
+        check_key_in_string('impurity_matrix', imp[key])
         if (control['trans_basis_mode']<2):
-            imp[key]['impurity_matrix']=array(imp[key]['impurity_matrix'])
+            imp[key]['impurity_matrix']=np.array(imp[key]['impurity_matrix'])
         else:
             print("impurity_matrix reset", file=control['h_log'],flush=True)
             nimp_orb=len(imp[key]['impurity_matrix'])
@@ -257,9 +314,9 @@ def read_comdmft_ini():
         print('here',                            file=control['h_log'],flush=True)
 
         if (control['method']=='lda+dmft'):
-            check_key_in_string('nominal_n', imp[key], control)
+            check_key_in_string('nominal_n', imp[key])
 
-        check_key_in_string('green_cutoff', imp[key], control)
+        check_key_in_string('green_cutoff', imp[key])
         imp[key]['susceptibility_cutoff']=imp[key].get('susceptibility_cutoff', 50)
         imp[key]['susceptibility_tail']=imp[key].get('susceptibility_tail', 300)        
 
@@ -272,7 +329,17 @@ def read_comdmft_ini():
     for ii in sorted(set(control['impurity_problem_equivalence'])):
         for jj in sorted(set(imp[str(abs(ii))]['impurity_matrix'].flatten().tolist())-{0}):
             control['sig_header'].append("Re Sig_{"+str(ii)+','+str(jj)+'}(eV)')
-            control['sig_header'].append("Im Sig_{"+str(ii)+','+str(jj)+'}(eV)')    
+            control['sig_header'].append("Im Sig_{"+str(ii)+','+str(jj)+'}(eV)')
+
+
+    # check hdf5
+
+    if (os.path.isdir(control['initial_lattice_dir']+"/checkpoint/")):
+        control['hdf5']=False
+    else:
+        control['hdf5']=True
+    print('hdf5', control['hdf5'],file=control['h_log'],flush=True)
+        
 
     # print
     print('top_dir', control['top_dir'],                         file=control['h_log'],flush=True)
@@ -421,7 +488,7 @@ def find_place_to_restart(control):
 
         if (len(control['conv_table'])>0):
 
-            n_imp_problem=amax(control['impurity_problem_equivalence'])
+            n_imp_problem=np.amax(control['impurity_problem_equivalence'])
 
             last_step=control['conv_table'][-1][0].strip().split('_')[0]
             last_imp_iter=control['conv_table'][-1][1].strip()
@@ -485,6 +552,7 @@ def find_place_to_restart(control):
     elif (control['method']=='lda+dmft'):
         control['conv_table']=read_convergence_table(control)
         if (len(control['conv_table'])>0):
+            linecnt=0
             for ii in range(np.shape(control['conv_table'])[0]):
                 if control['conv_table'][ii][0].strip()=='dft':
                     linecnt=ii
@@ -539,9 +607,16 @@ def find_place_to_restart(control):
 
 def initial_lattice_directory_setup(control):
     os.chdir(control['lattice_directory'])
-    files = glob.iglob(control['initial_lattice_dir']+"/*.rst")
-    for filename in files:
-        shutil.copy(filename, './')
+    if control['hdf5']:
+        files = glob.iglob(control['initial_lattice_dir']+"/*.rst")
+        for filename in files:
+            shutil.copy(filename, './')
+    else:
+        files = glob.iglob(control['initial_lattice_dir']+"/checkpoint/*.rst")
+        for filename in files:
+            shutil.copy(filename, './checkpoint/')
+        
+        
     files = glob.iglob(control['initial_lattice_dir']+"/*el_density")
     for filename in files:
         shutil.copy(filename, './')    
@@ -549,7 +624,14 @@ def initial_lattice_directory_setup(control):
         shutil.copy(control['initial_lattice_dir']+'/kpath', './')
     if os.path.exists(control['initial_lattice_dir']+'/ini'):
         shutil.copy(control['initial_lattice_dir']+'/ini', './')
-
+    if os.path.exists(control['initial_lattice_dir']+'/symmetry_operations'):
+        shutil.copy(control['initial_lattice_dir']+'/symmetry_operations', './')
+    if os.path.exists(control['initial_lattice_dir']+'/kpoints'):
+        shutil.copy(control['initial_lattice_dir']+'/symmetry_operations', './')
+    files = glob.iglob(control['initial_lattice_dir']+"/*.cif")
+    for filename in files:
+        shutil.copy(filename, './')        
+        
     iter_string='_'+str(control['iter_num_outer'])
 
     shutil.copy(control['initial_lattice_dir']+'/'+control['allfile']+'.out', control['allfile']+iter_string+'.out')
@@ -567,6 +649,12 @@ def create_comwann_ini(control, wan_hmat):
     elif (control['method']=='lqsgw+dmft'):
         f.write(control['initial_lattice_dir']+'\n')
         f.write('qp\n')
+    elif (control['method']=='dft'):
+        f.write('../\n')
+        f.write('dft\n')
+    elif (control['method']=='lqsgw'):
+        f.write('../\n')
+        f.write('qp\n')                
     f.write(str(wan_hmat['dis_win_max'])+'\n')
     f.write(str(wan_hmat['dis_win_min'])+'\n')
     f.write(str(wan_hmat['froz_win_max'])+'\n')
@@ -574,7 +662,10 @@ def create_comwann_ini(control, wan_hmat):
 
     f.write(str(wan_hmat['num_iter'])+'\n')
     f.write(str(wan_hmat['dis_num_iter'])+'\n')
-    f.write('0\n')
+    if (wan_hmat['write_wan']):
+        f.write('1\n')
+    else:
+        f.write('0\n')    
     f.write(str(wan_hmat['cut_low'])+'\n')
     f.write(str(wan_hmat['cut_froz'])+'\n')
     f.write(str(wan_hmat['cut_total'])+'\n')    
@@ -630,7 +721,7 @@ def create_comcoulomb_ini(control):
 def read_wan_hmat_basis(control):
     # in the wannier directory
 
-    inip=loadtxt(control['wannier_directory']+'/wannier.inip')
+    inip=np.loadtxt(control['wannier_directory']+'/wannier.inip')
     basis_info=[]
 
     if (control['spin_orbit']):
@@ -644,9 +735,9 @@ def read_wan_hmat_basis(control):
     print('reading wannier.inip to get basis information', file=control['h_log'],flush=True)
     return basis_info
 
-def check_key_in_string(key,dictionary,control):
+def check_key_in_string(key,dictionary):
     if (key not in dictionary):
-        print('missing \''+key+'\' in '+dictionary['name'], file=control['h_log'],flush=True)
+        print('missing \''+key+'\' in '+dictionary['name'],flush=True)
         sys.exit()
     return None
 
@@ -722,7 +813,7 @@ def read_convergence_table(control):
         nstep=len(tmp)-2
         if (nstep>0):
             endind=list(find_all_in_string(tmp[1],' '))[::2]+[len(tmp[1])-1]
-            startind=[0]+(array(list(find_all_in_string(tmp[1],' '))[1::2])+1).tolist()
+            startind=[0]+(np.array(list(find_all_in_string(tmp[1],' '))[1::2])+1).tolist()
             ncolumn=len(endind)
             f=open('./convergence.log', 'r')
             f.readline()
@@ -756,14 +847,24 @@ def generate_initial_self_energy(control,imp):
                     shutil.copy(filename, control['impurity_directory']+'/'+dest_dir)
     else:
         dc=np.loadtxt(control['dc_directory']+'/dc.dat')
+
         beta=imp['beta']
         n_omega=control['n_omega']
         omega=control['omega']
 
 
+        cnt=0
+        dclist=[]
+        for ii in sorted(set(control['impurity_problem_equivalence'])):
+            for jj in sorted(set(imp[str(abs(ii))]['impurity_matrix'].flatten().tolist())-{0}):
+                if (imp[str(abs(ii))]['para']):
+                    dclist=dclist+list(dc[(2*cnt):(2*cnt+2)])
+                else:
+                    dclist=dclist+list(dc[(2*cnt):(2*cnt+2)]-np.array([0.001*np.sign(ii), 0.0]))
+                cnt=cnt+1                    
         sig_table=[]
         for jj in range(control['n_omega']):
-            sig_omega=[control['omega'][jj]]+dc.tolist()
+            sig_omega=[control['omega'][jj]]+dclist
             sig_table.append(sig_omega)
         with open('./sig.dat', 'w') as outputfile:
             outputfile.write(tabulate(sig_table, headers=control['sig_header'], floatfmt=".12f", numalign="right",  tablefmt="plain"))
@@ -791,6 +892,7 @@ def delta_postprocessing(control,imp):
     write_transformation_matrix(control,control['lowh_directory']+'/local_spectral_matrix_ef.dat')
     cal_projected_mean_field_diagonal(control,imp)
     cal_dc_diagonal(control)
+    cal_zinv_m1_diagonal(control)    
     cal_e_imp_diagonal(control)
     delta_causality=cal_hyb_diagonal(control,imp)
 
@@ -811,7 +913,7 @@ def cal_dc_diagonal(control):
     for ii in sorted(set(control['impurity_problem_equivalence'])):
         dc_vec=imp_from_mat_to_array(dc_mat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
         for jj in range(len(dc_vec)):
-            h.write(str(real(dc_vec[jj]))+'   '+str(imag(dc_vec[jj]))+'    ')
+            h.write(str(np.real(dc_vec[jj]))+'   '+str(np.imag(dc_vec[jj]))+'    ')
     h.close()
 
     if (control['method']=='lqsgw+dmft'):
@@ -827,58 +929,60 @@ def cal_dc_diagonal(control):
     return None
 
 
-def cal_dc_diagonal_new(control):
+# def cal_dc_diagonal_new(control):
 
-    os.chdir(control['dc_directory'])
-    dc_mat=read_impurity_mat_static(control,control['dc_directory']+'/dc_mat.dat')
+#     os.chdir(control['dc_directory'])
+#     dc_mat=read_impurity_mat_static(control,control['dc_directory']+'/dc_mat.dat')
 
-    h=open('./dc.dat', 'w')
+#     h=open('./dc.dat', 'w')
 
-    for ii in sorted(set(control['impurity_problem_equivalence'])):
-        dc_vec=imp_from_mat_to_array(dc_mat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
-        for jj in range(len(dc_vec)):
-            h.write(str(real(dc_vec[jj]))+'   '+str(imag(dc_vec[jj]))+'    ')
-    h.close()
+#     for ii in sorted(set(control['impurity_problem_equivalence'])):
+#         dc_vec=imp_from_mat_to_array(dc_mat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
+#         for jj in range(len(dc_vec)):
+#             h.write(str(np.real(dc_vec[jj]))+'   '+str(np.imag(dc_vec[jj]))+'    ')
+#     h.close()
 
-    if (control['method']=='lqsgw+dmft'):
-        iter_string='_'+str(control['iter_num_impurity'])
-    elif (control['method']=='lda+dmft'):
-        iter_string='_'+str(control['iter_num_outer'])+'_'+str(control['iter_num_impurity'])
+#     if (control['method']=='lqsgw+dmft'):
+#         iter_string='_'+str(control['iter_num_impurity'])
+#     elif (control['method']=='lda+dmft'):
+#         iter_string='_'+str(control['iter_num_outer'])+'_'+str(control['iter_num_impurity'])
 
-    labeling_file('./dc.dat', iter_string)
+#     labeling_file('./dc.dat', iter_string)
 
-    print('dc.dat generation done', file=control['h_log'],flush=True)
-    os.chdir(control['top_dir'])
+#     print('dc.dat generation done', file=control['h_log'],flush=True)
+#     os.chdir(control['top_dir'])
 
-    return None
+#     return None
 
 def cal_zinv_m1_diagonal(control):
 
     os.chdir(control['dc_directory'])
-    zinv_m1_mat=read_impurity_mat_static(control,control['dc_directory']+'/zinv_m1_mat.dat')
+    if os.path.isfile(control['dc_directory']+'/zinv_m1_mat.dat'):    
+        zinv_m1_mat=read_impurity_mat_static(control,control['dc_directory']+'/zinv_m1_mat.dat')
+        
+        
+        h=open('./zinv_m1.dat', 'w')
+        
+        for ii in sorted(set(control['impurity_problem_equivalence'])):
+            zinv_m1_vec=imp_from_mat_to_array(zinv_m1_mat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])        
+            for jj in range(len(zinv_m1_vec)):
+                h.write(str(np.real(zinv_m1_vec[jj]))+'   '+str(np.imag(zinv_m1_vec[jj]))+'    ')
+        h.close()
 
-    h=open('./zinv_m1.dat', 'w')
+        if (control['method']=='lqsgw+dmft'):
+            iter_string='_'+str(control['iter_num_impurity'])
+        elif (control['method']=='lda+dmft'):
+            iter_string='_'+str(control['iter_num_outer'])+'_'+str(control['iter_num_impurity'])
 
-    for ii in sorted(set(control['impurity_problem_equivalence'])):
-        zinv_m1_vec=imp_from_mat_to_array(zinv_m1_mat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])        
-        for jj in range(len(zinv_m1_vec)):
-            h.write(str(real(zinv_m1_vec[jj]))+'   '+str(imag(zinv_m1_vec[jj]))+'    ')
-    h.close()
+        labeling_file('./zinv_m1.dat', iter_string)
 
-    if (control['method']=='lqsgw+dmft'):
-        iter_string='_'+str(control['iter_num_impurity'])
-    elif (control['method']=='lda+dmft'):
-        iter_string='_'+str(control['iter_num_outer'])+'_'+str(control['iter_num_impurity'])
-
-    labeling_file('./zinv_m1.dat', iter_string)
-
-    print('zinv_m1.dat generation done', file=control['h_log'],flush=True)
+        print('zinv_m1.dat generation done', file=control['h_log'],flush=True)
     os.chdir(control['top_dir'])
 
     return None
 
 def vec_from_mat_dynamic(mat,trans):
-    vec=zeros(np.shape(mat, 0), np.shape(mat, 1))
+    vec=np.zeros(np.shape(mat, 0), np.shape(mat, 1))
     for ii in range(np.shape(mat, 0)):
         vec[ii,:]=np.diag(dot(np.transpose(np.conj(trans)), np.dot(mat[ii,:,:], trans)))
     return vec
@@ -903,24 +1007,23 @@ def prepare_impurity_solver(control,wan_hmat,imp):
             ndim=nimp_orb
             e_imp_key=np.zeros((ndim, ndim))
             trans_key=np.zeros((ndim, ndim))
-            equivalence_key=np.zeros((ndim,ndim),dtype=integer)
-            e_imp_key=real(e_imp[key])
-            trans_key=real(trans_basis[key])
+            # equivalence_key=np.zeros((ndim,ndim),dtype='int')
+            e_imp_key=np.real(e_imp[key])
+            trans_key=np.real(trans_basis[key])
             # equivalence_key=array([[(lambda ii: str(ii) if str(ii)!='0' else '')(ii) for ii in row] for row in imp[key]['impurity_matrix']])
             equivalence_key=list(map(lambda row: list(map(lambda x: str(x) if x!='0' else '', list(map(str, row)))), imp[key]['impurity_matrix']))
         else:
             ndim=nimp_orb*2
             e_imp_key=np.zeros((ndim, ndim))
             trans_key=np.zeros((ndim, ndim))
-            equivalence_key=np.zeros((ndim,ndim),dtype='<U2')
-            equivalence_key_int_mat=array(imp[key]['impurity_matrix'])
-            print(equivalence_key_int_mat, file=control['h_log'],flush=True)
+            equivalence_key_int_mat=np.array(imp[key]['impurity_matrix'])            
+            equivalence_key_int_mat_all=np.zeros((ndim, ndim),dtype='int')
             if (imp[key]['para']):
                 mkey=key
                 shiftval=0
             else:
                 mkey=str(-int(key))
-                shiftval=amax(equivalence_key_int_mat)
+                shiftval=np.amax(equivalence_key_int_mat)
             print(mkey, shiftval, file=control['h_log'],flush=True)
             #
             # On the next line ii>0 evaluates to 1 if ii>0 and evaluates to 0 otherwise
@@ -929,14 +1032,14 @@ def prepare_impurity_solver(control,wan_hmat,imp):
             equivalence_mkey_int_mat=equivalence_key_int_mat+shiftval*(equivalence_key_int_mat>0)
 
 
-            e_imp_key[0:nimp_orb,0:nimp_orb]=real(e_imp[key])
-            e_imp_key[nimp_orb:(2*nimp_orb),nimp_orb:(2*nimp_orb)]=real(e_imp[mkey])
-            trans_key[0:nimp_orb,0:nimp_orb]=real(trans_basis[key])
-            trans_key[nimp_orb:(2*nimp_orb),nimp_orb:(2*nimp_orb)]=real(trans_basis[mkey])
-            # equivalence_key[0:nimp_orb,0:nimp_orb]=[[(lambda ii: str(ii) if str(ii)!='0' else '')(ii) for ii in row] for row in equivalence_key_int_mat]    
-            equivalence_key[0:nimp_orb,0:nimp_orb]=list(map(lambda row: list(map(lambda x: str(x) if x!='0' else '', list(map(str, row)))), equivalence_key_int_mat))
-            # equivalence_key[nimp_orb:(2*nimp_orb),nimp_orb:(2*nimp_orb)]=[[(lambda ii: str(ii) if str(ii)!='0' else '')(ii) for ii in row] for row in equivalence_key_int_mat]
-            equivalence_key[nimp_orb:(2*nimp_orb),nimp_orb:(2*nimp_orb)]=list(map(lambda row: list(map(lambda x: str(x) if x!='0' else '', list(map(str, row)))), equivalence_mkey_int_mat))
+            e_imp_key[0:nimp_orb,0:nimp_orb]=np.real(e_imp[key])
+            e_imp_key[nimp_orb:(2*nimp_orb),nimp_orb:(2*nimp_orb)]=np.real(e_imp[mkey])
+            trans_key[0:nimp_orb,0:nimp_orb]=np.real(trans_basis[key])
+            trans_key[nimp_orb:(2*nimp_orb),nimp_orb:(2*nimp_orb)]=np.real(trans_basis[mkey])
+            equivalence_key_int_mat_all[0:nimp_orb,0:nimp_orb]=equivalence_key_int_mat
+            equivalence_key_int_mat_all[nimp_orb:(2*nimp_orb),nimp_orb:(2*nimp_orb)]=equivalence_mkey_int_mat
+            equivalence_key=list(map(lambda row: list(map(lambda x: str(x) if x!='0' else '', list(map(str, row)))), equivalence_key_int_mat_all))
+            
 
         write_params_json(control,imp[key],e_imp_key,trans_key,equivalence_key,imp['beta'])
         if (control['method']=='lqsgw+dmft'):
@@ -972,16 +1075,16 @@ def run_impurity_solver(control,imp):
         sigma_to_delta_omega=[control['omega'][jj]]
         sigma_bare_omega=[control['omega'][jj]]
         for ii in sorted(set(control['impurity_problem_equivalence'])):
-            n_iio=amax(imp[str(abs(ii))]['impurity_matrix'])
+            n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix'])
             for kk in range(n_iio):
                 if (ii<0):
                     pp=kk+n_iio
                 else:
                     pp=kk
-                green_omega=green_omega+[real(green[str(abs(ii))][jj,pp]),imag(green[str(abs(ii))][jj,pp])]
-                sigma_omega=sigma_omega+[real(sigma[str(abs(ii))][jj,pp]),imag(sigma[str(abs(ii))][jj,pp])]
-                sigma_to_delta_omega=sigma_to_delta_omega+[real(sigma_to_delta[str(abs(ii))][jj,pp]),imag(sigma_to_delta[str(abs(ii))][jj,pp])]
-                sigma_bare_omega=sigma_bare_omega+[real(sigma_bare[str(abs(ii))][jj,pp]),imag(sigma_bare[str(abs(ii))][jj,pp])]
+                green_omega=green_omega+[np.real(green[str(abs(ii))][jj,pp]),np.imag(green[str(abs(ii))][jj,pp])]
+                sigma_omega=sigma_omega+[np.real(sigma[str(abs(ii))][jj,pp]),np.imag(sigma[str(abs(ii))][jj,pp])]
+                sigma_to_delta_omega=sigma_to_delta_omega+[np.real(sigma_to_delta[str(abs(ii))][jj,pp]),np.imag(sigma_to_delta[str(abs(ii))][jj,pp])]
+                sigma_bare_omega=sigma_bare_omega+[np.real(sigma_bare[str(abs(ii))][jj,pp]),np.imag(sigma_bare[str(abs(ii))][jj,pp])]
         green_table.append(green_omega)
         sigma_table.append(sigma_omega)
         sigma_to_delta_table.append(sigma_to_delta_omega)
@@ -1015,7 +1118,7 @@ def generate_mat_from_array_impurity_dynamic(control,imp, filename):
 
     os.chdir(control['impurity_directory'])
 
-    dat=loadtxt(filename)
+    dat=np.loadtxt(filename)
 
     start_array={}
     end_array={}
@@ -1023,12 +1126,12 @@ def generate_mat_from_array_impurity_dynamic(control,imp, filename):
     last_index=1
 
     for ii in sorted(set(control['impurity_problem_equivalence'])):
-        n_iio=amax(imp[str(abs(ii))]['impurity_matrix'])
+        n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix'])
         start_array[ii]=last_index
         end_array[ii]=last_index+2*n_iio
         last_index=last_index+2*n_iio
-    print(start_array)
-    print(end_array)
+    # print(start_array)
+    # print(end_array)
 
     matout={}
 
@@ -1046,7 +1149,7 @@ def generate_mat_from_array_impurity_static(control,imp, filename):
 
     os.chdir(control['impurity_directory'])
 
-    dat=loadtxt(filename)
+    dat=np.loadtxt(filename)
 
     start_array={}
     end_array={}
@@ -1054,12 +1157,12 @@ def generate_mat_from_array_impurity_static(control,imp, filename):
     last_index=0
 
     for ii in sorted(set(control['impurity_problem_equivalence'])):
-        n_iio=amax(imp[str(abs(ii))]['impurity_matrix'])
+        n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix'])
         start_array[ii]=last_index
         end_array[ii]=last_index+2*n_iio
         last_index=last_index+2*n_iio
-    print(start_array)
-    print(end_array)
+    # print(start_array)
+    # print(end_array)
 
     matout={}
     for ii in sorted(set(control['impurity_problem_equivalence'])):
@@ -1072,7 +1175,7 @@ def array_impurity_static(control,imp, filename):
 
     os.chdir(control['impurity_directory'])
 
-    dat=loadtxt(filename)
+    dat=np.loadtxt(filename)
 
     start_array={}
     end_array={}
@@ -1080,12 +1183,12 @@ def array_impurity_static(control,imp, filename):
     last_index=0
 
     for ii in sorted(set(control['impurity_problem_equivalence'])):
-        n_iio=amax(imp[str(abs(ii))]['impurity_matrix'])
+        n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix'])
         start_array[ii]=last_index
         end_array[ii]=last_index+2*n_iio
         last_index=last_index+2*n_iio
-    print(start_array)
-    print(end_array)
+    # print(start_array)
+    # print(end_array)
 
     matout={}
     for ii in sorted(set(control['impurity_problem_equivalence'])):
@@ -1098,7 +1201,7 @@ def array_impurity_dynamic(control,imp, filename):
 
     os.chdir(control['impurity_directory'])
 
-    dat=loadtxt(filename)
+    dat=np.loadtxt(filename)
 
     start_array={}
     end_array={}
@@ -1106,17 +1209,17 @@ def array_impurity_dynamic(control,imp, filename):
     last_index=1
 
     for ii in sorted(set(control['impurity_problem_equivalence'])):
-        n_iio=amax(imp[str(abs(ii))]['impurity_matrix'])
+        n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix'])
         start_array[ii]=last_index
         end_array[ii]=last_index+2*n_iio
         last_index=last_index+2*n_iio
-    print(start_array)
-    print(end_array)
+    # print(start_array)
+    # print(end_array)
 
     matout={}
 
     for ii in sorted(set(control['impurity_problem_equivalence'])):
-        n_iio=amax(imp[str(abs(ii))]['impurity_matrix'])
+        n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix'])
         tempmat=np.zeros((control['n_omega'],n_iio), dtype='complex')
         for iomega in range(control['n_omega']):
             tempmat2=dat[iomega,start_array[ii]:end_array[ii]]
@@ -1136,7 +1239,7 @@ def cal_projected_mean_field_diagonal(control,imp):
         h_vec=imp_from_mat_to_array(hmat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
 
         for jj in range(len(h_vec)):
-            h.write(str(real(h_vec[jj]))+'   '+str(imag(h_vec[jj]))+'    ')
+            h.write(str(np.real(h_vec[jj]))+'   '+str(np.imag(h_vec[jj]))+'    ')
     h.close()
 
     if (control['method']=='lqsgw+dmft'):
@@ -1183,7 +1286,7 @@ def imp_from_array_to_mat(vecin,equivalence_mat):
 
 
 def imp_from_mat_to_array(matin,equivalence_mat):
-    n_iio=amax(equivalence_mat)
+    n_iio=np.amax(equivalence_mat)
     vecout=np.zeros(n_iio, dtype='complex')
     degen_vec=np.zeros(n_iio, dtype='int')
     nimp_orb=len(matin)
@@ -1247,7 +1350,7 @@ def read_impurity_mat_static(control,filename):
         #     for kk in range(0,nimp_orb*2,2):
         #         impmat[jj,kk]=impmat2[kk]+impmat2[kk+1]*1j
         for jj in range(nimp_orb):
-            impmat2=array(list(map(float,g.readline().split())))
+            impmat2=np.array(list(map(float,g.readline().split())))
             impmat[jj,:]=impmat2[0::2]+impmat2[1::2]*1j
         imp_basis[str(ii)]=impmat
     return imp_basis
@@ -1270,8 +1373,8 @@ def read_impurity_mat_dynamic(control,filename):
         end_array[ii]=last_index+2*nimp_orb**2
         last_index=last_index+2*nimp_orb**2
 
-    print(start_array)
-    print(end_array)
+    # print(start_array)
+    # print(end_array)
 
     for ii in sorted(set(control['impurity_problem_equivalence'])):
         prob_ind=control['impurity_problem_equivalence'].index(ii)
@@ -1297,7 +1400,7 @@ def cal_hyb_diagonal(control,imp):
         for ii in sorted(set(control['impurity_problem_equivalence'])):
             hyb_vec=imp_from_mat_to_array(hyb_mat[str(ii)][jj,:,:],imp[str(abs(ii))]['impurity_matrix'])
 
-            hyb_omega=hyb_omega+np.reshape(np.stack((hyb_vec.real, hyb_vec.imag), 0), (len(hyb_vec)*2), order='F').tolist()
+            hyb_omega=hyb_omega+np.reshape(np.stack((np.real(hyb_vec), np.imag(hyb_vec)), 0), (len(hyb_vec)*2), order='F').tolist()
         hyb_table.append(hyb_omega)
 
     with open(control['lowh_directory']+'/delta.dat', 'w') as outputfile:
@@ -1332,10 +1435,10 @@ def cal_hyb_diagonal(control,imp):
 #     for jj in range(control['n_omega']):
 #         h.write(str(control['omega'][jj])+'          ')
 #         for ii in sorted(set(control['impurity_problem_equivalence'])):        
-#             hyb_mat_new=dot(dot(trans_basis[str(ii)], hyb_mat[str(ii)][jj,:,:]), conj(transpose(trans_basis[str(ii)])))
+#             hyb_mat_new=dot(dot(trans_basis[str(ii)], hyb_mat[str(ii)][jj,:,:]), conj(np.transpose(trans_basis[str(ii)])))
 #             hyb_vec=imp_from_mat_to_array(hyb_mat_new,imp[str(abs(ii))]['impurity_matrix'])
 #             for kk in range(len(hyb_vec)):
-#                 h.write(str(real(hyb_vec[kk]))+'   '+str(imag(hyb_vec[kk]))+'    ')
+#                 h.write(str(np.real(hyb_vec[kk]))+'   '+str(np.imag(hyb_vec[kk]))+'    ')
 #         h.write('\n')
 #     h.close()            
 #     if (control['method']=='lqsgw+dmft'):
@@ -1364,6 +1467,8 @@ def directory_setup(control):
     #lattice
         tempdir=control['lattice_directory']
         if len(glob.glob(tempdir))==0 : os.mkdir(tempdir)
+        if not control['hdf5']:
+            if len(glob.glob(tempdir+'/checkpoint'))==0 : os.mkdir(tempdir+'/checkpoint')        
     elif  (control['method'] =='lqsgw+dmft'):
         tempdir=control['coulomb_directory']
         if len(glob.glob(tempdir))==0 : os.mkdir(tempdir)
@@ -1378,7 +1483,7 @@ def directory_setup(control):
     # ctqmc
     tempdir=control['impurity_directory']
     if len(glob.glob(tempdir))==0 : os.mkdir(tempdir)    
-    for ii in range(1,amax(control['impurity_problem_equivalence'])+1):
+    for ii in range(1,np.amax(control['impurity_problem_equivalence'])+1):
         tempdir=control['impurity_directory']+'/'+str(ii)
         if len(glob.glob(tempdir))==0 : os.mkdir(tempdir)        
         tempdir=control['dc_directory']+'/'+str(ii)
@@ -1397,8 +1502,8 @@ def check_for_files(filepath, h_log):
 
 def gaussian_broadening_linear(x, y, w1, temperature, cutoff):
     # broadening starts at the second matsubara points
-    print(shape(x))
-    print(shape(y))
+    print(np.shape(x))
+    print(np.shape(y))
     print(x)
     print(y)
     w0=(1.0-3.0*w1)*np.pi*temperature*8.6173303*10**-5
@@ -1410,8 +1515,8 @@ def gaussian_broadening_linear(x, y, w1, temperature, cutoff):
             ynew[cnt]=y[cnt]
         else:
             if ((x0>3*width_array[cnt]) and ((x[-1]-x0)>3*width_array[cnt])):
-                dist=1.0/np.sqrt(2*pi)/width_array[cnt]*exp(-(x-x0)**2/2.0/width_array[cnt]**2)
-                ynew[cnt]=sum(dist*y)/sum(dist)
+                dist=1.0/np.sqrt(2*pi)/width_array[cnt]*np.exp(-(x-x0)**2/2.0/width_array[cnt]**2)
+                ynew[cnt]=np.sum(dist*y)/np.sum(dist)
             else:
                 ynew[cnt]=y[cnt]
         cnt=cnt+1
@@ -1421,39 +1526,58 @@ def solve_impurity_patrick(control):
 
     # execute CTQMC
     # chdir_string='cd '+control['top_dir']+'/impurity; '
+    print('-----------------------', file = sys.stdout, flush=True) 
+    print('run CTQMC', file = sys.stdout, flush=True)
+    print('-----------------------', file = sys.stdout, flush=True)
+
+    print('-----------------------', file = sys.stderr, flush=True) 
+    print('run CTQMC', file = sys.stderr, flush=True)
+    print('-----------------------', file = sys.stderr, flush=True)
+    
+    
     run_string=control['mpi_prefix_impurity']+' '+control['comsuitedir']+"/CTQMC params"
     cmd = run_string
 
     print(cmd, file=control['h_log'],flush=True)
 
-    with open('./ctqmc.out', 'w') as logfile, open('./ctqmc.err', 'w') as errfile:
-        ret = subprocess.call(cmd, shell=True,stdout = logfile, stderr = errfile)
-        if ret != 0:
-            print("Error in CTQMC. Check ctqmc.err for error message.", file=control['h_log'],flush=True)
-            sys.exit()
+    # with open('./ctqmc.out', 'w') as logfile, open('./ctqmc.err', 'w') as errfile:
+        # ret = subprocess.call(cmd, shell=True,stdout = logfile, stderr = errfile)
+    ret = subprocess.call(cmd, shell=True)
+    if ret != 0:
+        print("Error in CTQMC. Check standard error file for error message.", file=control['h_log'],flush=True)
+        sys.exit()
     return None
 
 
 def measure_impurity_patrick(control):
+    
+    print('-----------------------', file = sys.stdout, flush=True)     
+    print('run EVALSYM', file = sys.stdout, flush=True)
+    print('-----------------------', file = sys.stdout, flush=True)
 
-    measure_exe = control['comsuitedir'] + '/EVALSIM'
+    print('-----------------------', file = sys.stderr, flush=True)     
+    print('run EVALSYM', file = sys.stderr, flush=True)
+    print('-----------------------', file = sys.stderr, flush=True)
+    
 
-    run_string=measure_exe+' params'
+
+    run_string= control['mpi_prefix_impurity']+' '+control['comsuitedir']+"/EVALSIM params"
     cmd = run_string
 
     print(cmd, file=control['h_log'],flush=True)
 
-    with open('./evalsim.out', 'w') as logfile, open('./evalsim.err', 'w') as errfile :
-        ret = subprocess.call(cmd,shell=True, stdout=logfile, stderr=errfile)
-        if ret != 0:
-            print("Error in EVALSIM. Check evalsim.err for error message.", file=control['h_log'],flush=True)
-            sys.exit()
+    # with open('./evalsim.out', 'w') as logfile, open('./evalsim.err', 'w') as errfile :
+    #     ret = subprocess.call(cmd,shell=True, stdout=logfile, stderr=errfile)
+    ret = subprocess.call(cmd,shell=True)
+    if ret != 0:
+        print("Error in EVALSIM. Check standard error file for error message.", file=control['h_log'],flush=True)
+        sys.exit()
     print("measure self-energy done", file=control['h_log'],flush=True)
     if (control['method']=='lqsgw+dmft'):
         iter_string='_'+str(control['iter_num_impurity'])
     elif (control['method']=='lda+dmft'):
         iter_string='_'+str(control['iter_num_outer'])+'_'+str(control['iter_num_impurity'])    
-    shutil.copy("./evalsim.out", "./evalsim"+iter_string+'.log')
+    # shutil.copy("./evalsim.out", "./evalsim"+iter_string+'.log')
     return None
 
 
@@ -1464,28 +1588,28 @@ def write_json_all(control,imp,data_array,json_name):
         json_dict={}
         if (not (isinstance(imp[key], dict))):
             continue
-        n_iio=amax(imp[key]['impurity_matrix'])
+        n_iio=np.amax(imp[key]['impurity_matrix'])
         if (imp[key]['para']):
             for kk in range(n_iio):
                 orb_name=str(kk+1)
                 json_dict[orb_name]={}
                 json_dict[orb_name]['beta']=imp['beta']
-                json_dict[orb_name]['real']=real(data_array[key][:,kk]).tolist()
-                json_dict[orb_name]['imag']=imag(data_array[key][:,kk]).tolist()
+                json_dict[orb_name]['real']=np.real(data_array[key][:,kk]).tolist()
+                json_dict[orb_name]['imag']=np.imag(data_array[key][:,kk]).tolist()
         else:
             mkey=str(-int(key))
             for kk in range(n_iio):
                 orb_name=str(kk+1)
                 json_dict[orb_name]={}
                 json_dict[orb_name]['beta']=imp['beta']
-                json_dict[orb_name]['real']=real(data_array[key][:,kk]).tolist()
-                json_dict[orb_name]['imag']=imag(data_array[key][:,kk]).tolist()
+                json_dict[orb_name]['real']=np.real(data_array[key][:,kk]).tolist()
+                json_dict[orb_name]['imag']=np.imag(data_array[key][:,kk]).tolist()
 
                 orb_name=str(kk+1+n_iio)
                 json_dict[orb_name]={}
                 json_dict[orb_name]['beta']=imp['beta']
-                json_dict[orb_name]['real']=real(data_array[mkey][:,kk]).tolist()
-                json_dict[orb_name]['imag']=imag(data_array[mkey][:,kk]).tolist()
+                json_dict[orb_name]['real']=np.real(data_array[mkey][:,kk]).tolist()
+                json_dict[orb_name]['imag']=np.imag(data_array[mkey][:,kk]).tolist()
 
         with open(control['impurity_directory']+'/'+key+'/'+json_name,'w') as outfile:
             json.dump(json_dict, outfile,sort_keys=True, indent=4, separators=(',', ': '))
@@ -1498,18 +1622,18 @@ def read_json(jsonfile):
     Sig_temp=json.load(open(jsonfile))
     n_omega=len(Sig_temp['1']['real'])
     n_iio=len(Sig_temp.keys())
-    dat1=zeros((n_omega, n_iio), dtype='complex')
+    dat1=np.zeros((n_omega, n_iio), dtype='complex')
     for key, value in Sig_temp.items():    
-        dat1[:,int(key)-1]=array(Sig_temp[key]['real'])+array(Sig_temp[key]['imag'])*1j
+        dat1[:,int(key)-1]=np.array(Sig_temp[key]['real'])+np.array(Sig_temp[key]['imag'])*1j
     return dat1
 
 def read_function_from_jsonfile(jsonfile, dict_name):
-    Sig_temp=json.load(open(jsonfile))[dict_name]
+    Sig_temp=json.load(open(jsonfile))['partition'][dict_name]
     n_omega=len(Sig_temp['1']["function"]['real'])
     n_iio=len(Sig_temp.keys())
-    dat1=zeros((n_omega, n_iio), dtype='complex')
+    dat1=np.zeros((n_omega, n_iio), dtype='complex')
     for key, value in Sig_temp.items():    
-        dat1[:,int(key)-1]=array(Sig_temp[key]["function"]['real'])+array(Sig_temp[key]["function"]['imag'])*1j
+        dat1[:,int(key)-1]=np.array(Sig_temp[key]["function"]['real'])+np.array(Sig_temp[key]["function"]['imag'])*1j
     return dat1
 
 
@@ -1523,18 +1647,18 @@ def impurity_postprocessing(control, imp, key):
     labeling_file('./params.obs.json',iter_string)
     labeling_file('./params.meas.json',iter_string)    
 
-    histo_temp=json.load(open('params.obs.json'))["expansion histogram"]
+    histo_temp=json.load(open('params.obs.json'))['partition']["expansion histogram"]
 
-    histo=np.zeros((shape(histo_temp)[0], 2))
-    histo[:,0]=arange(shape(histo_temp)[0])
+    histo=np.zeros((np.shape(histo_temp)[0], 2))
+    histo[:,0]=np.arange(np.shape(histo_temp)[0])
     histo[:,1]=histo_temp
-    nn=json.load(open('params.obs.json'))["scalar"]["N"]
-    ctqmc_sign=json.load(open('params.obs.json'))["sign"]
+    nn=json.load(open('params.obs.json'))['partition']["scalar"]["N"][0]
+    ctqmc_sign=json.load(open('params.obs.json'))['partition']["sign"][0]
 
     # histogram
-    firstmoment=sum(histo[:,0]*histo[:,1])/sum(histo[:,1])
-    secondmoment=sum((histo[:,0]-firstmoment)**2*histo[:,1])/sum(histo[:,1])
-    thirdmoment=sum((histo[:,0]-firstmoment)**3*histo[:,1])/sum(histo[:,1])/secondmoment**(3.0/2.0)
+    firstmoment=np.sum(histo[:,0]*histo[:,1])/np.sum(histo[:,1])
+    secondmoment=np.sum((histo[:,0]-firstmoment)**2*histo[:,1])/np.sum(histo[:,1])
+    thirdmoment=np.sum((histo[:,0]-firstmoment)**3*histo[:,1])/np.sum(histo[:,1])/secondmoment**(3.0/2.0)
     print('histogram information for impurity_'+imp['name'], file=control['h_log'],flush=True)
     print('first moment',  firstmoment,                      file=control['h_log'],flush=True)
     print('second moment', secondmoment,                     file=control['h_log'],flush=True)
@@ -1550,13 +1674,13 @@ def impurity_postprocessing(control, imp, key):
     sigma=np.zeros(np.shape(sigma_bare), dtype='complex')
     sigma_to_delta=np.zeros(np.shape(sigma_bare), dtype='complex')
 
-    n_iio=amax(imp[key]['impurity_matrix'])
+    n_iio=np.amax(imp[key]['impurity_matrix'])
 
     sig_causality=1    
 
     for jj in range(n_iio):
         sigma[:,jj]=gaussian_broadening_linear(control['omega'], sigma_bare[:,jj], 0.05, imp['temperature'], imp[key]['green_cutoff'])
-        if ((imag(sigma[:,jj])>0.0).any()):
+        if ((np.imag(sigma[:,jj])>0.0).any()):
             sig_causality=0
             sigma_to_delta[:,jj]=sigma_old[key][:,jj]
         else:
@@ -1565,7 +1689,7 @@ def impurity_postprocessing(control, imp, key):
         for jj in range(n_iio, n_iio*2):
             mkey=str(-int(key))
             sigma[:,jj]=gaussian_broadening_linear(control['omega'], sigma_bare[:,jj], 0.05, imp['temperature'], imp[key]['green_cutoff'])
-            if ((imag(sigma[:,jj])>0.0).any()):
+            if ((np.imag(sigma[:,jj])>0.0).any()):
                 sig_causality=0
                 sigma_to_delta[:,jj]=sigma_old[mkey][:,jj-n_iio]
             else:
@@ -1622,7 +1746,7 @@ def write_transformation_matrix(control, filename):
             nimp_orb=len(control['impurity_wan'][prob_ind])
             tempmat=np.zeros((nimp_orb,nimp_orb))    
             for jj in nimp_orb:
-                tempmat[jj,:]=array(list(map(float,g.readline().split())))
+                tempmat[jj,:]=np.array(list(map(float,g.readline().split())))
             if (trace(tempmat) > control['metal_threshold']):
                 w, v=np.linalg.eigh(tempmat)
                 v=tranpose(v)
@@ -1653,16 +1777,26 @@ def run_comlowh(control):
     run_string=control['mpi_prefix_lowh']+' '+control['comsuitedir']+"/ComLowH"
     logfilename=control['lowh_directory']+'/comlowh.out'
     errfilename=control['lowh_directory']+'/comlowh.err'    
-    errormessage="Error in comlowh. Check comlowh.err for error message."
+    errormessage="Error in comlowh. Check standard error file for error message."
 
     cmd = run_string
     print(cmd, file=control['h_log'],flush=True)
 
-    with open(logfilename, 'w') as logfile, open(errfilename, 'w') as errfile:
-        ret = subprocess.call(cmd, shell=True,stdout = logfile, stderr = errfile)
-        if ret != 0:
-            print(errormessage, file=control['h_log'],flush=True)
-            sys.exit()
+    print('-----------------------', file = sys.stdout, flush=True) 
+    print('run ComLowh', file = sys.stdout, flush=True)
+    print('-----------------------', file = sys.stdout, flush=True)
+
+    print('-----------------------', file = sys.stderr, flush=True) 
+    print('run ComLowH', file = sys.stderr, flush=True)
+    print('-----------------------', file = sys.stderr, flush=True)         
+
+    # with open(logfilename, 'w') as logfile, open(errfilename, 'w') as errfile:
+    #     ret = subprocess.call(cmd, shell=True,stdout = logfile, stderr = errfile)
+
+    ret = subprocess.call(cmd, shell=True)
+    if ret != 0:
+        print(errormessage, file=control['h_log'],flush=True)
+        sys.exit()
 
     if (control['method']=='lqsgw+dmft'):
         iter_string="_"+str(control['iter_num_impurity'])
@@ -1671,7 +1805,7 @@ def run_comlowh(control):
 
     # labeling_file('./wannier_den_matrix.dat',iter_string)
     labeling_file('./comlowh.log',iter_string)
-    labeling_file('./comlowh.out',iter_string)        
+    # labeling_file('./comlowh.out',iter_string)        
     labeling_file('./delta_mat.dat',iter_string)
     labeling_file('./g_loc_mat.dat',iter_string)
     labeling_file('./local_spectral_matrix_ef.dat',iter_string)
@@ -1688,23 +1822,33 @@ def run_comlowh(control):
 
 def run_comcoulomb(control,imp):
 
+    print('-----------------------', file = sys.stdout, flush=True) 
+    print('run ComCoulomb', file = sys.stdout, flush=True)
+    print('-----------------------', file = sys.stdout, flush=True)
+
+    print('-----------------------', file = sys.stderr, flush=True) 
+    print('run ComCoulomb', file = sys.stderr, flush=True)
+    print('-----------------------', file = sys.stderr, flush=True)         
+
     os.chdir(control['coulomb_directory'])
     run_string=control['mpi_prefix_coulomb']+' '+control['comsuitedir']+"/ComCoulomb"
     logfilename=control['coulomb_directory']+'/comcoulomb.out'
     errfilename=control['coulomb_directory']+'/comcoulomb.err'    
-    errormessage="Error in comcomcoulomb. Check comcoulomb.err for error message."
+    errormessage="Error in comcomcoulomb. Check standard error file for error message."
 
     cmd = run_string
     print(cmd, file=control['h_log'],flush=True)
 
-    with open(logfilename, 'w') as logfile, open(errfilename, 'w') as errfile:
-        ret = subprocess.call(cmd, shell=True,stdout = logfile, stderr = errfile)
-        if ret != 0:
-            print(errormessage, file=control['h_log'],flush=True)
-            sys.exit()
+    # with open(logfilename, 'w') as logfile, open(errfilename, 'w') as errfile:
+    #     ret = subprocess.call(cmd, shell=True,stdout = logfile, stderr = errfile)
+
+    ret = subprocess.call(cmd, shell=True)
+    if ret != 0:
+        print(errormessage, file=control['h_log'],flush=True)
+        sys.exit()
 
     iter_string="_"+str(control['iter_num_outer'])
-    labeling_file('./comcoulomb.out',iter_string)
+    # labeling_file('./comcoulomb.out',iter_string)
     labeling_file('./comcoulomb.ini',iter_string)
     files = glob.iglob(control['coulomb_directory']+"/*u_Slater*.rst")
     for filename in files:
@@ -1736,7 +1880,11 @@ def comcoulomb_postprocessing(control,imp):
 
             files = glob.iglob(control['coulomb_directory']+"/*_v_Slater_*"+str(iatom)+'_'+l_char+'.dat')
             for filename in files:
-                slater_v[str(ii)]=np.loadtxt(filename)
+                # Conditional reshape to avoid a singleton numpy array
+                # (i.e., maps np.array(x) -> np.array([x]))
+                data = np.loadtxt(filename)
+                slater_v[str(ii)] = data if data.ndim > 0 else data.reshape(1,)
+                # slater_v[str(ii)]=np.loadtxt(filename)
                 imp[str(ii)]['f0']=slater_v[str(ii)][0]
                 if (int(l_char) >0):
                     imp[str(ii)]['f2']=slater_v[str(ii)][1]
@@ -1749,8 +1897,8 @@ def comcoulomb_postprocessing(control,imp):
             for filename in files:
                 tempmat=np.loadtxt(filename)
 
-                n_nu=int(floor((tempmat[-1,0])/(2*pi/imp['beta'])))
-                nu=arange(n_nu)*(2*pi/imp['beta'])
+                n_nu=int(np.floor((tempmat[-1,0])/(2*pi/imp['beta'])))
+                nu=np.arange(n_nu)*(2*pi/imp['beta'])
 
 
                 dynamical_f0=cubic_interp1d(nu,tempmat[:,0], tempmat[:,1])
@@ -1762,21 +1910,26 @@ def comcoulomb_postprocessing(control,imp):
                     dynamical_f6=cubic_interp1d(nu,tempmat[:,0], tempmat[:,4])
 
                 if (int(l_char)==0):
-                    slater_w[str(ii)]=transpose(vstack((dynamical_f0)))
+                    # Avoids a shape error in the column stack at line 1831,
+                    # which seems to occur for Li because the monoatomic s-orbital
+                    # problem is a special case where the RHS is effectively 1D 
+                    # (shape (n_nu, 1) before transposition).
+                    slater_w[str(ii)]=np.vstack((dynamical_f0))
+                    # slater_w[str(ii)]=np.transpose(np.vstack((dynamical_f0)))
                 elif (int(l_char)==1):
-                    slater_w[str(ii)]=transpose(vstack((dynamical_f0, dynamical_f2)))
+                    slater_w[str(ii)]=np.transpose(np.vstack((dynamical_f0, dynamical_f2)))
                 elif (int(l_char)==2):
-                    slater_w[str(ii)]=transpose(vstack((dynamical_f0, dynamical_f2, dynamical_f4)))
+                    slater_w[str(ii)]=np.transpose(np.vstack((dynamical_f0, dynamical_f2, dynamical_f4)))
                 elif (int(l_char)==3):
-                    slater_w[str(ii)]=transpose(vstack((dynamical_f0, dynamical_f2, dynamical_f4, dynamical_f6)))
+                    slater_w[str(ii)]=np.transpose(np.vstack((dynamical_f0, dynamical_f2, dynamical_f4, dynamical_f6)))
 
             files = glob.iglob(control['coulomb_directory']+"/*_u_Slater_*"+str(iatom)+'_'+l_char+'.dat')
             for filename in files:
 
                 tempmat=np.loadtxt(filename)
 
-                n_nu=int(floor((tempmat[-1,0])/(2*pi/imp['beta'])))
-                nu=arange(n_nu)*(2*pi/imp['beta'])
+                n_nu=int(np.floor((tempmat[-1,0])/(2*pi/imp['beta'])))
+                nu=np.arange(n_nu)*(2*pi/imp['beta'])
 
                 dynamical_f0=cubic_interp1d(nu,tempmat[:,0], tempmat[:,1])
                 if (int(l_char) >0):
@@ -1787,20 +1940,26 @@ def comcoulomb_postprocessing(control,imp):
                     dynamical_f6=cubic_interp1d(nu,tempmat[:,0], tempmat[:,4])    
 
                 if (int(l_char)==0):
-                    slater_u[str(ii)]=transpose(vstack((dynamical_f0)))
+                    # Avoids a shape error in the column stack at line 1830,
+                    # which seems to occur for Li because the monoatomic s-orbital
+                    # problem is a special case where the RHS is effectively 1D 
+                    # (shape (n_nu, 1) before transposition).
+                    slater_u[str(ii)]=np.vstack((dynamical_f0))
+                    # slater_u[str(ii)]=np.transpose(np.vstack((dynamical_f0)))
+                    
                 elif (int(l_char)==1):
-                    slater_u[str(ii)]=transpose(vstack((dynamical_f0, dynamical_f2)))
+                    slater_u[str(ii)]=np.transpose(np.vstack((dynamical_f0, dynamical_f2)))
                 elif (int(l_char)==2):
-                    slater_u[str(ii)]=transpose(vstack((dynamical_f0, dynamical_f2, dynamical_f4)))
+                    slater_u[str(ii)]=np.transpose(np.vstack((dynamical_f0, dynamical_f2, dynamical_f4)))
                 elif (int(l_char)==3):
-                    slater_u[str(ii)]=transpose(vstack((dynamical_f0, dynamical_f2, dynamical_f4, dynamical_f6)))
+                    slater_u[str(ii)]=np.transpose(np.vstack((dynamical_f0, dynamical_f2, dynamical_f4, dynamical_f6)))
 
                 imp[str(ii)]['dynamical_f0']=dynamical_f0-imp[str(ii)]['f0']
 
     u_table=nu
     w_table=nu
-    # u_table=hstack((u_table, nu))
-    # w_table=hstack((w_table, nu))    
+    # u_table=np.hstack((u_table, nu))
+    # w_table=np.hstack((w_table, nu))    
     v_table=[]
     slater_header=['# nu(eV)']
     for ii in sorted(set(control['impurity_problem_equivalence'])):
@@ -1818,9 +1977,9 @@ def comcoulomb_postprocessing(control,imp):
             elif (shell=='f'):
                 l_char='3'
                    
-            u_table=column_stack((u_table, slater_u[str(ii)]))
-            w_table=column_stack((w_table, slater_w[str(ii)]))
-            v_table=hstack((v_table, slater_v[str(ii)]))
+            u_table=np.column_stack((u_table, slater_u[str(ii)]))
+            w_table=np.column_stack((w_table, slater_w[str(ii)]))
+            v_table=np.hstack((v_table, slater_v[str(ii)]))
 
             slater_header.append(str(ii)+':f0(eV)')
             if (int(l_char)>0):                                            
@@ -2014,7 +2173,7 @@ def comcoulomb_postprocessing(control,imp):
 #             if (imp[key]['para']):
 #                 index_shift=0
 #             else:
-#                 index_shift=amax(equivalence_orb_mat)            
+#                 index_shift=np.amax(equivalence_orb_mat)            
 #             link_json=[
 #                 {
 #                 "Irreps": ["yzUp"],
@@ -2095,6 +2254,10 @@ def comcoulomb_postprocessing(control,imp):
 
 def write_params_json(control,imp,e_imp_key,trans_key,equivalence_key,beta):
 
+    mu_ctqmc=-e_imp_key[0,0]
+    nimp_orb=len(imp['impurity_matrix'])
+    e_ctqmc=(e_imp_key+np.identity(len(e_imp_key))*mu_ctqmc)
+    
     params_json={}
     # basis
     params_json["basis"]={}
@@ -2104,11 +2267,14 @@ def write_params_json(control,imp,e_imp_key,trans_key,equivalence_key,beta):
     else:
         params_json["basis"]["type"]="product"
     params_json["basis"]["transformation"]=trans_key.tolist()
-    params_json["hloc"]={}
 
-    mu_ctqmc=-e_imp_key[0,0]
-    nimp_orb=len(imp['impurity_matrix'])
-    e_ctqmc=(e_imp_key+identity(len(e_imp_key))*mu_ctqmc)
+    # beta
+    params_json["beta"]=beta
+    # green basis
+    params_json["green basis"]="matsubara"    
+
+    # hloc    
+    params_json["hloc"]={}
 
     params_json["hloc"]["one body"]=e_ctqmc.tolist()
     params_json["hloc"]["two body"]={}
@@ -2125,49 +2291,64 @@ def write_params_json(control,imp,e_imp_key,trans_key,equivalence_key,beta):
         params_json["hloc"]["two body"]["approximation"]="none"
     elif imp["coulomb"]=="ising":
         params_json["hloc"]["two body"]["approximation"]="ising"
-    params_json["hloc"]["quantum numbers"]={}
-    params_json["hloc"]["quantum numbers"]["N"]={}    
-    if (control['spin_orbit']):
-        params_json["hloc"]["quantum numbers"]["Jz"]={}
-    else:
-        params_json["hloc"]["quantum numbers"]["Sz"]={}
-    if (control['method']=='lqsgw+dmft'):
-        params_json["dyn"]="dyn.json"
-    params_json["beta"]=beta
-    params_json["mu"]=mu_ctqmc
+    # params_json["hloc"]["quantum numbers"]={}
+    # params_json["hloc"]["quantum numbers"]["N"]={}    
+    # if (control['spin_orbit']):
+    #     params_json["hloc"]["quantum numbers"]["Jz"]={}
+    # else:
+    #     params_json["hloc"]["quantum numbers"]["Sz"]={}
+    
+
+    # hybridization
     params_json["hybridisation"]={}
-    params_json["hybridisation"]["matrix"]=equivalence_key.tolist()
+    params_json["hybridisation"]["matrix"]=equivalence_key
     params_json["hybridisation"]["functions"]="hyb.json"
-    params_json["thermalisation time"]=imp['thermalization_time']
-    params_json["measurement time"]=imp['measurement_time']
-    params_json["green bulla"]=True    
-    params_json["green matsubara cutoff"]=imp['green_cutoff']
-    params_json["green basis"]="matsubara"
 
-    # params_json["quantum number susceptibility"]=True
-    # params_json["occupation susceptibility direct"]=True
-    # params_json["occupation susceptibility bulla"]=True
-    params_json["susceptibility cutoff"]=imp['susceptibility_cutoff']
-    params_json["susceptibility tail"]=imp['susceptibility_tail']    
-    # params_json["susceptibility tail"]=imp['susceptibility_cutoff']
+    # measurement time
+    params_json["measurement time"]=imp['measurement_time']    
 
-    params_json["observables"]={}
-    params_json["probabilities"]={}
-    params_json["quantum numbers"]={}    
-    if (control['spin_orbit']):
-        params_json["observables"]["J2"]={}        
-        params_json["probabilities"]=["N", "energy", "J2", "Jz"]
-        params_json["quantum numbers"]["Jz"]={}        
-    else:
-        params_json["observables"]["S2"]={}                
-        params_json["probabilities"]=["N", "energy", "S2", "Sz"]
-        params_json["quantum numbers"]["Sz"]={}        
-
-    params_json["occupation susceptibility bulla"]=True
-    params_json["quantum number susceptibility"]=True
-
+    # mu
+    params_json["mu"]=mu_ctqmc
+    
+    # occupation susceptibility direct
     params_json["occupation susceptibility direct"]=True
-    params_json["occupation susceptibility bulla"]=True
+
+    # thermalisation time
+    params_json["thermalisation time"]=imp['thermalization_time']
+
+    if (control['method']=='lqsgw+dmft'):
+        params_json["dyn"]={}        
+        params_json["dyn"]['functions']="dyn.json"
+        params_json["dyn"]['matrix']=[['1']]
+        params_json["dyn"]['quantum numbers']=[[1]*len(equivalence_key)]
+
+    params_json['partition']={}
+    params_json['partition']["green bulla"]=True
+    params_json['partition']["green matsubara cutoff"]=imp['green_cutoff']
+
+    params_json['partition']["observables"]={}
+    params_json['partition']["probabilities"]={}
+    params_json['partition']["quantum numbers"]={}    
+    if (control['spin_orbit']):
+        params_json['partition']["observables"]["J2"]={}        
+        params_json['partition']["probabilities"]=["N", "energy", "J2", "Jz"]
+        params_json['partition']["quantum numbers"]["Jz"]={}        
+    else:
+        params_json['partition']["observables"]["S2"]={}                
+        params_json['partition']["probabilities"]=["N", "energy", "S2", "Sz"]
+        params_json['partition']["quantum numbers"]["Sz"]={}        
+
+    params_json['partition']["occupation susceptibility bulla"]=True
+    params_json['partition']["print density matrix"]=True
+    params_json['partition']["print eigenstates"]=True
+    params_json['partition']["density matrix precise"]=True    
+    params_json['partition']["quantum number susceptibility"]=True    
+    params_json['partition']["susceptibility cutoff"]=imp['susceptibility_cutoff']
+    params_json['partition']["susceptibility tail"]=imp['susceptibility_tail']    
+
+    
+    for key, value in params_json.items():
+        print(key, value, type(value))
 
     print("prepare_ctqmc:e_imp_done", file=control['h_log'],flush=True)
 
@@ -2179,8 +2360,10 @@ def write_params_json(control,imp,e_imp_key,trans_key,equivalence_key,beta):
 
 def write_dynamical_f0_json(imp):
 
+    dyn_dict={}
+    dyn_dict['1']=imp['dynamical_f0'].tolist()
     with open('dyn.json','w') as outfile:
-        json.dump(imp['dynamical_f0'].tolist(),outfile,sort_keys=True, indent=4, separators=(',', ': '))
+        json.dump(dyn_dict,outfile,sort_keys=True, indent=4, separators=(',', ': '))
     print("DynF0.json written"    , file=control['h_log'],flush=True)
 
     # os.chdir(control['top_dir'])
@@ -2226,7 +2409,7 @@ def write_conv_dft(control):
     os.chdir(control['lattice_directory'])
 
     iter_string='_'+str(control['iter_num_outer'])
-    f=open('./dft'+iter_string+'.out')
+    f=open('./convergence.log')
     cnt=0
     for line in f:
         temp=line.split()
@@ -2290,8 +2473,8 @@ def write_conv_wan(control):
     f=open('./wannier'+iter_string+'.wout')
     lines=f.readlines()
 
-    spmax=amax(wan_info[3,:])
-    spmin=amin(wan_info[3,:])
+    spmax=np.amax(wan_info[3,:])
+    spmin=np.amin(wan_info[3,:])
     if (control['method']=='lda+dmft'):    
         control['conv_table'].append(['wannier',control['iter_num_outer'],'','','','', spmin,spmax,'','','','','',''])
         with open(control['top_dir']+'/convergence.log', 'w') as outputfile:
@@ -2308,7 +2491,7 @@ def write_conv_wan(control):
 def write_conv_delta(control,delta_causality):
 
     os.chdir(control['lowh_directory'])
-    ef=np.float(np.loadtxt('ef.dat'))
+    ef=float(np.loadtxt('ef.dat'))
     if (delta_causality==1):
         causality_flag='good'
     else:
@@ -2359,11 +2542,28 @@ def check_wannier_function_input(control,wan_hmat):
     os.chdir(control['wannier_directory'])
 
     create_comwann_ini(control, wan_hmat)
-    if os.path.exists(control['top_dir']+'/local_axis.dat'):
-        shutil.copy(control['top_dir']+'/local_axis.dat', './')    
 
-    os.chdir(control['top_dir'])
+    if ('local_axis' in wan_hmat):
+        # print('local_axis',file=control['h_log'],flush=True)
+        natom=len(json.load(open(control['initial_lattice_dir']+'/crystal_structure.json'))['sites'])
+        global_xaxis=[1.0, 0.0, 0.0]
+        global_zaxis=[0.0, 0.0, 1.0]
+        f=open('local_axis.dat', 'w')
+        for ii in range(1,natom+1):
+            if ii in wan_hmat['local_axis']:
+                f.write('%3d    %20.12f   %20.12f   %20.12f   %20.12f   %20.12f   %20.12f\n' %(ii, wan_hmat['local_axis'][ii]['x'][0], wan_hmat['local_axis'][ii]['x'][1], wan_hmat['local_axis'][ii]['x'][2], wan_hmat['local_axis'][ii]['z'][0], wan_hmat['local_axis'][ii]['z'][1], wan_hmat['local_axis'][ii]['z'][2]))
+                # print('%3d    %20.12f   %20.12f   %20.12f   %20.12f   %20.12f   %20.12f\n' %(ii, wan_hmat['local_axis'][ii]['x'][0], wan_hmat['local_axis'][ii]['x'][1], wan_hmat['local_axis'][ii]['x'][2], wan_hmat['local_axis'][ii]['z'][0], wan_hmat['local_axis'][ii]['z'][1], wan_hmat['local_axis'][ii]['z'][2]),file=control['h_log'],flush=True)                
+            else:
+                f.write('%3d    %20.12f   %20.12f   %20.12f   %20.12f   %20.12f   %20.12f\n' %(ii, global_xaxis[0], global_xaxis[1], global_xaxis[2], global_zaxis[0], global_zaxis[1], global_zaxis[2]))
+                # print('%3d    %20.12f   %20.12f   %20.12f   %20.12f   %20.12f   %20.12f\n' %(ii, global_xaxis[0], global_xaxis[1], global_xaxis[2], global_zaxis[0], global_zaxis[1], global_zaxis[2]),file=control['h_log'],flush=True)                
+        f.close()
+
     return None
+
+
+# def create_local_axis(control,wan_hmat):
+#     os.chdir(control['top_dir'])    
+#     return None
 
 
 def check_coulomb_input(control):    
@@ -2376,21 +2576,29 @@ def check_coulomb_input(control):
 
 def run_dft(control):
 
+    print('-----------------------', file = sys.stdout, flush=True) 
+    print('run FlapwMBPT', file = sys.stdout, flush=True)
+    print('-----------------------', file = sys.stdout, flush=True)
+
+    print('-----------------------', file = sys.stderr, flush=True) 
+    print('run FlapwMBPT', file = sys.stderr, flush=True)
+    print('-----------------------', file = sys.stderr, flush=True)     
+    
     os.chdir(control['lattice_directory'])
     iter_string='_'+str(control['iter_num_outer'])
     run_string=control['mpi_prefix_lattice']+' '+control['comsuitedir']+"/rspflapw.exe"
     cmd = run_string    
 
-    with open(control['lattice_directory']+'/dft.out', 'w') as logfile, open(control['lattice_directory']+'/dft.err', 'w') as errfile:
-        ret = subprocess.call(cmd, shell=True,stdout = logfile, stderr = errfile)
-        if ret != 0:
-            print("Error in dft. Check dft.err for error message.", file=control['h_log'],flush=True)
-            sys.exit()
+    # with open(control['lattice_directory']+'/flapwmbpt.out', 'w') as logfile, open(control['lattice_directory']+'/flapwmbpt.err', 'w') as errfile:
+    # ret = subprocess.call(cmd, shell=True,stdout = logfile, stderr = errfile)x
+    ret = subprocess.call(cmd, shell=True)
+    if ret != 0:
+        print("Error in dft. Check standard error file for error message.", file=control['h_log'],flush=True)
+        sys.exit()
 
     allfile=control['allfile']
-
     labeling_file('./'+allfile+'.out',iter_string)    
-    shutil.move('./dft.out', './dft'+iter_string+'.out')
+    # shutil.move('./dft.out', './dft'+iter_string+'.out')
     print("dft calculation done", file=control['h_log'],flush=True)
     os.chdir(control['top_dir'])
     return None
@@ -2486,10 +2694,10 @@ def prepare_seed_dc_sig_and_wannier_dat(control,wan_hmat,imp):
     for ii in sorted(set(control['impurity_problem_equivalence'])):
         nimp_orb=nimp_orb+len(set(list(chain.from_iterable(imp[str(abs(ii))]['impurity_matrix'])))-{0})
 
-    np.savetxt('dc.dat', zeros((1,nimp_orb*2)))
+    np.savetxt('dc.dat', np.zeros((1,nimp_orb*2)))
 
-    aa=zeros((control['n_omega'],nimp_orb*2))
-    bb=zeros((control['n_omega'],1))
+    aa=np.zeros((control['n_omega'],nimp_orb*2))
+    bb=np.zeros((control['n_omega'],1))
     bb[:,0]=control['omega']
     np.savetxt('sig.dat',np.hstack((bb,aa)), header=' ')
     shutil.copy(control['wannier_directory']+"/wannier.dat", './')
@@ -2506,32 +2714,32 @@ def prepare_seed_dc_sig_and_wannier_dat(control,wan_hmat,imp):
 #     for ii in range(num_atom):
 #         num_orb[ii]=len(control['impurity_wan'][ii])
 #     iac=imp['impurity_atom_equivalence']
-#     if (amin(iac) <0):
-#         n_iac=amax(iac)*2
-#         n_iac_nm=amax(iac)
+#     if (np.amin(iac) <0):
+#         n_iac=np.amax(iac)*2
+#         n_iac_nm=np.amax(iac)
 #         n_iac_mat=n_iac+1
 #         n_iac_mat_i=-n_iac_nm
 #         n_iac_mat_f=n_iac_nm          
 #         is_magnetic=1
 #     else:
-#         n_iac=amax(iac)
-#         n_iac_nm=amax(iac)
+#         n_iac=np.amax(iac)
+#         n_iac_nm=np.amax(iac)
 #         n_iac_mat=n_iac
 #         n_iac_mat_i=1
 #         n_iac_mat_f=n_iac_nm                    
 #         is_magnetic=0
 
 
-#     num_orb_max=amax(num_orb)
+#     num_orb_max=np.amax(num_orb)
 #     ndeg_iac=zeros(n_iac_mat_f-n_iac_mat_i+1, dtype=integer)
 #     norb_iac=zeros(n_iac_mat_f-n_iac_mat_i+1, dtype=integer)
 #     ioac=zeros((num_orb_max,num_orb_max,n_iac_mat_f-n_iac_mat_i+1), dtype=integer)
-#     n_ioac=amax(ioac)
+#     n_ioac=np.amax(ioac)
 #     iiiio=zeros((n_ioac,n_iac_mat_f-n_iac_mat_i+1), dtype=integer)
 #     iio_diagonal=zeros((n_ioac,n_iac_mat_f-n_iac_mat_i+1), dtype=integer)
 #     ndeg_ioac=zeros((n_ioac,n_iac_mat_f-n_iac_mat_i+1), dtype=integer)
 #     ndeg_itot=zeros((n_ioac,n_iac_mat_f-n_iac_mat_i+1), dtype=integer)
-#     ndeg_ioac_max=amax(ndeg_ioac)
+#     ndeg_ioac_max=np.amax(ndeg_ioac)
 
 #     for iatom in range(num_atom):
 #         norb_iac[iac[iatom]-n_iac_mat_i]=num_orb[iatom]
@@ -2551,7 +2759,7 @@ def generate_comlowh_ini(control,wan_hmat,imp,is_recal_ef):
     f.write('1\n')
     natom=len(control['impurity_wan'])
     # nimp_orb=np.shape(control['impurity_wan'])[1]
-    nimp_orb=np.zeros(natom, dtype=integer)
+    nimp_orb=np.zeros(natom, dtype=int)
     for ii in range(natom):
         nimp_orb[ii]=len(control['impurity_wan'][ii])
     f.write(str(natom)+'\n')
@@ -2573,7 +2781,10 @@ def generate_comlowh_ini(control,wan_hmat,imp,is_recal_ef):
     f.write('0.0\n')
     f.write(str(imp['beta'])+'\n')
     f.write(str(control['doping'])+'\n')
-    f.write(str(is_recal_ef)+'\n')    
+    if is_recal_ef:
+        f.write('1\n')
+    else:
+        f.write('0\n')        
     f.write('bnd\n')    
     if (control['spin_orbit']):
         f.write('1\n')
@@ -2592,7 +2803,11 @@ def generate_comlowh_ini(control,wan_hmat,imp,is_recal_ef):
 def prepare_dc(control,wan_hmat,imp):
     if ('dc_mat_to_read' not in control):
         if (control['method']=='lqsgw+dmft'):
-            gloc_mat=read_impurity_mat_dynamic(control,control['lowh_directory']+'/g_loc_mat.dat')
+
+            if (control['dc_mode'] == 'dc_at_gw'):                        
+                gloc_mat=read_impurity_mat_dynamic(control,control['lowh_directory']+'/g_loc_mat.dat')
+            elif (control['dc_mode'] == 'dc_scf'):            
+                gloc_mat=generate_mat_from_array_impurity_dynamic(control,imp, control['impurity_directory']+'/gimp.dat')            
             trans_basis=read_impurity_mat_static(control,control['lowh_directory']+'/trans_basis.dat')
             print(trans_basis)
             for key, value in imp.items(): # for the ordered phase this part should be fixed
@@ -2610,9 +2825,9 @@ def prepare_dc(control,wan_hmat,imp):
                 f.close()
                 f=open('g_loc.dat', 'w')
                 for ii in range(control['n_omega']):
-                    f.write(str(control['omega'][ii])+'  '+' '.join(map("{:.12f}".format, reshape(np.stack((gloc_mat[key][ii,:,:].real,gloc_mat[key][ii,:,:].imag),0), (2*nimp_orb**2), order='F')))+'\n')
+                    f.write(str(control['omega'][ii])+'  '+' '.join(map("{:.12f}".format, np.reshape(np.stack((np.real(gloc_mat[key][ii,:,:]),np.imag(gloc_mat[key][ii,:,:])),0), (2*nimp_orb**2), order='F')))+'\n')
                 f.close()
-                savetxt('trans_dc.dat',reshape(np.stack((trans_basis[key].real,trans_basis[key].imag),-1), (nimp_orb, 2*nimp_orb)))
+                np.savetxt('trans_dc.dat',np.reshape(np.stack((np.real(trans_basis[key]),np.imag(trans_basis[key])),-1), (nimp_orb, 2*nimp_orb)))
                 f=open('slater.dat', 'w')
                 if (imp[key]['problem']=='s'):
                     f.write(str(imp[key]['f0'])+'\n')
@@ -2626,7 +2841,7 @@ def prepare_dc(control,wan_hmat,imp):
                 for ii in range(len(imp[str(key)]['dynamical_f0'])):
                     if (abs(imp[str(key)]['dynamical_f0'][ii]) <0.5):
                         break
-                savetxt('dynamical_f0.dat', imp[str(key)]['dynamical_f0'][:ii])
+                np.savetxt('dynamical_f0.dat', imp[str(key)]['dynamical_f0'][:ii])
             os.chdir(control['top_dir'])
     return None
 
@@ -2646,6 +2861,8 @@ def write_conv_dc(control,imp):
     return None
 
 def run_dc(control,imp):
+
+    
     if ('dc_mat_to_read' in control):
         os.chdir(control['dc_directory'])
         shutil.copy(control['dc_mat_to_read'], './dc_mat.dat')
@@ -2654,6 +2871,14 @@ def run_dc(control,imp):
         if (control['method']=='lda+dmft'):
             cal_nominal_dc(imp,control)
         elif (control['method']=='lqsgw+dmft'):
+
+            print('-----------------------', file = sys.stdout, flush=True) 
+            print('run ComDC', file = sys.stdout, flush=True)
+            print('-----------------------', file = sys.stdout, flush=True)
+            
+            print('-----------------------', file = sys.stderr, flush=True) 
+            print('run ComDC', file = sys.stderr, flush=True)
+            print('-----------------------', file = sys.stderr, flush=True)                 
             for key, value in imp.items(): # for the ordered phase this part should be fixed
                 if (not (isinstance(imp[key], dict))):
                     continue
@@ -2662,18 +2887,19 @@ def run_dc(control,imp):
                 run_string=control['mpi_prefix_dc']+' '+control['comsuitedir']+"/ComDC"
                 logfilename=control['dc_directory']+'/'+key+'/comdc.out'
                 errfilename=control['dc_directory']+'/'+key+'/comdc.err'
-                errormessage="Error in comdc. Check comdc.err for error message."
+                errormessage="Error in comdc. Check standard error file for error message."
 
                 cmd = run_string
                 print(cmd, file=control['h_log'],flush=True)
 
-                with open(logfilename, 'w') as logfile, open(errfilename, 'w') as errfile:
-                    ret = subprocess.call(cmd, shell=True,stdout = logfile, stderr = errfile)
-                    if ret != 0:
-                        print(errormessage, file=control['h_log'],flush=True)
-                        sys.exit()
+                # with open(logfilename, 'w') as logfile, open(errfilename, 'w') as errfile:
+                #     ret = subprocess.call(cmd, shell=True,stdout = logfile, stderr = errfile)
+                ret = subprocess.call(cmd, shell=True)
+                if ret != 0:
+                    print(errormessage, file=control['h_log'],flush=True)
+                    sys.exit()
                 iter_string="_"+str(control['iter_num_outer'])
-                labeling_file('./comdc.out',iter_string)
+                # labeling_file('./comdc.out',iter_string)
                 labeling_file('./sig_mat.dat',iter_string)
 
             os.chdir(control['dc_directory'])
@@ -2681,7 +2907,7 @@ def run_dc(control,imp):
             g=open(control['dc_directory']+'/zinv_m1_mat.dat','w')
             for ii in sorted(set(control['impurity_problem_equivalence'])):
                 nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])
-                dc=reshape(loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_mat.dat')[0,1:], (2,nimp_orb,nimp_orb), order='F')
+                dc=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_mat.dat')[0,1:], (2,nimp_orb,nimp_orb), order='F')
                 for jj in range(nimp_orb):
                     for kk in range(nimp_orb):
                         f.write(str(dc[0,jj,kk])+'     0.0     ')
@@ -2695,7 +2921,7 @@ def run_dc(control,imp):
 
             for ii in sorted(set(control['impurity_problem_equivalence'])):
                 nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])                
-                tempdat=reshape(loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_mat.dat')[:,1:], (control['n_omega'],2,nimp_orb,nimp_orb), order='F')
+                tempdat=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_mat.dat')[:,1:], (control['n_omega'],2,nimp_orb,nimp_orb), order='F')
                 sig_dc[str(ii)]=tempdat[:,0,:,:]+tempdat[:,1,:,:]*1j
 
             sig_table=[]
@@ -2703,8 +2929,8 @@ def run_dc(control,imp):
                 sig_omega=[control['omega'][jj]]
                 for ii in sorted(set(control['impurity_problem_equivalence'])):
                     sig_dc_vec=imp_from_mat_to_array(sig_dc[str(ii)][jj,:,:],imp[str(abs(ii))]['impurity_matrix'])
-                    print(sig_dc_vec, np.reshape(np.stack((sig_dc_vec.real, sig_dc_vec.imag), 0), (len(sig_dc_vec)*2), order='F').tolist())
-                    sig_omega=sig_omega+np.reshape(np.stack((sig_dc_vec.real, sig_dc_vec.imag), 0), (len(sig_dc_vec)*2), order='F').tolist()
+                    print(sig_dc_vec, np.reshape(np.stack((np.real(sig_dc_vec), np.imag(sig_dc_vec)), 0), (len(sig_dc_vec)*2), order='F').tolist())
+                    sig_omega=sig_omega+np.reshape(np.stack((np.real(sig_dc_vec), np.imag(sig_dc_vec)), 0), (len(sig_dc_vec)*2), order='F').tolist()
                 sig_table.append(sig_omega)
 
 
@@ -2714,8 +2940,12 @@ def run_dc(control,imp):
             sig_hf_dc={}
 
             for ii in sorted(set(control['impurity_problem_equivalence'])):
-                nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])                
-                tempdat=reshape(loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/hartree.dat')[:,3:], (nimp_orb,nimp_orb,2), order='F')+reshape(loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/exchange.dat')[:,3:], (nimp_orb,nimp_orb,2), order='F')
+                nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])
+                # Generalize [:, 3:] -> [..., 3:] to add compatibility for the case when the hartree/exchange 
+                # data are 1D. This seems necessary for monoatomic s-orbital problems. For Li, we obtained
+                # hartree.dat: "    1    1    1    0.823343    0.000000"
+                tempdat=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/hartree.dat')[...,3:], (nimp_orb,nimp_orb,2), order='F')+np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/exchange.dat')[...,3:], (nimp_orb,nimp_orb,2), order='F')
+                # tempdat=reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/hartree.dat')[:,3:], (nimp_orb,nimp_orb,2), order='F')+reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/exchange.dat')[:,3:], (nimp_orb,nimp_orb,2), order='F')                
                 sig_hf_dc[str(ii)]=tempdat[:,:,0]+tempdat[:,:,1]*1j
 
             sig_table=[]
@@ -2723,7 +2953,7 @@ def run_dc(control,imp):
             hf_header[0]='# '+hf_header[0]
             for ii in sorted(set(control['impurity_problem_equivalence'])):
                 dc_vec=imp_from_mat_to_array(sig_hf_dc[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
-                sig_table.append(np.reshape(np.stack((dc_vec.real, dc_vec.imag), 0), (len(dc_vec)*2), order='F').tolist())
+                sig_table.append(np.reshape(np.stack((np.real(dc_vec), np.imag(dc_vec)), 0), (len(dc_vec)*2), order='F').tolist())
 
             with open(control['top_dir']+'/sig_dc_hf.dat', 'w') as outputfile:
                 outputfile.write(tabulate(sig_table, headers=hf_header, floatfmt=".12f", numalign="right",  tablefmt="plain"))
@@ -2741,8 +2971,12 @@ def generate_initial_transformation(control):
     if (control['trans_basis_mode']==0):
         f=open('trans_basis.dat', 'w')
         for ii in sorted(set(control['impurity_problem_equivalence'])):
+            # print(control['impurity_problem_equivalence'],file=control['h_log'],flush=True )           
             prob_ind=control['impurity_problem_equivalence'].index(ii)
+            # print(prob_ind,file=control['h_log'],flush=True)
+            # print(control['impurity_wan'],file=control['h_log'],flush=True )                       
             nimp_orb=len(control['impurity_wan'][prob_ind])
+            # print 
             transmat=np.identity(nimp_orb)
             for jj in range(nimp_orb):    
                 for kk in range(nimp_orb):
@@ -2781,7 +3015,7 @@ def prepare_comlowh(control,wan_hmat,imp):
 
     os.chdir(control['lowh_directory'])
 
-    generate_comlowh_ini(control,wan_hmat,imp,1)
+    generate_comlowh_ini(control,wan_hmat,imp,control['cal_mu'])
 
     # wannier files
     shutil.copy(control['wannier_directory']+"/wannier.dat", './')
@@ -2805,17 +3039,27 @@ def comwann_postprocessing(control, wan_hmat):
 
 def run_comwann(control,wan_hmat):
 
+    print('-----------------------', file = sys.stdout, flush=True) 
+    print('run ComWann', file = sys.stdout, flush=True)
+    print('-----------------------', file = sys.stdout, flush=True)
+
+    print('-----------------------', file = sys.stderr, flush=True) 
+    print('run ComWann', file = sys.stderr, flush=True)
+    print('-----------------------', file = sys.stderr, flush=True)         
+
     os.chdir(control['wannier_directory'])
 
     run_string=control['mpi_prefix_wannier']+' '+control['comsuitedir']+"/ComWann"
     cmd = run_string
     print(cmd, file=control['h_log'],flush=True)
 
-    with open(control['wannier_directory']+'/comwann.out', 'w') as logfile, open(control['wannier_directory']+'/comwann.err', 'w') as errfile:
-        ret = subprocess.call(cmd,shell=True, stdout = logfile, stderr = errfile)
-        if ret != 0:
-            print("Error in comwann. Check comwann.err or OUT.", file=control['h_log'],flush=True)
-            sys.exit()
+    # with open(control['wannier_directory']+'/comwann.out', 'w') as logfile, open(control['wannier_directory']+'/comwann.err', 'w') as errfile:
+    #     ret = subprocess.call(cmd,shell=True, stdout = logfile, stderr = errfile)
+
+    ret = subprocess.call(cmd,shell=True)
+    if ret != 0:
+        print("Error in comwann. Check standard error file for error message", file=control['h_log'],flush=True)
+        sys.exit()
     # shutil.move('./wannier_1.wout','./wannier.wout')    
 
     iter_string='_'+str(control['iter_num_outer'])
@@ -2873,20 +3117,20 @@ def cubic_interp1d(x0, x, y):
     z = np.empty(size)
 
     # fill diagonals Li and Li-1 and solve [L][y] = [B]
-    Li[0] = sqrt(2*xdiff[0])
+    Li[0] = np.sqrt(2*xdiff[0])
     Li_1[0] = 0.0
     B0 = 0.0 # natural boundary
     z[0] = B0 / Li[0]
 
     for i in range(1, size-1, 1):
         Li_1[i] = xdiff[i-1] / Li[i-1]
-        Li[i] = sqrt(2*(xdiff[i-1]+xdiff[i]) - Li_1[i-1] * Li_1[i-1])
+        Li[i] = np.sqrt(2*(xdiff[i-1]+xdiff[i]) - Li_1[i-1] * Li_1[i-1])
         Bi = 6*(ydiff[i]/xdiff[i] - ydiff[i-1]/xdiff[i-1])
         z[i] = (Bi - Li_1[i-1]*z[i-1])/Li[i]
 
     i = size - 1
     Li_1[i-1] = xdiff[-1] / Li[i-1]
-    Li[i] = sqrt(2*xdiff[-1] - Li_1[i-1] * Li_1[i-1])
+    Li[i] = np.sqrt(2*xdiff[-1] - Li_1[i-1] * Li_1[i-1])
     Bi = 0.0 # natural boundary
     z[i] = (Bi - Li_1[i-1]*z[i-1])/Li[i]
 
@@ -3137,15 +3381,136 @@ def optimized_nproc_for_comcoulomb(var1,npnt,ntau,nomega,nnu):
 
 
 def find_allfile(dft_dir):
-    files = glob.iglob(dft_dir+"/*.rst")
-    allfile = None
-    for filename in files:
-        temp=filename[:-4].split('/')[-1].split('_')
-        if len(temp)==1:
-            if (temp[0]!='info' and temp[0]!='info2'):
-                allfile=temp[0]
+    f=open(dft_dir+"/ini")
+    for line in f:
+        templist=line.split('=')
+        if templist[0].strip() == "allfile":
+            allfile=templist[1].strip()
     return allfile
 
+def run_flapwmbpt(control):
+
+    flapwmbpt_ini.main()
+    
+    print('-----------------------', file = sys.stdout, flush=True) 
+    print('run FlapwMBPT', file = sys.stdout, flush=True)
+    print('-----------------------', file = sys.stdout, flush=True)
+    
+    print('-----------------------', file = sys.stderr, flush=True) 
+    print('run FlapwMBPT', file = sys.stderr, flush=True)
+    print('-----------------------', file = sys.stderr, flush=True)
+
+    if (('mpi_prefix' in control) | ('mpi_prefix_flapwmbpt' in control)):
+        control['mpi_prefix_flapwmbpt']=control.get('mpi_prefix_flapwmbpt', control['mpi_prefix'])
+    else:
+        print('no mpi_prefix for flapwmbpt')
+        sys.exit()    
+        
+    run_string=control['mpi_prefix_flapwmbpt']+" $COMSUITE_BIN/rspflapw.exe"
+    logfilename=os.path.abspath('./')+'/flapwmbpt.out'
+    errfilename=os.path.abspath('./')+'/flapwmbpt.err'    
+    errormessage="Error in flapwmpbt. Check standard error file for error message."
+    cmd = run_string
+    print(cmd)
+    
+    # with open(logfilename, 'w') as logfile, open(errfilename, 'w') as errfile:
+    #     ret = subprocess.call(cmd, shell=True,stdout = logfile, stderr = errfile)
+    ret = subprocess.call(cmd, shell=True)
+    if ret != 0:
+        print(errormessage)
+        sys.exit()
+
+    print("wannier function construction", flush=True)
+    wan_hmat=flapwmbpt_ini.read_comdmft_ini_wan()
+    if (wan_hmat is not None):
+        control['wannier_directory']='./wannier'
+        control['wannier_directory']=os.path.abspath(control['wannier_directory'])    
+        if len(glob.glob(control['wannier_directory']))==0:
+            os.mkdir(control['wannier_directory'])
+        os.chdir(control['wannier_directory'])               
+        control['mpi_prefix_wannier']=control['mpi_prefix']
+
+        shutil.copy('../kpath', './')
+
+        os.chdir(control['wannier_directory'])
+
+        create_comwann_ini(control, wan_hmat)
+
+        if ('local_axis' in wan_hmat):
+            natom=len(json.load(open('../crystal_structure.json'))['sites'])
+            global_xaxis=[1.0, 0.0, 0.0]
+            global_zaxis=[0.0, 0.0, 1.0]
+            f=open('local_axis.dat', 'w')
+            for ii in range(1,natom+1):
+                if ii in wan_hmat['local_axis']:
+                    f.write('%3d    %20.12f   %20.12f   %20.12f   %20.12f   %20.12f   %20.12f\n' %(ii, wan_hmat['local_axis'][ii]['x'][0], wan_hmat['local_axis'][ii]['x'][1], wan_hmat['local_axis'][ii]['x'][2], wan_hmat['local_axis'][ii]['z'][0], wan_hmat['local_axis'][ii]['z'][1], wan_hmat['local_axis'][ii]['z'][2]))
+                else:
+                    f.write('%3d    %20.12f   %20.12f   %20.12f   %20.12f   %20.12f   %20.12f\n' %(ii, global_xaxis[0], global_xaxis[1], global_xaxis[2], global_zaxis[0], global_zaxis[1], global_zaxis[2]))
+            f.close()
+        
+        # check_wannier_function_input(control,wan_hmat)-
+
+        print('-----------------------', file = sys.stdout, flush=True) 
+        print('run ComWann', file = sys.stdout, flush=True)
+        print('-----------------------', file = sys.stdout, flush=True)
+
+        print('-----------------------', file = sys.stderr, flush=True) 
+        print('run ComWann', file = sys.stderr, flush=True)
+        print('-----------------------', file = sys.stderr, flush=True)         
+
+        run_string=control['mpi_prefix']+" $COMSUITE_BIN/ComWann"
+        cmd = run_string
+        ret = subprocess.call(cmd,shell=True)
+        if ret != 0:
+            print("Error in comwann. Check standard error file for error message", flush=True)
+            sys.exit()
+               
+
+def postprocessing_comdmft():
+
+    control, postprocessing_dict=read_comdmft_ini_postprocessing()
+
+    options={}
+    options['broadening']=postprocessing_dict['broadening']
+    options['lowh_directory']=os.path.abspath(postprocessing_dict['comsuite_dir'])+'/lowh/'
+    options['wan_directory']=os.path.abspath(postprocessing_dict['comsuite_dir'])+'/wannier/'
+    if (control['method']=='spectral') | (control['method']=='dos'):    
+        options['self_energy']=os.path.abspath(postprocessing_dict['self energy'])
+    else:
+        options['self_energy']=os.path.abspath(postprocessing_dict['comsuite_dir'])+'/sig.dat'
+
+    if (control['method']=='spectral') | (control['method']=='band'):    
+        shutil.copy(postprocessing_dict['kpoints'], './')        
+    if (control['method']=='dos'):        
+        options['mode']=2        
+    elif (control['method']=='spectral'):        
+        options['mode']=3
+    elif (control['method']=='dos_qp'):        
+        options['mode']=4        
+    elif (control['method']=='band'):        
+        options['mode']=5
+    if (control['method']=='dos') | (control['method']=='dos_qp'):    
+        options['kmesh_b1_for_dos']=str(postprocessing_dict['kmesh'][0])
+        options['kmesh_b2_for_dos']=str(postprocessing_dict['kmesh'][1])
+        options['kmesh_b3_for_dos']=str(postprocessing_dict['kmesh'][2])
+    else:
+        options['kmesh_b1_for_dos']=str(10)
+        options['kmesh_b2_for_dos']=str(10)
+        options['kmesh_b3_for_dos']=str(10)
+
+    prepare_realaxis.main(options)
+
+    cmd=control['mpi_prefix']+" $COMSUITE_BIN/ComLowH"
+    errormessage="Error in ComLowH postprocess calculation. Check standard error file for error message."
+    ret = subprocess.call(cmd, shell=True)
+    if ret != 0:
+        print(errormessage)
+        sys.exit()        
+    
+    return None
+    
+    
+    
 
 def lda_dmft(control,wan_hmat,imp):
 
@@ -3265,8 +3630,6 @@ def lqsgw_dmft(control,wan_hmat,imp):
         write_conv_dc(control,imp)
 
 
-    # control['iter_num_impurity']=control['iter_num_impurity']+1
-
     while (control['iter_num_impurity'] <= control['max_iter_num_impurity']):
 
         print('\n', file=control['h_log'],flush=True)
@@ -3280,79 +3643,14 @@ def lqsgw_dmft(control,wan_hmat,imp):
         prepare_impurity_solver(control,wan_hmat,imp)
         run_impurity_solver(control,imp)
 
+        if (control['dc_mode'] == 'dc_scf'):
+            prepare_dc(control,wan_hmat,imp) 
+            run_dc(control,imp)
 
-        control['iter_num_impurity']=control['iter_num_impurity']+1
+            # cal_dc_diagonal(control)
+            # cal_zinv_m1_diagonal(control)
+            write_conv_dc(control,imp)               
 
-    return None
-
-
-
-def lqsgw_dmft_u_fixed(control,wan_hmat,imp):
-
-    print("\n", file=control['h_log'],flush=True)
-    print("\n", file=control['h_log'],flush=True)
-    print("\n", file=control['h_log'],flush=True)
-
-    print('*****   wannier  *****', file=control['h_log'],flush=True)
-    if control['do_wannier']:
-
-        check_wannier_function_input(control,wan_hmat)
-        run_comwann(control, wan_hmat)
-    comwann_postprocessing(control, wan_hmat)
-    if control['do_wannier']:
-        write_conv_wan(control)
-
-
-
-    print('*****   Coulomb  *****', file=control['h_log'],flush=True)
-    if control['do_coulomb']:    
-        check_coulomb_input(control)
-        run_comcoulomb(control,imp)
-    comcoulomb_postprocessing(control,imp)
-    if control['do_coulomb']:
-        write_conv_coulomb(control,imp)
-
-
-    print('*****   prepare dc  *****'    , file=control['h_log'],flush=True)
-
-
-    if control['do_dc']:    
-        prepare_initial_ef(control)
-        generate_initial_transformation(control)        
-
-        prepare_seed_dc_sig_and_wannier_dat(control,wan_hmat,imp)
-        run_comlowh(control)
-
-        prepare_dc(control,wan_hmat,imp) 
-        run_dc(control,imp)
-
-        cal_dc_diagonal_new(control)
-        cal_zinv_m1_diagonal(control)
-
-        generate_initial_self_energy(control,imp)
-        write_conv_dc(control,imp)
-
-
-    # control['iter_num_impurity']=control['iter_num_impurity']+1
-
-    while (control['iter_num_impurity'] <= control['max_iter_num_impurity']):
-
-        print('\n', file=control['h_log'],flush=True)
-        print('*****   iter_num_impurity: ', str(control['iter_num_impurity']), '  *****', file=control['h_log'],flush=True)
-
-        prepare_comlowh(control,wan_hmat,imp)
-        run_comlowh(control)
-        delta_causality=delta_postprocessing(control,imp)
-        write_conv_delta(control,delta_causality)
-
-        prepare_dc(control,wan_hmat,imp) 
-        run_dc(control,imp)
-
-        cal_dc_diagonal(control)
-        cal_zinv_m1_diagonal(control)
-
-        prepare_impurity_solver(control,wan_hmat,imp)
-        run_impurity_solver(control,imp)
 
         control['iter_num_impurity']=control['iter_num_impurity']+1
 
@@ -3361,19 +3659,28 @@ def lqsgw_dmft_u_fixed(control,wan_hmat,imp):
 
 if __name__ == '__main__':
 
+    control=read_comdmft_ini_control()
 
-    control,wan_hmat,imp=read_comdmft_ini()
-    initial_file_directory_setup(control)    
+    if ((control['method'] == 'dft') | (control['method'] == 'hf') | (control['method'] == 'lqsgw') + (control['method'] == 'gw')):
+        run_flapwmbpt(control)
+        
+    elif ((control['method'] == 'lda+dmft') | (control['method'] == 'lqsgw+dmft')):
+        control,wan_hmat,imp=read_comdmft_ini()
 
-    if (control['method'] == 'lda+dmft'):
-        lda_dmft(control,wan_hmat,imp)
-    elif (control['method'] == 'lqsgw+dmft'):
-        lqsgw_dmft(control,wan_hmat,imp)
+        initial_file_directory_setup(control)    
+
+        if (control['method'] == 'lda+dmft'):
+            lda_dmft(control,wan_hmat,imp)
+        elif (control['method'] == 'lqsgw+dmft'):
+            lqsgw_dmft(control,wan_hmat,imp)
     # elif (control['method'] == 'lqsgw+dmft_u_fixed'):
     #     lqsgw_dmft_u_fixed(control,wan_hmat,imp)        
-    close_h_log(control)
+        close_h_log(control)
 
-
+    elif ((control['method'] == 'spectral') | (control['method'] == 'band') | (control['method'] == 'dos') | (control['method'] == 'dos_qp')):
+        postprocessing_comdmft()
+    else:
+        print(control['method'], ' is not supported')
 
 ###### conv using tabulate
 

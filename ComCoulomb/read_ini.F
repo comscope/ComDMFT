@@ -61,7 +61,6 @@
         read(1,'(a)') wanpath
         read(1,*) nproc_tau
         read(1,*) nproc_k
-
 #ifdef USE_HDF5
 
 #else
@@ -151,26 +150,26 @@
         
         close(1)
 
-        write(iun,*) adjustl(trim(rstpath))
-        write(iun,*) adjustl(trim(wanpath))
-        write(iun,*) nproc_tau
-        write(iun,*) nproc_k        
-
-        write(iun,*) num_bands      !!
-        write(iun,*) num_wann       !!
-        
-        write(iun,*)projemin*rydberg
-        write(iun,*)projemax*rydberg
-        write(iun,*)include_gamma_w
-        write(iun,*)u_mode                
-        write(iun,*) num_orb_cor
-        write(iun,*) (wan_correlated(iwan), iwan=1, num_orb_cor)
-        write(iun,*)enpj_emin
-        write(iun,*)enpj_emax          
-        write(iun,*)p_low_mode
-        write(iun,*)p_local_k
-        write(iun,*)dist_rc        
-        write(iun,*)u_linear
+c$$$        write(iun,*) adjustl(trim(rstpath))
+c$$$        write(iun,*) adjustl(trim(wanpath))
+c$$$        write(iun,*) nproc_tau
+c$$$        write(iun,*) nproc_k        
+c$$$
+c$$$        write(iun,*) num_bands      !!
+c$$$        write(iun,*) num_wann       !!
+c$$$        
+c$$$        write(iun,*)projemin*rydberg
+c$$$        write(iun,*)projemax*rydberg
+c$$$        write(iun,*)include_gamma_w
+c$$$        write(iun,*)u_mode                
+c$$$        write(iun,*) num_orb_cor
+c$$$        write(iun,*) (wan_correlated(iwan), iwan=1, num_orb_cor)
+c$$$        write(iun,*)enpj_emin
+c$$$        write(iun,*)enpj_emax          
+c$$$        write(iun,*)p_low_mode
+c$$$        write(iun,*)p_local_k
+c$$$        write(iun,*)dist_rc        
+c$$$        write(iun,*)u_linear
 
         ewald=2.0d0
         ewald0=ewald        

@@ -149,9 +149,9 @@
 
       call read_ini
 #ifdef USE_HDF5
-      call read_ntau_bni_hdf5
+      call read_ntau_uca_info_hdf5
 #else
-      call read_ntau_bni
+      call read_ntau_uca_info
 #endif
       if(ubi=='dft') then
        ubi_num=1
@@ -159,16 +159,16 @@
        ubi_num=4
       endif      
       
-c      if (me .lt. 10) then
-c        write(ch, '(a, i1, a)') "check_", me, ".dat"
-c      elseif (me .lt. 100) then
-c        write(ch, '(a, i2, a)') "check_", me, ".dat"
-c      elseif (me .lt. 1000) then
-c        write(ch, '(a, i3, a)') "check_", me, ".dat"
-c      elseif (me .lt. 10000) then
-c        write(ch, '(a, i4, a)') "check_", me, ".dat"
-c      endif
-
+c$$$      if (me .lt. 10) then
+c$$$        write(ch, '(a, i1, a)') "check_", me, ".dat"
+c$$$      elseif (me .lt. 100) then
+c$$$        write(ch, '(a, i2, a)') "check_", me, ".dat"
+c$$$      elseif (me .lt. 1000) then
+c$$$        write(ch, '(a, i3, a)') "check_", me, ".dat"
+c$$$      elseif (me .lt. 10000) then
+c$$$        write(ch, '(a, i4, a)') "check_", me, ".dat"
+c$$$      endif
+c$$$
 c      if (me .lt. 10) then
 c        write(chbk, '(a, i1, a)') "check_", me, ".bkt"
 c      elseif (me .lt. 100) then
@@ -180,7 +180,7 @@ c        write(chbk, '(a, i4, a)') "check_", me, ".bkt"
 c      endif
 
 
-c      open(179, file=trim(ch))
+c$$$      open(179, file=trim(ch))
 c      write(179,*)'bkk-test',me
 c      open(100, file=trim(chbk))
       iun=993
@@ -232,9 +232,9 @@ c     $  'me3_k', me3_k, 'me3_tau', me3_tau, 'me', me
 
 !      call start_par_solid
 #ifdef USE_HDF5
-      call read_gwl_bni_hdf5
+      call read_uca_info_hdf5
 #else
-      call read_gwl_bni
+      call read_uca_info
 #endif
       call get_rr
 !      call start_par_mbi

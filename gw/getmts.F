@@ -14,7 +14,10 @@ c  find exact mt-spheres for this geometry
       do iatom=1,natom
         wr(iatom)=1.d0
       enddo
-      call nasos(wr,rmt)
+c$$$  call nasos(wr,rmt)
+      do iatom=1,natom      
+        rmt(iatom)=smt(is(iatom))
+      enddo
 c     &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
       do isort=1,nsort
         do iatom=1,natom

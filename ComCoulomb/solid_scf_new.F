@@ -7,7 +7,6 @@
       use solid_mod
       use vertex_mod
       use units_mod
-      use lda_dmft_mod
 
       logical :: we_need_v
       integer :: key_u

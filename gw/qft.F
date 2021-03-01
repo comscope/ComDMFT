@@ -22,7 +22,8 @@ c***********************************************************
       if(maswrk) write(iun,*)' Number of processors is ',nproc
 	call start_par_mb
         call tau_frequency_meshes
-
+c$$$      print *,'me : ',me,' print test'
+       
 
 ! --------------------------------------------------------------
       call solid

@@ -38,6 +38,11 @@
      &  sigj(:)
       real*8 u1(3,3)
 
+      integer :: ii_m,jj_m,i_index,jjval,jjdim,llval,iival
+      real*8 :: jjval_dble
+
+      integer, external :: iwig_j_ind
+
 c$$$  character*10 :: ch_g
       inv=0
       allocate(fac(0:8*maxw2))
@@ -51,11 +56,10 @@ c$$$  character*10 :: ch_g
       allocate(ihj(maxwig_j))
       allocate(su1(-lmm:lmm,-lmm:lmm))
       allocate(su1_j(-jmm:jmm,-jmm:jmm))
-      if (symgen.eq."input") then
+      if (symgen.ne."input") then
 c     The symmetry operations were read in subroutine readini and the
 c     symmop_rotation and symmop_shift data structures initialized
 c     there.
-      else
         call parsgn(symgen,nt,gen,genj,sgen,figen,lmm,jmm,ngen,ih,ihj,
      &    su1,su1_j,fac)
       endif
@@ -67,26 +71,19 @@ c     there.
 c     
         call fractional2cartesian(ngroup,symmop_rotations,
      &    symmop_translations,rbas)
-c     
-c     On input the rotations are specified in the basis x,y,z but
-c     internally the basis is y,z,x so we need to reorder the
-c     rotation matrix elements.
-c     
+
         ifia = 1
-        do ngen = 1, ngroup
-          u1(1,1) = symmop_rotations(2,2,ngen)
-          u1(2,1) = symmop_rotations(3,2,ngen)
-          u1(3,1) = symmop_rotations(1,2,ngen)
-          u1(1,2) = symmop_rotations(2,3,ngen)
-          u1(2,2) = symmop_rotations(3,3,ngen)
-          u1(3,2) = symmop_rotations(1,3,ngen)
-          u1(1,3) = symmop_rotations(2,1,ngen)
-          u1(2,3) = symmop_rotations(3,1,ngen)
-          u1(3,3) = symmop_rotations(1,1,ngen)
-          call bld_sh_trans(u1,u(1,ngen),uj(1,ngen),lmm)
+        u=0.0d0
+        uj=0.0d0
+        do ig = 1, ngroup
+c$$$          if (maswrk) write(iun,*) 'sym:',ig
+          call rotmat_mt_basis(symmop_rotations(:,:,ig),
+     $      u(1,ig),uj(1,ig),lmm,jmm)
         enddo
         call dcopy(3*ngroup,symmop_translations,1,shift,1)
       else
+        u=0.0d0
+        uj=0.0d0
         call sgroup(gen,genj,sgen,ngen,u,uj,shift,ngroup,48,lmm,jmm,ih,
      &    ihj,ihh,ihhj,sig,sigj,su1,su1_j,figen)
       endif
@@ -119,7 +116,104 @@ c
       enddo
 c     ----- Check of symmetry operations relative to atomic positions --------------
 
-      if (maswrk) open(unit=112, file='sym_operation_atom.dat' )     
+c$$$      if (maswrk) then
+c$$$        
+c$$$        open(unit=112, file='rot_matrix_mt_basis' )
+c$$$        do ig=1,ngroup
+c$$$          
+c$$$          tempmat(1,1)=u(10,ig)
+c$$$          tempmat(2,1)=u(8,ig)
+c$$$          tempmat(3,1)=u(9,ig)
+c$$$          tempmat(1,2)=u(4,ig)
+c$$$          tempmat(2,2)=u(2,ig)
+c$$$          tempmat(3,2)=u(3,ig)
+c$$$          tempmat(1,3)=u(7,ig)
+c$$$          tempmat(2,3)=u(5,ig)
+c$$$          tempmat(3,3)=u(6,ig)          
+c$$$          write(112, '(3(f12.6,2x))')
+c$$$     $      shift(1,ig),shift(2,ig), shift(3,ig)
+c$$$          write(112, '(3(f12.6,2x))') tempmat(:,1)
+c$$$          write(112, '(3(f12.6,2x))') tempmat(:,2)
+c$$$          write(112, '(3(f12.6,2x))') tempmat(:,3)
+c$$$          write(112, '(1000000000(f12.6,2x))') u(:,ig)
+c$$$          write(112, '(1000000000(2f12.6,2x))') uj(:,ig)
+c$$$        enddo
+c$$$        close(112)
+c$$$      endif
+
+
+c$$$      if (maswrk) then
+
+c$$$        write(iun,*) 'iwig_j'
+c$$$        do llval=0, lmm
+c$$$          do iival=-1,1, 2
+c$$$            
+c$$$            if ((llval .eq. 0) .and. (iival .eq. -1)) cycle
+c$$$            write(iun,*) 'll, 2ii', llval, iival              
+c$$$            i_index=(iival+1)/2+1
+c$$$            jjval=llval*2+iival ! 2j
+c$$$            jjval_dble=llval+iival/2.0d0 ! j
+c$$$            jjdim=jjval+1       ! j dimension
+c$$$            
+c$$$            do ii_m=-jjval, jjval, 2
+c$$$              write(iun,'(20000(i5))')
+c$$$     $          (iwig_j(llval,iival,ii_m,jj_m),
+c$$$     $          jj_m=-jjval, jjval, 2)
+c$$$            enddo
+c$$$          enddo
+c$$$        enddo
+        
+        
+c$$$        open(unit=112, file='rot_matrix_mt_basis_uj' )
+c$$$        do ig=1,ngroup
+c$$$          
+c$$$          tempmat(1,1)=u(10,ig)
+c$$$          tempmat(2,1)=u(8,ig)
+c$$$          tempmat(3,1)=u(9,ig)
+c$$$          tempmat(1,2)=u(4,ig)
+c$$$          tempmat(2,2)=u(2,ig)
+c$$$          tempmat(3,2)=u(3,ig)
+c$$$          tempmat(1,3)=u(7,ig)
+c$$$          tempmat(2,3)=u(5,ig)
+c$$$          tempmat(3,3)=u(6,ig)
+c$$$          write(112,*) 'sym: ', ig
+c$$$          write(112, '(3(f12.6,2x))')
+c$$$     $      shift(1,ig),shift(2,ig), shift(3,ig)
+c$$$          write(112, '(3(f12.6,2x))') tempmat(:,1)
+c$$$          write(112, '(3(f12.6,2x))') tempmat(:,2)
+c$$$          write(112, '(3(f12.6,2x))') tempmat(:,3)
+c$$$
+c$$$          do llval=0, lmm
+c$$$            do iival=-1,1, 2
+c$$$
+c$$$              if ((llval .eq. 0) .and. (iival .eq. -1)) cycle
+c$$$              write(112,*) 'll, 2ii', llval, iival              
+c$$$              i_index=(iival+1)/2+1
+c$$$              jjval=llval*2+iival ! 2j
+c$$$              jjval_dble=llval+iival/2.0d0 ! j
+c$$$              jjdim=jjval+1     ! j dimension
+c$$$
+c$$$              do ii_m=-jjval, jjval, 2
+c$$$                write(112,'(20000(i5))')
+c$$$     $            (iwig_j_ind(llval,iival,ii_m,jj_m),
+c$$$     $            jj_m=-jjval, jjval, 2)
+c$$$              enddo              
+c$$$
+c$$$              do ii_m=-jjval, jjval, 2
+c$$$                write(112,'(20000(2f20.12,2x))')
+c$$$     $            (uj(iwig_j_ind(llval,iival,ii_m,jj_m),ig),
+c$$$     $            jj_m=-jjval, jjval, 2)
+c$$$              enddo
+c$$$            enddo
+c$$$          enddo
+c$$$          write(112,*) 
+c$$$              
+c$$$        enddo
+c$$$        close(112)
+c$$$      endif      
+      
+
+      if (maswrk) open(unit=112, file='sym_operation_atom' )     
       if(.not.allocated(tshift)) allocate(tshift(3,natom,ngroup))
       do ig=1,ngroup
 
@@ -146,44 +240,44 @@ c     ----- Check of symmetry operations relative to atomic positions ----------
 c$$$  endif
         
         jat:do jatom=1,natom
-          call rotate(tau(1,jatom),tau(2,jatom),tau(3,jatom),x(1),
+        call rotate(tau(1,jatom),tau(2,jatom),tau(3,jatom),x(1),
      &    x(2),x(3),u(2,ig),2)  !!! = A*t^(-1)_a
-          x=x+shift(:,ig)
-          do iatom=1,natom
-            x1=tau(:,iatom)-x
-            do ia=-3,3
-              do ib=-3,3
-                do ic=-3,3
-                  t(1)=ia*rbas(1,1)+ib*rbas(1,2)+ic*rbas(1,3)
-                  t(2)=ia*rbas(2,1)+ib*rbas(2,2)+ic*rbas(2,3)
-                  t(3)=ia*rbas(3,1)+ib*rbas(3,2)+ic*rbas(3,3)
-                  sd=t-x1
-                  if(abs(sd(1))+abs(sd(2))+abs(sd(3)).lt.1.d-6) then
-                    ip(iatom,ig)=jatom
-                    tshift(:,iatom,ig)=t
-                    if(maswrk) write(112,
-     $                '(i5,i5,3f12.6,3i5)')
-     $                jatom,iatom,
-     $                t(1),t(2),t(3),ia,ib,ic
-                    
-                    cycle jat
-                  endif
-                enddo
+        x=x+shift(:,ig)
+        do iatom=1,natom
+          x1=tau(:,iatom)-x
+          do ia=-3,3
+            do ib=-3,3
+              do ic=-3,3
+                t(1)=ia*rbas(1,1)+ib*rbas(1,2)+ic*rbas(1,3)
+                t(2)=ia*rbas(2,1)+ib*rbas(2,2)+ic*rbas(2,3)
+                t(3)=ia*rbas(3,1)+ib*rbas(3,2)+ic*rbas(3,3)
+                sd=t-x1
+                if(abs(sd(1))+abs(sd(2))+abs(sd(3)).lt.1.d-6) then
+                  ip(iatom,ig)=jatom
+                  tshift(:,iatom,ig)=t
+                  if(maswrk) write(112,
+     $              '(i5,i5,3f12.6,3i5)')
+     $              jatom,iatom,
+     $              t(1),t(2),t(3),ia,ib,ic
+                  
+                  cycle jat
+                endif
               enddo
             enddo
           enddo
-          if(maswrk) then
-            write(iun,*)'Not find jatom for ig =',ig,' iatom =',jatom
-            write(iun,*)tau(1,jatom),' => ',x(1)
-            write(iun,*)tau(2,jatom),' => ',x(2)
-            write(iun,*)tau(3,jatom),' => ',x(3)
-          endif
-          call ending
-        enddo jat
+        enddo
+        if(maswrk) then
+          write(iun,*)'Not find jatom for ig =',ig,' iatom =',jatom
+          write(iun,*)tau(1,jatom),' => ',x(1)
+          write(iun,*)tau(2,jatom),' => ',x(2)
+          write(iun,*)tau(3,jatom),' => ',x(3)
+        endif
+        call ending
+      enddo jat
 
-        if(maswrk) write(112,*)
-        if(maswrk) write(112,*)
-        if(maswrk) write(112,*)        
+      if(maswrk) write(112,*)
+      if(maswrk) write(112,*)
+      if(maswrk) write(112,*)        
       enddo
       if (maswrk) close(112)
 c     ----- Check of symmetry operations relative to external m. field ---------

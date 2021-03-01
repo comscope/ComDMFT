@@ -65,7 +65,8 @@ c ------ initialize rho ------
 	rhoin=fac*rhoin
 c -------- start self-consistency loop ------
       drho=100.d0
-	nval=40
+      nval=200
+c$$$      nval=40      
       do iter=1,niter
         tl=tolrsq
         if(iter.ge.2.and.drho.gt.2d0) tl=1.d-3

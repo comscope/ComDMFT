@@ -122,6 +122,7 @@ c     as=dqdall(h(isort),work,nrad(isort))
      $          ' For isort = ',isort,
      &          ' M_Z = ',spin(3)*g_e+aorb(3)
             endif
+            call flush(cun)            
           endif
           sumspinx=sumspinx+spin(1)
           sumspiny=sumspiny+spin(2)

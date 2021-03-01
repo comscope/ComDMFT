@@ -2,31 +2,31 @@
       implicit none
       integer :: nt,i
       character*1 t(nt)
-  99  if(t(i).ne.'_') return
+ 99   if(t(i).ne.'_') return
       i=i+1
       if(i.gt.nt) return
       goto 99
       end
       
       subroutine parsgn(t,nt,g,g_j,a,ifiaa,lmax,jmax,ng,h,h_j,su1,su1_j,
-     &                  fac)
-c  Parses the string t containing the group element describers
-c  and makes a matrix g and vector a for each element.
-c  space group ops are defined as:  (g,a)(p)=g*p+a
-c
-c  Point group element describers:
-c    Rnv = n-fold rot around vec v, n pos integer   ) also products
-c    Mv  = mirror taking vec v into -v              ) of form 'a*b' of
-c    I   = inversion                                ) any two
-c    -   = J => -J                                  ) of these
-c
-c  Glide planes, screw axes etc:
-c    append  ':Tv'  to any point operation above where v is the
-c    translation vector for the operation.
-c
-c  Vectors v are all given as (x,y,z) with real numbers x,y,z
-c  or abbreviate   'D' for (1,1,1), 'X' for (1,0,0),  Y,Z  similar.
-c
+     &  fac)
+c     Parses the string t containing the group element describers
+c     and makes a matrix g and vector a for each element.
+c     space group ops are defined as:  (g,a)(p)=g*p+a
+c     
+c     Point group element describers:
+c     Rnv = n-fold rot around vec v, n pos integer   ) also products
+c     Mv  = mirror taking vec v into -v              ) of form 'a*b' of
+c     I   = inversion                                ) any two
+c     -   = J => -J                                  ) of these
+c     
+c     Glide planes, screw axes etc:
+c     append  ':Tv'  to any point operation above where v is the
+c     translation vector for the operation.
+c     
+c     Vectors v are all given as (x,y,z) with real numbers x,y,z
+c     or abbreviate   'D' for (1,1,1), 'X' for (1,0,0),  Y,Z  similar.
+c     
       use manager_mod
       use parallel_mod
       use solid_mod
@@ -34,12 +34,14 @@ c
       integer ifiaa(*),nt,i,ng,lmax,jmax,l,iwig,ist,ii,jj
       character*1 t(nt)
       real*8 g(maxwig,*),h(maxwig),a(3,*),su1(-lmax:lmax,-lmax:lmax),
-     &       fac(0:*)
+     &  fac(0:*)
       complex*16 g_j(maxwig_j,*),su1_j(jmax+1,jmax+1),
-     &           h_j(maxwig_j)
+     &  h_j(maxwig_j)
+
+
       ng=0
       i=1
-  90  call parsbl(t,nt,i)
+ 90   call parsbl(t,nt,i)
       if(i.gt.nt) return
       ng=ng+1
       ifiaa(ng)=1
@@ -93,13 +95,20 @@ c
       use units_mod
       implicit none
       integer :: nt,i,k,l,m,m1,lmax,jmax,ndig,iwig,ist,ii,iwig0,jj,
-     &           im,im1,ik
+     &  im,im1,ik
       integer*8 :: nrot
       character*1 t(nt)
       real*8 :: v(3),a(maxwig),su1(-lmax:lmax,-lmax:lmax),fac(0:*),sp,
-     &          v12,teta,fi,om,ddot,su,ss,wign
+     &  v12,teta,fi,om,ddot,su,ss,wign
       complex*16 :: wign_j,djgen(maxwig_j),su1_j(jmax+1,jmax+1),cu,
-     &              suj
+     &  suj
+
+      real*8 :: tempmat(3,3)
+
+      fi=0.0d0
+      teta=0.0d0
+      om=0.0d0
+      nrot=1
       if(t(i).eq.'R') then
         i=i+1
         call parspi(t,nt,i,nrot,ndig)
@@ -231,13 +240,13 @@ c
                   do k=-jj,jj,2
                     ik=(k+jj)/2+1
                     suj=suj+dconjg(su1_j(im1,ik))*su1_j(im,ik)
-     &                 *(-1.d0)**(l+(k+1)/2)*(0.d0,1.d0)
+     &                *(-1.d0)**(l+(k+1)/2)*(0.d0,1.d0)
                   enddo
                   djgen(iwig)=suj
                 enddo
               enddo
             enddo
-         enddo
+          enddo
         endif
       else if(t(i).eq.'I') then
         do l=0,lmax
@@ -313,6 +322,32 @@ c
         if(maswrk) write(iun,*)'*** op must start with "R","M" or "I"'
         call ending
       endif
+c$$$      if (maswrk) then
+c$$$        write(iun,*) 'parsop'
+c$$$
+c$$$        tempmat(1,1)=a(10)
+c$$$        tempmat(2,1)=a(8)
+c$$$        tempmat(3,1)=a(9)
+c$$$        tempmat(1,2)=a(4)
+c$$$        tempmat(2,2)=a(2)
+c$$$        tempmat(3,2)=a(3)
+c$$$        tempmat(1,3)=a(7)
+c$$$        tempmat(2,3)=a(5)
+c$$$        tempmat(3,3)=a(6)
+c$$$        
+c$$$c$$$  write(112, '(3(f12.6,2x))')
+c$$$c$$$  $      shift(1,ig),shift(2,ig), shift(3,ig)
+c$$$        write(iun,*) t
+c$$$        write(iun,*) v
+c$$$        write(iun,*) nrot, 2.0d0*pi/nrot        
+c$$$        write(iun, '(3(f12.6,2x))') tempmat(:,1)
+c$$$        write(iun, '(3(f12.6,2x))') tempmat(:,2)
+c$$$        write(iun, '(3(f12.6,2x))') tempmat(:,3)
+c$$$        write(iun, '(3(f12.6,2x))') fi,teta,om
+c$$$        write(iun,*)
+c$$$      endif
+c$$$  write(112, '(1000000000(2f12.6,2x))') uj(:,ig)          
+      
       end
       
       
@@ -323,19 +358,19 @@ c
       integer*8 :: integr
       character*1 t(nt),csym(10)
       data csym/'0','1','2','3','4','5','6','7','8','9'/
-      ! mxdig: the maximum number of digits that fit into integer*8
+! mxdig: the maximum number of digits that fit into integer*8
       mxdig=log10(dble(huge(integr)))
       integr=0
       ndig=0
       i=i-1
-  99  i=i+1
+ 99   i=i+1
       do 1 is=1,10
         if(csym(is).eq.t(i)) then
           integr=10*integr+is-1
           ndig=ndig+1
           goto 99
         endif
-  1   continue
+ 1    continue
       if (ndig.gt.mxdig) then
         write(iun,*)'Subroutine parspi: Integer overflow detected'
         write(iun,*)'Too many digits:'
@@ -373,8 +408,8 @@ c
       implicit none
       integer :: nt,i,ii,ndig,m,jj
       integer*8 :: integr
-      ! if ibracket==1: vectors given in terms of lattice vectors
-      ! if ibracket==2: vectors given in terms of cartesian coordinates
+! if ibracket==1: vectors given in terms of lattice vectors
+! if ibracket==2: vectors given in terms of cartesian coordinates
       integer :: ibracket
       real*8 :: r,v(3),rbas(3,3),fac
       character*1 t(nt)
@@ -411,7 +446,7 @@ c
       endif
       if(t(i).ne.'('.and.t(i).ne.'[') then
         if(maswrk) write(iun,*)
-     .  '*** vec must be "X","Y","Z","D" or start with "(" or "["'
+     .    '*** vec must be "X","Y","Z","D" or start with "(" or "["'
         call ending
       endif
       if(t(i).eq.'(') then
@@ -424,7 +459,7 @@ c
         call parssr(t,nt,i,r)
         if(m.lt.3.and.t(i).ne.',') then
           if(maswrk) write(iun,*)
-     .     '*** vec components must be seperated by ","'
+     .      '*** vec components must be seperated by ","'
           call ending
         endif
         if (ibracket.eq.1) then
@@ -443,5 +478,5 @@ c
         if(maswrk) write(iun,*)'*** "]" expected to close vec'
         call ending
       endif
-  90  i=i+1
+ 90   i=i+1
       end

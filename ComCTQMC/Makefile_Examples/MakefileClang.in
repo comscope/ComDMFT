@@ -1,0 +1,14 @@
+BASE_CPPFLAGS = -DNDEBUG
+BASE_LDFLAGS =
+BASE_LIBS = -lm
+
+LAPACK_CPPFLAGS = 
+LAPACK_LDFLAGS = -framework Accelerate 
+LAPACK_LIBS = -llapack -lblas 
+
+CXX = clang++
+CXXFLAGS = -Wall -O3 -fexceptions -std=c++11 -stdlib=libc++  
+
+CPPFLAGS = $(BASE_CPPFLAGS) $(LAPACK_CPPFLAGS) 
+LDFLAGS = $(BASE_LDFLAGS) $(LAPACK_LDFLAGS)
+LIBS = $(BASE_LIBS) $(LAPACK_LIBS) 

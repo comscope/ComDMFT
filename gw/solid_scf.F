@@ -116,26 +116,23 @@ c     --------------------------------------------------------------------
         call properties(iexit1)
 c     
 c     Store restart data
-c$$$       if (iter == iter_max_scf) then
+c     
         call write_ro_rst
         call write_ro_core_rst
         call write_chemical_potential_rst
         call write_wfn_effhf_rst
         call write_green_effhf_rst
         call write_restart_ubi_rst
-c$$$       endif
 c     call write_wan_bni
 c     call write_gwl_bni
 #ifdef USE_HDF5
-c$$$        if (iter == iter_max_scf) then
-        call write_gwl_bni_hdf5
-        call write_wan_bni_hdf5
-        call write_wan_bni2_hdf5
-c$$$        endif
+        call write_uca_files_hdf5
+        call write_wan_files_hdf5
+        call write_wan_files2_hdf5        
 #else
-        call write_gwl_bni
-        call write_wan_bni
-        call write_wan_bni2              
+        call write_uca_files
+        call write_wan_files
+        call write_wan_files2
 #endif
 
 
@@ -147,6 +144,7 @@ c$$$        endif
      $      'chemical potential change',
      $      (chem_pot-chem_pot_old)*rydberg
           write(cun, *)
+          call flush(cun)
         endif
       enddo                     !!! over iter
  1010 format(/'                iteration ',i3/)

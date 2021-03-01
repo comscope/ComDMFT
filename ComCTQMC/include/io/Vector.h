@@ -1,5 +1,5 @@
-#ifndef IOVECTOR
-#define IOVECTOR
+#ifndef INCLUDE_IO_VECTOR_H
+#define INCLUDE_IO_VECTOR_H
 
 #include <vector>
 #include <complex>
@@ -11,11 +11,11 @@
 
 namespace io {
     
-    template<typename T, typename std::enable_if<!std::is_same<std::complex<double>, T>::value, int>::type = 0>
+    template<typename T, typename std::enable_if<!std::is_same<std::complex<double>, T>::value, int>::type = 0>   // sfinae so that it is taken for ivec and rvec. However, not sure anymore why function overload below is not sufficient
     inline jsx::value encode(std::vector<T> const& source, bool b64) {
         if(b64) return base64::encode(source);
         
-        return jsx::value(source.begin(), source.end());
+        return jsx::array_t(source.begin(), source.end());
     };
     
     template<typename T, typename std::enable_if<!std::is_same<std::complex<double>, T>::value, int>::type = 0>

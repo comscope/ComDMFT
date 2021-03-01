@@ -22,6 +22,7 @@
       use parallel_mod
         use sitegen_mod
 	use units_mod
+        use qsort_mod
       implicit none
       integer :: nvcmax,lastg(nvcmax/2),nmax,inf,l1,l2,l3,nc,i,j,k,nco,
      &	       n,nvec
@@ -87,7 +88,7 @@ c inserted 12.11.92
         return
         endif
 c ordering:
-        call xorder(nc,rw_vgen,nco,rco,iref_vgen)
+        call xorder_qsort(nc,rw_vgen,nco,rco,iref_vgen)
 c fulling of co-sphere:
 c
         nvec=0

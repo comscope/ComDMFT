@@ -1,0 +1,24 @@
+BASE_CPPFLAGS = -DNDEBUG
+BASE_LDFLAGS = 
+BASE_LIBS = -lm
+
+LAPACK_CPPFLAGS =
+LAPACK_LDFLAGS =
+LAPACK_LIBS = -mkl
+
+##CUDA_CPPFLAGS = -I/hpcgpfs01/software/cuda/9.0/include/
+##CUDA_LDFLAGS = -L/hpcgpfs01/software/cuda/9.0/lib64/
+
+##NVCC = nvcc
+##ARCH = -arch=sm_35
+##NVCCFLAGS = -ccbin=icpc -std=c++11 -m64 -O3 
+##NVCCFLAGS = -std=c++11 -m64 -O3
+
+CXX = icpc
+CXX_MPI = mpiicpc -DHAVE_MPI
+CXXFLAGS = -std=c++11 -m64 -O3 -fexceptions 
+
+CPPFLAGS = $(BASE_CPPFLAGS) $(LAPACK_CPPFLAGS) $(CUDA_CPPFLAGS) 
+LDFLAGS = $(BASE_LDFLAGS) $(LAPACK_LDFLAGS) $(CUDA_LDFLAGS)  
+LIBS = $(BASE_LIBS) $(LAPACK_LIBS) 
+

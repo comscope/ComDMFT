@@ -154,7 +154,7 @@ c$$$     $      'energy per electron in ev',
 c$$$     $      (etot)*evolt/2.0d0/dble(nelec)
           write(cun, '(a, e20.12)')
      $      'delta energy per electron in ev',
-     $      (etotal-etotal_old)*evolt/2.0d0/dble(nelec)                    
+     $      (etotal-etotal_old)*evolt/2.0d0/dble(nelec)
         else
           write(iun,141) e_coul,t_kin,e_x,e_c,e_xc,etot
           print '(a4,a11,2f22.12)',ubi,': ETOT F = ',
@@ -167,8 +167,9 @@ c$$$     $      'energy per electron in ev',
 c$$$     $      (etot)*evolt/2.0d0/dble(nelec)
           write(cun, '(a, e20.12)')
      $      'delta energy per electron in ev',
-     $      (etotal-etotal_old)*evolt/2.0d0/dble(nelec)          
+     $      (etotal-etotal_old)*evolt/2.0d0/dble(nelec)
         endif
+        call flush(cun)                  
       endif
       call timel('***** ETOT_GW_2 finished ***********')
  140  format(/' E_COUL  = ',f17.8,' T_KIN  = ',f15.8

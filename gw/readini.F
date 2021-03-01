@@ -118,22 +118,23 @@ c
         endif
 #endif
         if (symgen.eq.'input') then
+          open(unit=91, file='symmetry_operations', status='old')
 #ifdef MDL_FIXED_FORMAT
-          read(1,'(34x,i3)')ngroup
+          read(91,'(34x,i3)')ngroup
 #else
-          call inp_line(1,ierr) ! start sym
+          call inp_line(91,ierr) ! start sym
           call inp_skip(4,ierr)
           call inp_int(ngroup,ierr)
 #endif
           do ng = 1, ngroup
-            read(1,*)
+            read(91,*)
             do i = 1, 3
 #ifdef MDL_FIXED_FORMAT
-              read(1,'(4x,3(1x,f14.10),6x,f14.10)')
+              read(91,'(4x,3(1x,f14.10),6x,f14.10)')
      +             (symmop_rotations(i,j,ng),j=1,3),
      +             symmop_translations(i,ng)
 #else
-              call inp_line(1,ierr)
+              call inp_line(91,ierr)
               do j = 1, 3
                 call inp_dbl(symmop_rotations(i,j,ng),ierr)
               enddo
@@ -141,6 +142,7 @@ c
 #endif
             enddo
           enddo
+          close(91)
         else
 c         Symgen holds a string representation of the spacegroup
 c         generators. This string will be parsed in subroutine group.
@@ -560,7 +562,8 @@ c      call fopen(trim(allfile)//'.rst',fid_rst)
 #endif
 
 
-      call check_lda_dmft          
+      call check_lda_dmft
+      
 c ---------------------------------------------------------------------
       call set_control
       end

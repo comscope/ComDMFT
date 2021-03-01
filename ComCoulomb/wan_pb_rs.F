@@ -2061,80 +2061,80 @@ c$$$  pol_iter_for_u=1
      $  ndim3_nu))
       w_loc=0.0d0
 
-      allocate(wc_k_den_tau(
-     $  num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
-     $  ndim3_k(me3_k+1), ndim3_tau))
-      wc_k_den_tau=0.0d0            
+c$$$      allocate(wc_k_den_tau(
+c$$$     $  num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
+c$$$     $  ndim3_k(me3_k+1), ndim3_tau))
+c$$$      wc_k_den_tau=0.0d0            
 
-      allocate(epsinv_k_den(
-     $  num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
-     $  ndim3_k(me3_k+1), ndim3_nu))
-      epsinv_k_den=0.0d0
-      allocate(epsinv_loc(
-     $  num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,nspin,nspin,
-     $  ndim3_nu))
-      epsinv_loc=0.0d0
+c$$$      allocate(epsinv_k_den(
+c$$$     $  num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
+c$$$     $  ndim3_k(me3_k+1), ndim3_nu))
+c$$$      epsinv_k_den=0.0d0
+c$$$      allocate(epsinv_loc(
+c$$$     $  num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,nspin,nspin,
+c$$$     $  ndim3_nu))
+c$$$      epsinv_loc=0.0d0
 
-      allocate(eps_k_den(
-     $  num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
-     $  ndim3_k(me3_k+1), ndim3_nu))
-      eps_k_den=0.0d0
-      allocate(eps_loc(
-     $  num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,nspin,nspin,
-     $  ndim3_nu))
-      eps_loc=0.0d0
+c$$$      allocate(eps_k_den(
+c$$$     $  num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
+c$$$     $  ndim3_k(me3_k+1), ndim3_nu))
+c$$$      eps_k_den=0.0d0
+c$$$      allocate(eps_loc(
+c$$$     $  num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,nspin,nspin,
+c$$$     $  ndim3_nu))
+c$$$      eps_loc=0.0d0
 
-      allocate(chi0_k_den(
-     $  num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
-     $  ndim3_k(me3_k+1), ndim3_nu))
-      chi0_k_den=0.0d0
-      allocate(chi0_loc(
-     $  num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,nspin,nspin,
-     $  ndim3_nu))
-      chi0_loc=0.0d0
+c$$$      allocate(chi0_k_den(
+c$$$     $  num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
+c$$$     $  ndim3_k(me3_k+1), ndim3_nu))
+c$$$      chi0_k_den=0.0d0
+c$$$      allocate(chi0_loc(
+c$$$     $  num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,nspin,nspin,
+c$$$     $  ndim3_nu))
+c$$$      chi0_loc=0.0d0
 
-      allocate(chi_k_den(
-     $  num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
-     $  ndim3_k(me3_k+1), ndim3_nu))
-      chi_k_den=0.0d0
-      allocate(chi_k_den_tau(
-     $  num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
-     $  ndim3_k(me3_k+1), ndim3_tau))
-      chi_k_den_tau=0.0d0
+c$$$      allocate(chi_k_den(
+c$$$     $  num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
+c$$$     $  ndim3_k(me3_k+1), ndim3_nu))
+c$$$      chi_k_den=0.0d0
+c$$$      allocate(chi_k_den_tau(
+c$$$     $  num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
+c$$$     $  ndim3_k(me3_k+1), ndim3_tau))
+c$$$      chi_k_den_tau=0.0d0
 
-      allocate(chi_loc(
-     $  num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,nspin,nspin,
-     $  ndim3_nu))
-      chi_loc=0.0d0
-
+c$$$      allocate(chi_loc(
+c$$$     $  num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,nspin,nspin,
+c$$$     $  ndim3_nu))
+c$$$      chi_loc=0.0d0
+c$$$
       allocate(u_k_den(
      $  num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
      $  ndim3_k(me3_k+1), ndim3_nu))
       u_k_den=0.0d0
-
+c$$$  
       allocate(v_k_den(
      $  num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
      $  ndim3_k(me3_k+1)))
       v_k_den=0.0d0      
-      
-
-      allocate(w_wpb_k(
-     $  nwpb_max,natom_ciw,nwpb_max,natom_ciw,k_star_max,
-     $  ndim3_k(me3_k+1), ndim3_nu))
-      w_wpb_k=0.0d0
-
-      allocate(chi0_wpb_k(
-     $  nwpb_max,natom_ciw,nwpb_max,natom_ciw,k_star_max,
-     $  ndim3_k(me3_k+1), ndim3_nu))
-      chi0_wpb_k=0.0d0
-
-      allocate(w_wpb_local(
-     $  nwpb_max,natom_ciw,nwpb_max,natom_ciw,ndim3_nu))
-      w_wpb_local=0.0d0
-
-      allocate(chi0_wpb_local(
-     $  nwpb_max,natom_ciw,nwpb_max,natom_ciw,ndim3_nu))
-      chi0_wpb_local=0.0d0
+c$$$  
+c$$$
+c$$$      allocate(w_wpb_k(
+c$$$     $  nwpb_max,natom_ciw,nwpb_max,natom_ciw,k_star_max,
+c$$$     $  ndim3_k(me3_k+1), ndim3_nu))
+c$$$      w_wpb_k=0.0d0
+c$$$
+c$$$      allocate(chi0_wpb_k(
+c$$$     $  nwpb_max,natom_ciw,nwpb_max,natom_ciw,k_star_max,
+c$$$     $  ndim3_k(me3_k+1), ndim3_nu))
+c$$$      chi0_wpb_k=0.0d0
+c$$$
+c$$$      allocate(w_wpb_local(
+c$$$     $  nwpb_max,natom_ciw,nwpb_max,natom_ciw,ndim3_nu))
+c$$$      w_wpb_local=0.0d0
+c$$$
+c$$$      allocate(chi0_wpb_local(
+c$$$     $  nwpb_max,natom_ciw,nwpb_max,natom_ciw,ndim3_nu))
+c$$$      chi0_wpb_local=0.0d0
       
       allocate(v_loc(
      $  num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,
@@ -2151,57 +2151,57 @@ c$$$  pol_iter_for_u=1
 
         
         
-        allocate(chi0_low_k_den(
-     $    num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
-     $    ndim3_k(me3_k+1), ndim3_nu))
-        chi0_low_k_den=0.0d0
-        allocate(chi0_low_loc(
-     $    num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,
-     $    nspin,nspin,ndim3_nu))
-        chi0_low_loc=0.0d0
-        
-        allocate(epsinv_high_k_den(
-     $    num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
-     $    ndim3_k(me3_k+1), ndim3_nu))
-        epsinv_high_k_den=0.0d0
-        allocate(epsinv_high_loc(
-     $    num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,
-     $    nspin,nspin,ndim3_nu))
-        epsinv_high_loc=0.0d0
-        
-        allocate(eps_high_k_den(
-     $    num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
-     $    ndim3_k(me3_k+1), ndim3_nu))
-        eps_high_k_den=0.0d0
-        allocate(eps_high_loc(
-     $    num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,
-     $    nspin,nspin,ndim3_nu))
-        eps_high_loc=0.0d0
-        
-        
-        allocate(chi0_high_k_den(
-     $    num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
-     $    ndim3_k(me3_k+1), ndim3_nu))
-        chi0_high_k_den=0.0d0
-        allocate(chi0_high_loc(
-     $    num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,
-     $    nspin,nspin,ndim3_nu))
-        chi0_high_loc=0.0d0
-        
-        allocate(chi_high_k_den(
-     $    num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
-     $    ndim3_k(me3_k+1), ndim3_nu))
-        chi_high_k_den=0.0d0
-        
-        allocate(chi_high_k_den_tau(
-     $    num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
-     $    ndim3_k(me3_k+1), ndim3_tau))
-        chi_high_k_den_tau=0.0d0
-        
-        allocate(chi_high_loc(
-     $    num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,
-     $    nspin,nspin,ndim3_nu))
-        chi_high_loc=0.0d0
+c$$$        allocate(chi0_low_k_den(
+c$$$     $    num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
+c$$$     $    ndim3_k(me3_k+1), ndim3_nu))
+c$$$        chi0_low_k_den=0.0d0
+c$$$        allocate(chi0_low_loc(
+c$$$     $    num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,
+c$$$     $    nspin,nspin,ndim3_nu))
+c$$$        chi0_low_loc=0.0d0
+c$$$        
+c$$$        allocate(epsinv_high_k_den(
+c$$$     $    num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
+c$$$     $    ndim3_k(me3_k+1), ndim3_nu))
+c$$$        epsinv_high_k_den=0.0d0
+c$$$        allocate(epsinv_high_loc(
+c$$$     $    num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,
+c$$$     $    nspin,nspin,ndim3_nu))
+c$$$        epsinv_high_loc=0.0d0
+c$$$        
+c$$$        allocate(eps_high_k_den(
+c$$$     $    num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
+c$$$     $    ndim3_k(me3_k+1), ndim3_nu))
+c$$$        eps_high_k_den=0.0d0
+c$$$        allocate(eps_high_loc(
+c$$$     $    num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,
+c$$$     $    nspin,nspin,ndim3_nu))
+c$$$        eps_high_loc=0.0d0
+c$$$        
+c$$$        
+c$$$        allocate(chi0_high_k_den(
+c$$$     $    num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
+c$$$     $    ndim3_k(me3_k+1), ndim3_nu))
+c$$$        chi0_high_k_den=0.0d0
+c$$$        allocate(chi0_high_loc(
+c$$$     $    num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,
+c$$$     $    nspin,nspin,ndim3_nu))
+c$$$        chi0_high_loc=0.0d0
+c$$$        
+c$$$        allocate(chi_high_k_den(
+c$$$     $    num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
+c$$$     $    ndim3_k(me3_k+1), ndim3_nu))
+c$$$        chi_high_k_den=0.0d0
+c$$$        
+c$$$        allocate(chi_high_k_den_tau(
+c$$$     $    num_orb_proj,nspin,num_orb_proj,nspin,k_star_max,
+c$$$     $    ndim3_k(me3_k+1), ndim3_tau))
+c$$$        chi_high_k_den_tau=0.0d0
+c$$$        
+c$$$        allocate(chi_high_loc(
+c$$$     $    num_orb_proj,num_orb_proj,num_orb_proj,num_orb_proj,
+c$$$     $    nspin,nspin,ndim3_nu))
+c$$$        chi_high_loc=0.0d0
       endif
       
 c$$$      if (u_mode .eq. 'edmf') then

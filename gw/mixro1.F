@@ -26,7 +26,8 @@
 c     open file with the old charge density
       if(maswrk) then
         i_len=len_trim(allfile)
-        open(3,file=allfile(1:i_len)//'_el_density',status='old',
+        open(3,file=
+     $    allfile(1:i_len)//'_el_density',status='old',
      &    form='unformatted')
         read(3)roold
         read(3)rointro
@@ -158,6 +159,7 @@ c     admix new charge density with the old one
         if(magn.eq.2.or.nspin.eq.2)write(iun,1020)dm
         if(magn.eq.2.or.nspin.eq.2)write(cun,1020)dm        
         if(magn.eq.2.or.nspin.eq.2)print 1020,dm
+        call flush(cun)
       endif
       deallocate(roold,work1,spmtold)
  1010 format(1x,'charge density self-consistency=',g14.7)
@@ -192,7 +194,8 @@ c     admix new charge density with the old one
 c     open file with the old charge density
       if(maswrk) then
         i_len=len_trim(allfile)
-        open(3,file=allfile(1:i_len)//'_el_density',status='old',
+        open(3,file=
+     $    allfile(1:i_len)//'_el_density',status='old',
      &    form='unformatted')
         read(3)roold
         read(3)rointro
@@ -280,6 +283,7 @@ c     define charge convergency between iterations
         if(magn.eq.2.or.nspin.eq.2)write(iun,1020)dm
         if(magn.eq.2.or.nspin.eq.2)write(cun,1020)dm        
         if(magn.eq.2.or.nspin.eq.2)print 1020,dm
+        call flush(cun)
       endif
       deallocate(roold,work1,spmtold)
  1010 format(1x,'charge density self-consistency=',g14.7)

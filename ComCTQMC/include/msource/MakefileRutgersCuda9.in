@@ -1,0 +1,21 @@
+BASE_CPPFLAGS = -DNDEBUG
+BASE_LDFLAGS =
+BASE_LIBS = -lm
+
+LAPACK_CPPFLAGS =
+LAPACK_LDFLAGS = -L/opt/intel/mkl/lib/intel64/
+LAPACK_LIBS = -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
+
+CUDA_CPPFLAGS = -I/usr/local/cuda-9.2/include
+CUDA_LDFLAGS = -L/usr/local/cuda-9.2/lib64 
+
+CXX = g++
+CXX_MPI = mpic++ -DHAVE_MPI
+CXXFLAGS = -std=c++11 -fno-common -O3 -fexceptions -Wall -Wno-sign-compare
+
+NVCC = /usr/local/cuda-9.2/bin/nvcc
+NVCCFLAGS = -ccbin=$(CXX) -std=c++11 -O3 -Xcompiler -fno-common -Xcompiler -fexceptions -Xcompiler -Wall -Xcompiler -Wno-sign-compare -arch=sm_70
+
+CPPFLAGS = $(BASE_CPPFLAGS) $(LAPACK_CPPFLAGS) $(CUDA_CPPFLAGS)
+LDFLAGS = $(BASE_LDFLAGS) $(LAPACK_LDFLAGS) $(CUDA_LDFLAGS)
+LIBS = $(BASE_LIBS) $(LAPACK_LIBS)

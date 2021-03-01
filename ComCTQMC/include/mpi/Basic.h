@@ -1,5 +1,5 @@
-#ifndef MPI_BASIC
-#define MPI_BASIC
+#ifndef INCLUDE_MPI_BASIC_H
+#define INCLUDE_MPI_BASIC_H
 
 #ifdef HAVE_MPI
 #include <mpi.h>

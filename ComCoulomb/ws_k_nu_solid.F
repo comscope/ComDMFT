@@ -11,7 +11,7 @@
       include "mpif.h"
       integer, intent(in) :: key_u
       integer :: k,ind_k,npbt1,i_nu,mx2,i,ispin,ind_tau,it,ndd,ind_nu,
-     $  iatom_c,iatom,isort,n,j,ii,jj,kk,nn
+     $  iatom_c,iatom,isort,n,j,ii,jj,kk,nn,ierr
       double precision :: ak,dev
       double precision, allocatable :: gx_tau(:)
       complex*16, allocatable :: tmp(:,:),tmp1(:,:)
@@ -53,6 +53,8 @@ c     -----------------------------------------------------------------------
       eps_b_ii=(0.d0,0.d0)
       dev=0.d0
       e_c_solid_pw=0.d0
+      CALL MPI_BARRIER(MPI_COMM_WORLD,IERR)
+      call timel('**** w at q .ne. 0  start     *******')            
       do ind_k=1,ndim3_k(me3_k+1)
         k=n3_mpi_k(me3_k+1)+ind_k
         ak=dot_product(pnt(:,k),pnt(:,k))
@@ -68,6 +70,7 @@ c$$$            call u_w_pade(ind_k, 2)
 c$$$          endif
         endif
       enddo                     !! over k
+
 
 c     --------- Collect EM1_gg0 ------------------------------------------
       if(nproc_k/=1) then
@@ -99,6 +102,8 @@ c     --------- Collect EM1_gg0 ------------------------------------------
         call output_em1_gg0(em1_gg0)
       endif
 c     --------------------------------------------------------------------
+      call timel('**** w at q .eq. 0  start    *******')                  
+      
       if(me3_k==0)  then
         u_rotated_fpb=0.0d0
 c$$$        u_at_lpb_rax_k_nu=0.0d0
@@ -110,6 +115,7 @@ c$$$          call u_w_pade(1, 1)
 c$$$          call u_w_pade(1, 2)
 c$$$        endif
       endif
+
 
       if (allocated(p_wannier)) deallocate(p_wannier)
 c$$$      if((key_u==1) .and.(u_mode .eq. 'band')) deallocate(g_low_tmp)

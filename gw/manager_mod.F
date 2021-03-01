@@ -26,7 +26,8 @@
      &                dosfile,
      &                outfile,
      &                rstfile,
-     &                text
+     &                text,
+     $                checkpoint_dir
 	integer :: ic_nu_old,
      &           ic_omega_old,
      &           iexch,

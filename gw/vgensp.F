@@ -22,6 +22,7 @@
 	use manager_mod
 	use solid_mod
 	use units_mod
+        use qsort_mod
       implicit none
 	integer, intent(in) :: nmax
 	real*8, intent(in) :: a(3,3),a0(3),rmax
@@ -117,7 +118,8 @@ c     *************************************************************
          enddo
          nc1m=max(nc1m,nc1)
 c ordering:
-         if(nc1.ne.0) call xorder(nc1,rw1,nco1(ivol),rco1(1,ivol),iref)
+         if(nc1.ne.0)
+     $     call xorder_qsort(nc1,rw1,nco1(ivol),rco1(1,ivol),iref)
          if(nc1.eq.0) nco1(ivol)=0
 c fulling of co-sphere:
 c
@@ -184,6 +186,7 @@ c output:
 	use manager_mod
 	use solid_mod
 	use units_mod
+        use qsort_mod
       implicit none
 	integer, intent(in) :: nmax
 	real*8, intent(in) :: a(2),b(2),rmax
@@ -270,7 +273,8 @@ c     *************************************************************
          enddo
          nc1m=max(nc1m,nc1)
 c ordering:
-         if(nc1.ne.0) call xorder(nc1,rw1,nco1(ivol),rco1(1,ivol),iref)
+         if(nc1.ne.0)
+     $     call xorder_qsort(nc1,rw1,nco1(ivol),rco1(1,ivol),iref)
          if(nc1.eq.0) nco1(ivol)=0
 c fulling of co-sphere:
 c

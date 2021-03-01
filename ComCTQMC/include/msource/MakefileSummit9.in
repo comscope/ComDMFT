@@ -1,0 +1,23 @@
+BASE_CPPFLAGS = -DNDEBUG
+BASE_LDFLAGS =
+BASE_LIBS = -lm
+
+LAPACK_CPPFLAGS =
+LAPACK_LDFLAGS = -L/sw/summit/essl/6.1.0-2/essl/6.1/lib64 
+LAPACK_LIBS = -lessl
+
+CUDA_CPPFLAGS = 
+CUDA_LDFLAGS = -L/sw/summit/cuda/9.2.148/lib64
+
+CUTLASS_CPPFLAGS = -I../include
+
+CXX = g++
+CXX_MPI = mpic++ -DHAVE_MPI
+CXXFLAGS = -std=c++11 -fsigned-char -fno-common -O3 -fexceptions -Wall -Wno-sign-compare
+
+NVCC = nvcc
+NVCCFLAGS = -ccbin=$(CXX) -std=c++11 -O3 -Xcompiler -fsigned-char -Xcompiler -fno-common -Xcompiler -fexceptions -Xcompiler -Wall -Xcompiler -Wno-sign-compare -arch=sm_70
+
+CPPFLAGS = $(CUTLASS_CPPFLAGS) $(BASE_CPPFLAGS) $(LAPACK_CPPFLAGS) $(CUDA_CPPFLAGS)
+LDFLAGS = $(BASE_LDFLAGS) $(LAPACK_LDFLAGS) $(CUDA_LDFLAGS)
+LIBS = $(BASE_LIBS) $(LAPACK_LIBS)

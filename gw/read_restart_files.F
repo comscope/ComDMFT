@@ -37,8 +37,9 @@ The code expects to be using MPI if you want to use HDF5
       call fclose(fid_rst)
 #else
       if (maswrk) then
-        open(3,file=trim(allfile)//'.rst',status='old',
-     &       form="unformatted")
+        open(3,file=adjustl(trim(checkpoint_dir))//trim(allfile)//'.rst'
+     $    ,status='old',
+     &    form="unformatted")
         read(3)ubi,iter
         close(3)
         write(iun,*)'read restart: ',ubi,' step ',iter
@@ -92,8 +93,9 @@ c
       call fclose(fid_rst)
 #else
       if (maswrk) then
-        open(3,file=trim(allfile)//'_chemical_potential_'//
-     &       trim(ubi_l)//'.rst',status='old',form="unformatted")
+        open(3,file=adjustl(trim(checkpoint_dir))//
+     $    trim(allfile)//'_chemical_potential_'//
+     &    trim(ubi_l)//'.rst',status='old',form="unformatted")
         read(3)chem_pot
         if (ubi.eq.' qp') then
           read(3)chem_pot_qp
@@ -157,8 +159,10 @@ c
       call fclose(fid_rst)
 #else
       if (maswrk) then
-        open(3,file=trim(allfile)//'_el_density_'//trim(ubi_l)//
-     &       '.rst',status="old",form="unformatted")
+        open(3,file=adjustl(trim(checkpoint_dir))//
+     $    trim(allfile)//
+     $    '_el_density_'//trim(ubi_l)//
+     &    '.rst',status="old",form="unformatted")
         read(3)ro
         read(3)rointr
         if (magn.eq.2) then
@@ -222,8 +226,9 @@ c
       call fclose(fid_rst)
 #else
       if (maswrk) then
-        open(3,file=trim(allfile)//'_ro_core_'//trim(ubi_l)//'.rst',
-     &       status='old',form="unformatted")
+        open(3,file=adjustl(trim(checkpoint_dir))//trim(allfile)//
+     $    '_ro_core_'//trim(ubi_l)//'.rst',
+     &    status='old',form="unformatted")
         read(3)ro_core
         close(3)
       endif
@@ -601,133 +606,165 @@ c
       call fclose(fid_rst)
 #else
       if (maswrk) then
-        open(3,file=allfile(1:i_len)//'_eny_'//trim(ubi_l)//'.rst'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)//
+     $    '_eny_'//trim(ubi_l)//'.rst'
      $    ,status='old',form='unformatted')        
         read(3) eny
         close(3)
-        open(3,file=allfile(1:i_len)//'_e_bnd_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)//
+     $    '_e_bnd_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) e_bnd
         close(3)
-        open(3,file=allfile(1:i_len)//'_n_bnd_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_n_bnd_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) n_bnd
         close(3)
-        open(3,file=allfile(1:i_len)//'_e_core_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_e_core_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) e_core
         close(3)
-        open(3,file=allfile(1:i_len)//'_cor_norm_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_cor_norm_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) cor_norm
         close(3)
-        open(3,file=allfile(1:i_len)//'_pcor_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_pcor_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) pcor
         close(3)
-        open(3,file=allfile(1:i_len)//'_pcor_old_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_pcor_old_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) pcor_old
         close(3)
-        open(3,file=allfile(1:i_len)//'_qcor_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_qcor_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) qcor
         close(3)
-        open(3,file=allfile(1:i_len)//'_qcor_old_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_qcor_old_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) qcor_old
         close(3)
-        open(3,file=allfile(1:i_len)//'_p_f_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_p_f_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) p_f
         close(3)
-        open(3,file=allfile(1:i_len)//'_q_f_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_q_f_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) q_f
         close(3)
-        open(3,file=allfile(1:i_len)//'_pd_f_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_pd_f_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) pd_f
         close(3)
-        open(3,file=allfile(1:i_len)//'_qd_f_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_qd_f_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) qd_f
         close(3)
-        open(3,file=allfile(1:i_len)//'_pd2_f_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_pd2_f_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) pd2_f
         close(3)
-        open(3,file=allfile(1:i_len)//'_qd2_f_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_qd2_f_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) qd2_f
         close(3)
-        open(3,file=allfile(1:i_len)//'_gfun_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_gfun_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) gfun
         close(3)
-        open(3,file=allfile(1:i_len)//'_gfund_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_gfund_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) gfund
         close(3)
-        open(3,file=allfile(1:i_len)//'_gfun_old_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_gfun_old_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) gfun_old
         close(3)
-        open(3,file=allfile(1:i_len)//'_gfund_old_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_gfund_old_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) gfund_old
         close(3)
-        open(3,file=allfile(1:i_len)//'_fi_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_fi_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) fi
         close(3)
-        open(3,file=allfile(1:i_len)//'_dfi_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_dfi_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) dfi
         close(3)
-        open(3,file=allfile(1:i_len)//'_fidot_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_fidot_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) fidot
         close(3)
-        open(3,file=allfile(1:i_len)//'_dfidot_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_dfidot_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) dfidot
         close(3)
-        open(3,file=allfile(1:i_len)//'_fidot2_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_fidot2_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) fidot2
         close(3)
-        open(3,file=allfile(1:i_len)//'_dfidot2_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_dfidot2_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) dfidot2
         close(3)
-        open(3,file=allfile(1:i_len)//'_ptnl_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_ptnl_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) ptnl
         close(3)
-        open(3,file=allfile(1:i_len)//'_ffsmt_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_ffsmt_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) ffsmt
         close(3)
-        open(3,file=allfile(1:i_len)//'_v_mt_h_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_v_mt_h_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) v_mt_h
         close(3)
-        open(3,file=allfile(1:i_len)//'_v_mt_xc_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_v_mt_xc_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) v_mt_xc
         close(3)
-        open(3,file=allfile(1:i_len)//'_v_intr_h_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_v_intr_h_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) v_intr_h
         close(3)
-        open(3,file=allfile(1:i_len)//'_v_intr_xc_'
+        open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $    //'_v_intr_xc_'
      $    //trim(ubi_l)//'.rst',status='old',form='unformatted')        
         read(3) v_intr_xc
         close(3)
 
         if(ubi.eq.' gw'.or.ubi.eq.' qp') then        
-          open(3,file=allfile(1:i_len)//'_e_qp_'
+          open(3,file=adjustl(trim(checkpoint_dir))//allfile(1:i_len)
+     $      //'_e_qp_'
      $      //trim(ubi_l)//'.rst',status='old',form='unformatted')        
           read(3) e_qp
           close(3)
@@ -858,7 +895,8 @@ c
         k0_ch = adjustl(k0_ch)
         if (ubi.eq.'dft'.and.iter_dft<iter_max_scf.and.
      $      iter.eq.iter_dft+1) then
-          inquire(file=allfile(1:i_len)//'_v_h_bb_'//trim(k0_ch)
+          inquire(file=adjustl(trim(checkpoint_dir))
+     $      //allfile(1:i_len)//'_v_h_bb_'//trim(k0_ch)
      $      //'_'//trim(ubi_l)//'.rst',exist=oexists)
           if (.not.oexists) then
 c
@@ -882,13 +920,15 @@ c
           write(k0_ch,*) k0
           k0_ch = adjustl(k0_ch)
           
-          open(3,file=allfile(1:i_len)//'_ev_bnd_'//trim(k0_ch)
+          open(3,file=adjustl(trim(checkpoint_dir))
+     $      //allfile(1:i_len)//'_ev_bnd_'//trim(k0_ch)
      $      //'_'//trim(ubi_l)//'.rst',status='old',form='unformatted')
           do ispin=1, nspin_0
             read(3) ev_bnd(:,:,ind_k,ispin)
           enddo
           close(3)
-          open(3,file=allfile(1:i_len)//'_z_bnd_'//trim(k0_ch)
+          open(3,file=adjustl(trim(checkpoint_dir))
+     $      //allfile(1:i_len)//'_z_bnd_'//trim(k0_ch)
      $      //'_'//trim(ubi_l)//'.rst',status='old',form='unformatted')
           do ispin=1, nspin_0
             read(3) z_bnd(:,:,ind_k,ispin)
@@ -896,28 +936,32 @@ c
           close(3)
 
           if (ubi.ne.'dft') then
-            open(3,file=allfile(1:i_len)//'_v_h_bb_'//trim(k0_ch)
+            open(3,file=adjustl(trim(checkpoint_dir))
+     $        //allfile(1:i_len)//'_v_h_bb_'//trim(k0_ch)
      $        //'_'//trim(ubi_l)//'.rst',status='old',
      $        form='unformatted')        
             do ispin=1, nspin_0
               read(3) v_h_bb(:,:,ind_k,ispin)
             enddo
             close(3)
-            open(3,file=allfile(1:i_len)//'_v_h_bb_old_'//trim(k0_ch)
+            open(3,file=adjustl(trim(checkpoint_dir))
+     $        //allfile(1:i_len)//'_v_h_bb_old_'//trim(k0_ch)
      $        //'_'//trim(ubi_l)//'.rst',status='old',
      $        form='unformatted')        
             do ispin=1, nspin_0
               read(3) v_h_bb_old(:,:,ind_k,ispin)
             enddo
             close(3)
-            open(3,file=allfile(1:i_len)//'_v_xc_bb_'//trim(k0_ch)
+            open(3,file=adjustl(trim(checkpoint_dir))
+     $        //allfile(1:i_len)//'_v_xc_bb_'//trim(k0_ch)
      $        //'_'//trim(ubi_l)//'.rst',status='old',
      $        form='unformatted')        
             do ispin=1, nspin_0
               read(3) v_xc_bb(:,:,ind_k,ispin)
             enddo
             close(3)
-            open(3,file=allfile(1:i_len)//'_v_xc_bb_old_'//trim(k0_ch)
+            open(3,file=adjustl(trim(checkpoint_dir))
+     $        //allfile(1:i_len)//'_v_xc_bb_old_'//trim(k0_ch)
      $        //'_'//trim(ubi_l)//'.rst',status='old',
      $        form='unformatted')        
             do ispin=1, nspin_0
@@ -925,14 +969,16 @@ c
             enddo
             close(3)
 
-            open(3,file=allfile(1:i_len)//'_sigx_solid_k_'//
+            open(3,file=adjustl(trim(checkpoint_dir))
+     $        //allfile(1:i_len)//'_sigx_solid_k_'//
      $        trim(k0_ch)//'_'//trim(ubi_l)//'.rst',status='old',
      $        form='unformatted')        
             do ispin=1, nspin_0
               read(3) sigx_solid_k(:,:,ind_k,ispin)
             enddo
             close(3)
-            open(3,file=allfile(1:i_len)//'_sigx_solid_k_old_'//
+            open(3,file=adjustl(trim(checkpoint_dir))
+     $        //allfile(1:i_len)//'_sigx_solid_k_old_'//
      $        trim(k0_ch)//'_'//trim(ubi_l)//'.rst',status='old',
      $        form='unformatted')        
             do ispin=1, nspin_0
@@ -940,21 +986,24 @@ c
             enddo
             close(3)
             if(ubi.eq.' gw'.or.ubi.eq.' qp') then
-              open(3,file=allfile(1:i_len)//'_z_qp_'//trim(k0_ch)
+              open(3,file=adjustl(trim(checkpoint_dir))
+     $          //allfile(1:i_len)//'_z_qp_'//trim(k0_ch)
      $          //'_'//trim(ubi_l)//'.rst',status='old',
      $          form='unformatted')        
               do ispin=1, nspin_0
                 read(3) z_qp(:,:,ind_k,ispin)
               enddo
               close(3)
-              open(3,file=allfile(1:i_len)//'_ev_qp_'//trim(k0_ch)
+              open(3,file=adjustl(trim(checkpoint_dir))
+     $          //allfile(1:i_len)//'_ev_qp_'//trim(k0_ch)
      $          //'_'//trim(ubi_l)//'.rst',status='old',
      $          form='unformatted')        
               do ispin=1, nspin_0
                 read(3) ev_qp(:,:,ind_k,ispin)
               enddo
               close(3)
-              open(3,file=allfile(1:i_len)//'_q_qp_'//trim(k0_ch)
+              open(3,file=adjustl(trim(checkpoint_dir))
+     $          //allfile(1:i_len)//'_q_qp_'//trim(k0_ch)
      $          //'_'//trim(ubi_l)//'.rst',status='old',
      $          form='unformatted')        
               do ispin=1, nspin_0
@@ -987,7 +1036,8 @@ c$$$  me3_k_ch = adjustl(me3_k_ch)
 c$$$  write(me3_tau_ch,*)me3_tau
 c$$$  me3_tau_ch = adjustl(me3_tau_ch)
 c$$$  do 
-            open(3,file=allfile(1:i_len)//'_sig_c_tau_old_'
+            open(3,file=adjustl(trim(checkpoint_dir))
+     $        //allfile(1:i_len)//'_sig_c_tau_old_'
      $        //trim(k0_ch)
      $        //'_'//trim(tau_ch)//'_'//trim(ubi_l)//'.rst',
      $        form='unformatted')
@@ -997,7 +1047,8 @@ c$$$  do
             close(3)
           enddo
         enddo        
-c$$$        open(3,file=allfile(1:i_len)//'_sig_c_tau_old_'//trim(me3_k_ch)
+c$$$        open(3,file=adjustl(trim(checkpoint_dir))
+c$$$  //allfile(1:i_len)//'_sig_c_tau_old_'//trim(me3_k_ch)
 c$$$     $    //'_'//trim(me3_tau_ch)//'_'//trim(ubi_l)//'.rst',
 c$$$     $    status='old',form='unformatted')        
 c$$$        read(3) sig_c_tau_old
@@ -1150,7 +1201,8 @@ c
       call fclose(fid_rst)
 #else
       if (maswrk) then
-          open(3,file=allfile(1:i_len)//'_g_loc_0_'
+          open(3,file=adjustl(trim(checkpoint_dir))
+     $    //allfile(1:i_len)//'_g_loc_0_'
      $      //trim(ubi_l)//'.rst',status='old',form='unformatted')
           read(3) g_loc_0
           close(3)
@@ -1170,7 +1222,8 @@ c
           k0_ch=adjustl(k0_ch)
 
           if ((ubi .eq. ' gw') .or. (ubi .eq. ' qp')) then
-            open(3,file=allfile(1:i_len)//'_z_ren_'//trim(k0_ch)
+            open(3,file=adjustl(trim(checkpoint_dir))
+     $        //allfile(1:i_len)//'_z_ren_'//trim(k0_ch)
      $        //'_'//trim(ubi_l)//'.rst',status='old',
      $        form='unformatted')        
             do ispin=1, nspin_0
@@ -1180,7 +1233,8 @@ c
           endif
           
           if ((ubi .eq. 'dft') .or. (ubi .eq. ' hf')) then
-            open(3,file=allfile(1:i_len)//'_g_full_00_'//trim(k0_ch)
+            open(3,file=adjustl(trim(checkpoint_dir))
+     $        //allfile(1:i_len)//'_g_full_00_'//trim(k0_ch)
      $        //'_'//trim(ubi_l)//'.rst',status='old',
      $        form='unformatted')        
             do ispin=1, nspin_0
@@ -1190,7 +1244,8 @@ c
           endif
 
           if (ubi_0 .eq. ' gw' .or. (ubi .eq. ' qp')) then
-            open(3,file=allfile(1:i_len)//'_g_full_0_'//trim(k0_ch)
+            open(3,file=adjustl(trim(checkpoint_dir))
+     $        //allfile(1:i_len)//'_g_full_0_'//trim(k0_ch)
      $        //'_'//trim(ubi_l)//'.rst',status='old',
      $        form='unformatted')        
             do ispin=1, nspin_0
@@ -1235,7 +1290,8 @@ c$$$  me3_k_ch = adjustl(me3_k_ch)
 c$$$  write(me3_tau_ch,*)me3_tau
 c$$$  me3_tau_ch = adjustl(me3_tau_ch)
 c$$$  do 
-            open(3,file=allfile(1:i_len)//'_g_full_tau_'
+            open(3,file=adjustl(trim(checkpoint_dir))
+     $        //allfile(1:i_len)//'_g_full_tau_'
      $        //trim(k0_ch)
      $        //'_'//trim(tau_ch)//'_'//trim(ubi_l)//'.rst',
      $        form='unformatted')
@@ -1250,7 +1306,8 @@ c$$$        write(me3_k_ch,*)me3_k
 c$$$        me3_k_ch = adjustl(me3_k_ch)
 c$$$        write(me3_tau_ch,*)me3_tau
 c$$$        me3_tau_ch = adjustl(me3_tau_ch)
-c$$$        open(3,file=allfile(1:i_len)//'_g_full_tau_'//trim(me3_k_ch)
+c$$$        open(3,file=adjustl(trim(checkpoint_dir))
+c$$$  //allfile(1:i_len)//'_g_full_tau_'//trim(me3_k_ch)
 c$$$     $    //'_'//trim(me3_tau_ch)//'_'//trim(ubi_l)//'.rst',
 c$$$     $    status='old',form='unformatted')        
 c$$$        read(3) g_full

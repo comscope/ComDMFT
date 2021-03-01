@@ -69,22 +69,28 @@ c$$$      open(179, file=trim(ch))
           n_magn=1
         endif
 
-        allocate(trans_dc(num_orb, num_orb, n_magn))
-        trans_dc=0.0d0
           
-        allocate(tempdble1(2,num_orb))
 
-        open(unit=10, file='trans_dc.dat', status='old')
-        do im=1, n_magn
-          do ii=1, num_orb
-            read(10,*) ((tempdble1(kk,jj), kk=1, 2), jj=1, num_orb)
-            do jj=1, num_orb
-              trans_dc(ii,jj,im)=dcmplx(tempdble1(1,jj),tempdble1(2,jj))
+        inquire(file="trans_dc.dat", exist=is_trans_dc)
+        
+        if (is_trans_dc) then
+          allocate(trans_dc(num_orb, num_orb, n_magn))
+          trans_dc=0.0d0
+          
+          allocate(tempdble1(2,num_orb))          
+          open(unit=10, file='trans_dc.dat', status='old')
+          do im=1, n_magn
+            do ii=1, num_orb
+              read(10,*) ((tempdble1(kk,jj), kk=1, 2), jj=1, num_orb)
+              do jj=1, num_orb
+                trans_dc(ii,jj,im)
+     $            =dcmplx(tempdble1(1,jj),tempdble1(2,jj))
+              enddo
             enddo
           enddo
-        enddo
-        close(10)
-        deallocate(tempdble1)
+          close(10)
+          deallocate(tempdble1)
+        endif
 
 
         n_omega = 0
@@ -160,6 +166,8 @@ c$$$      open(179, file=trim(ch))
       call mpi_bcast(num_orb,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
       call mpi_bcast(is_spinorbit,1,mpi_integer,0,MPI_COMM_WORLD,
      $  mpierr)
+      call mpi_bcast(is_trans_dc,1,mpi_logical,0,MPI_COMM_WORLD,
+     $  mpierr)      
       call mpi_bcast(is_magnetic,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
       call mpi_bcast(n_magn,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)      
       call mpi_bcast(n_omega,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
@@ -170,12 +178,16 @@ c$$$      open(179, file=trim(ch))
         allocate(ff(0:3))
         
         allocate(gimp(num_orb,num_orb,n_omega,n_magn))
-        allocate(trans_dc(num_orb, num_orb, n_magn))
-        trans_dc=0.0d0        
+        if (is_trans_dc) then
+          allocate(trans_dc(num_orb, num_orb, n_magn))
+          trans_dc=0.0d0
+        endif
       endif
-
-      call mpi_bcast(trans_dc,num_orb**2*n_magn,mpi_double_complex,0,
-     $  MPI_COMM_WORLD,mpierr)
+      
+      if (is_trans_dc) then      
+        call mpi_bcast(trans_dc,num_orb**2*n_magn,mpi_double_complex,0,
+     $    MPI_COMM_WORLD,mpierr)
+      endif
       call mpi_bcast(ff(0),4,mpi_double_precision,0,
      $  MPI_COMM_WORLD,mpierr)
       call mpi_bcast(gimp,num_orb**2*n_omega*n_magn,mpi_double_complex,
@@ -275,7 +287,9 @@ c$$$      open(179, file=trim(ch))
       
       call gw_double_counting
 
-      deallocate(trans_dc)
+      if (is_trans_dc) then
+        deallocate(trans_dc)
+      endif
       deallocate(ff)
       deallocate(gimp)
 
@@ -551,7 +565,6 @@ c$$$      endif
       endif
       
       call cal_u_matrix(num_orb,slaterf,umatrix)
-      
 
       do im=1, n_magn
 !     hartree
@@ -1698,17 +1711,22 @@ c$$$  end if
         rotmat_cmplx2real=0.0d0
         call cal_rotmat_cmplx2real(norb,rotmat_cmplx2real)
           
-        allocate(rotmat_new(norb,norb))
-        rotmat_new=0.0d0
-          
-        call zgemm('n','n',norb,norb,norb,(1.d0,0.d0),
-     $    trans_dc,norb,rotmat_cmplx2real,norb,
-     $    (0.d0,0.d0),rotmat_new,norb)
-        
-        call rotate_umatrix(norb,umatrix,rotmat_new,0)
+
+        if (is_trans_dc) then
+          allocate(rotmat_new(norb,norb))
+          rotmat_new=0.0d0
+          call zgemm('n','n',norb,norb,norb,(1.d0,0.d0),
+     $      trans_dc,norb,rotmat_cmplx2real,norb,
+     $      (0.d0,0.d0),rotmat_new,norb)
+          call rotate_umatrix(norb,umatrix,rotmat_new,0)
+          deallocate(rotmat_new)          
+        else
+          call rotate_umatrix(norb,umatrix,rotmat_cmplx2real,0)
+        endif
+
           
         deallocate(rotmat_cmplx2real)
-        deallocate(rotmat_new)
+
       else
 !     for wannier90 convension
 c$$$  !        j*2     5 5 5 5 5 5  7 7 7 7  7  7  7  7
@@ -1734,19 +1752,23 @@ c$$$  ! default index  1 2 3 4 5 6  7 8 9 10 11 12 13 14
         rotmat_mlms2jmj=0.0d0
         
         call cal_rotmat_mlms2jmj(lval, rotmat_mlms2jmj)
-        allocate(rotmat_new(norb,norb))
-        rotmat_new=0.0d0
-        call zgemm('n','n',norb,norb,
-     $    norb,(1.d0,0.d0),
-     $    trans_dc,norb,
-     $    rotmat_mlms2jmj,norb,
-     $    (0.d0,0.d0),
-     $    rotmat_new,norb)        
-        
-        call rotate_umatrix(norb, umatrix, rotmat_new,0)
+        if (is_trans_dc) then        
+          allocate(rotmat_new(norb,norb))
+          rotmat_new=0.0d0
+          call zgemm('n','n',norb,norb,
+     $      norb,(1.d0,0.d0),
+     $      trans_dc,norb,
+     $      rotmat_mlms2jmj,norb,
+     $      (0.d0,0.d0),
+     $      rotmat_new,norb)        
+          call rotate_umatrix(norb, umatrix, rotmat_new,0)
+          deallocate(rotmat_new)
+        else
+          call rotate_umatrix(norb, umatrix, rotmat_mlms2jmj,0)
+        endif
         deallocate(umatrix_temp)
         deallocate(rotmat_mlms2jmj)
-        deallocate(rotmat_new)
+
         
       endif
       end

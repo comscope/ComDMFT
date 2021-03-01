@@ -1,5 +1,5 @@
-#ifndef IMPURITY_NODE_H
-#define IMPURITY_NODE_H
+#ifndef CTQMC_INCLUDE_IMPURITY_NODE_H
+#define CTQMC_INCLUDE_IMPURITY_NODE_H
 
 #include <iostream>
 #include <random>
@@ -9,8 +9,10 @@
 #include "../Utilities.h"
 
 namespace imp {
+    
+    //Scheisse das muess verbessert werde chunt ja chei sau druus da ...
 
-    template<typename ValueType>
+    template<typename NodeValue>
     struct Node {
         template<typename... Args>
         Node(ut::KeyType key, int height, Args&&... args) :
@@ -43,13 +45,13 @@ namespace imp {
             return temp;
         };
 
-        int touched; ValueType value;
+        int touched; NodeValue value;
     };
     
     
-    template<typename ValueType, typename F = void>
+    template<typename NodeValue, typename F = void>
     struct Access {
-        typedef Node<typename std::remove_cv<ValueType>::type> NodeType;
+        typedef Node<typename std::remove_cv<NodeValue>::type> NodeType;
         
         Access() = default;
         Access(NodeType* node) : node_(node) {};
@@ -65,59 +67,59 @@ namespace imp {
         int entries(int level) const { return node_->entries[level];};
         int touched() const { return node_->touched;};
         
-        ValueType* operator->() const { return &node_->value;};
+        NodeValue* operator->() const { return &node_->value;};
         
     private:
         NodeType* node_;
         
-        friend inline bool operator==(Access<ValueType, F> const& lhs, Access<ValueType, F> const& rhs) { return lhs.node_ == rhs.node_;};
-        friend inline bool operator!=(Access<ValueType, F> const& lhs, Access<ValueType, F> const& rhs) { return lhs.node_ != rhs.node_;};
+        friend inline bool operator==(Access<NodeValue, F> const& lhs, Access<NodeValue, F> const& rhs) { return lhs.node_ == rhs.node_;};
+        friend inline bool operator!=(Access<NodeValue, F> const& lhs, Access<NodeValue, F> const& rhs) { return lhs.node_ != rhs.node_;};
         
         friend F;
     };
     
     
-    template<typename Alloc>
-    struct Value {
-        Value(Access<Value const> node, Operator<Alloc> const* op0, int flavor, double* ptr, EigenValues<Alloc> const& eig) :
-        op0(op0), flavor(flavor), ptr(ptr),
+    template<typename Mode, typename Value>
+    struct NodeValue {
+        NodeValue(Access<NodeValue const> node, itf::Operator<Value> const* op0, int flavor, EigenValues<Mode> const& eig) :
+        op0(&get<Mode, Value>(*op0)), flavor(flavor),
         eig_(eig), node_(node),
         prop_(nullptr), propTry_(nullptr),
-        ops_(new Operator<Alloc>*[2*node_.height()]), opsTry_(ops_ + node_.height()) {
+        ops_(new Operator<Mode, Value>*[2*node_.height()]), opsTry_(ops_ + node_.height()) {
             for(int l = 0; l < 2*node_.height(); ++l) ops_[l] = nullptr;
         };
-        ~Value() {
-            for(int l = 0; l < 2*node_.height(); ++l) delete ops_[l]; delete[] ops_;
-            delete propTry_; delete prop_;
+        ~NodeValue() {
+            for(int l = 0; l < 2*node_.height(); ++l) delete ops_[l]; 
+            delete[] ops_; delete propTry_; delete prop_;
         };
         
-        Operator<Alloc> const* const op0;
-        int const flavor; double* const ptr;
+        Operator<Mode, Value> const* const op0;
+        int const flavor; 
         
         
-        Propagator<Alloc> const* prop() const {
+        Propagator<Mode> const* prop() const {
             auto prop = node_.touched() ? prop_ : propTry_;
             if(prop == nullptr) throw std::runtime_error("imp::Value::prop: null pointer");
             return prop;
         };
-        Operator<Alloc> const* op(int l) const {
+        Operator<Mode, Value> const* op(int l) const {
             auto op = l < node_.touched() ? ops_[l] : opsTry_[l];
             if(op == nullptr) throw std::runtime_error("imp::Value::op: null pointer");
             return op;
         };
-        std::unique_ptr<Operator<Alloc>> get_op(int l) const {
+        std::unique_ptr<Operator<Mode, Value>> get_op(int l) const {
             auto& op = l < node_.touched() ? ops_[l] : opsTry_[l];
             if(op == nullptr) throw std::runtime_error("imp::Value::get_op: null pointer");
-            auto temp = op; op = nullptr; return std::unique_ptr<Operator<Alloc>>(temp);
+            auto temp = op; op = nullptr; return std::unique_ptr<Operator<Mode, Value>>(temp);
         };
 
-        Propagator<Alloc>* prop() {
+        Propagator<Mode>* prop() {
             auto& prop = node_.touched() ? prop_ : propTry_;
-            return prop ? prop : prop = new Propagator<Alloc>(-(node_.next(0).key() - node_.key())*ut::beta()/ut::KeyMax, eig_);  //promotion stuff ...
+            return prop ? prop : prop = new Propagator<Mode>(-(node_.next(0).key() - node_.key())*ut::beta()/ut::KeyMax, eig_);  //promotion stuff ...
         };
-        Operator<Alloc>* op(int l) {
+        Operator<Mode, Value>* op(int l) {
             auto& op = l < node_.touched() ? ops_[l] : opsTry_[l];
-            return op ? op : op = new Operator<Alloc>(eig_);
+            return op ? op : op = new Operator<Mode, Value>(eig_);
         };
         
         void accept() {
@@ -138,11 +140,11 @@ namespace imp {
         };
         
     private:
-        EigenValues<Alloc> const& eig_;
-        Access<Value const> node_;
+        EigenValues<Mode> const& eig_;
+        Access<NodeValue const> node_;
         
-        Propagator<Alloc>* prop_; Propagator<Alloc>* propTry_;
-        Operator<Alloc>** const ops_; Operator<Alloc>** const opsTry_;
+        Propagator<Mode>* prop_; Propagator<Mode>* propTry_;
+        Operator<Mode, Value>** const ops_; Operator<Mode, Value>** const opsTry_;
     };
 }
 

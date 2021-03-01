@@ -2,7 +2,7 @@
 
       use atom_mod
       use etot_mod
-c$$$      use heg_mod
+c$$$  use heg_mod
       use manager_mod
       use parallel_mod
       use solid_mod
@@ -20,24 +20,27 @@ c$$$      use heg_mod
       complex*16 :: cc,wint
       integer, allocatable :: ipiv(:)
       double precision, allocatable :: w_c_nu(:,:,:),p_low(:,:,:),
-     &  p_low_tau(:,:,:),
-c$$$     $  p_low_0(:,:),
-     $  chimat_packed(:,:,:),chimat_high_packed(:,:,:),
-     $  chimat_tau_packed(:,:,:),chimat_high_tau_packed(:,:,:)
+     &  p_low_tau(:,:,:)
+c$$$  $  p_low_0(:,:),
+c$$$  $  chimat_packed(:,:,:),chimat_high_packed(:,:,:),
+c$$$  $  chimat_tau_packed(:,:,:),chimat_high_tau_packed(:,:,:)
       complex*16, allocatable :: v_tmp(:,:),v_p(:,:),w_s(:,:),
      $  epsinv(:,:),work(:,:),v_tmp1(:,:),v_tmp2(:,:),
      $  v_inv(:,:),v_p_lin(:,:),
      $  eps_singular(:,:),work1(:,:),tempmat(:,:),
-     $  tempmat2(:,:,:,:,:,:),
-     $  chimat_tau(:,:,:),chimat_high_tau(:,:,:),
-     $  wcmat_tau(:,:,:)
+     $  tempmat2(:,:,:,:,:,:)
+c$$$  $  chimat_tau(:,:,:),chimat_high_tau(:,:,:),
+c$$$  $  wcmat_tau(:,:,:)
       character*300 :: ch2
+      double precision :: timeval
       double precision,external :: dtrace
       complex*16,external :: ztrace
       character*300 :: k0_ch, i_omega_ch,ispin_ch
 
 
-      if(ind_k==1) call timel('***** Ws_k_nu_solid_0 started ******')
+c$$$      call timel('***** Ws_k_nu_solid_0 started ******')
+
+
       reg=.true.
       k=n3_mpi_k(me3_k+1)+ind_k
       pi2a=(pi+pi)/par
@@ -46,6 +49,13 @@ c$$$     $  p_low_0(:,:),
       ak=dot_product(pnt(:,k),pnt(:,k))
       q=sqrt(q2)
       n_pbt=nvopt(k)
+
+c$$$      call cpu_time(timeval)              
+c$$$      print '(a, 2i5, f12.6)', 'ws_k_nu_solid_0 start',
+c$$$     $  me+1, k, timeval
+c$$$      write(179, '(a, 2i5, f12.6)') 'ws_k_nu_solid_0 start',
+c$$$     $  me+1, k, timeval
+c$$$      call flush(179)
 
       allocate(work(n_pbt,n_pbt)) !
       work=0.0d0
@@ -109,11 +119,11 @@ c     endif
           call unpack_hermit(work,p_low(1,1,ind_nu),n_pbt,n_pbt,n_pbt,
      &      (0.d0,0.d0),(1.d0,0.d0))
 !     for chi0_low
-          call boson_wan_k(work,n_pbt,ind_k,1,1,1,
-     $      chi0_low_k_den(1,1,1,1,1,ind_k,ind_nu),
-     $      tempmat2)
-          chi0_low_loc(:,:,:,:,:,:,ind_nu)
-     $      =chi0_low_loc(:,:,:,:,:,:,ind_nu)+tempmat2
+c$$$  call boson_wan_k(work,n_pbt,ind_k,1,1,1,
+c$$$  $      chi0_low_k_den(1,1,1,1,1,ind_k,ind_nu),
+c$$$  $      tempmat2)
+c$$$  chi0_low_loc(:,:,:,:,:,:,ind_nu)
+c$$$  $      =chi0_low_loc(:,:,:,:,:,:,ind_nu)+tempmat2
 
         enddo
 
@@ -129,10 +139,11 @@ c     ------------------- positive eigen values ---
 c$$$  if (p_sum_sign .ne. 0) then
 
 c$$$  endif
+
           if(reg) then
             call boson_unpack_tau(work,n_pbt,p_low_tau(1,1,ind_tau),
      &        n_pbt,n_pbt)
-c            write(179,*) 'regularization check: p_low_tau 2 vopt',
+c     write(179,*) 'regularization check: p_low_tau 2 vopt',
 c     $        ind_k, ind_tau            
             call regularization(work,n_pbt,n_pbt,'-',dev0)
             dev=max(dev,dev0)
@@ -146,7 +157,7 @@ c     $        ind_k, ind_tau
      &      -p_low_tau(1:n_pbt,1:n_pbt,ind_tau)          
         enddo        
 c     ------- Transform P_LOW from TAU to NU representation -------------
-      
+        
         p_low=0.0d0
         call from_tau_to_nu_ba(p_low,n_pbt,p_low_tau,n_pbt,n_pbt)
         deallocate(p_low_tau)
@@ -174,22 +185,22 @@ c     ------- Transform P_FULL from TAU to NU representation for given Q -
 
 c$$$  if (we_need_w) then      
       allocate(w_c_nu(n_pbt,n_pbt,ndim3_nu)) !
-      if (we_need_u) then      
-        allocate(chimat_packed(n_pbt,n_pbt,ndim3_nu)) !
-        chimat_packed=0.0d0
-        allocate(chimat_tau_packed(n_pbt,n_pbt,ndim3_tau)) !
-        chimat_tau_packed=0.0d0
-        allocate(chimat_tau(n_pbt,n_pbt,ndim3_tau)) !
-        chimat_tau=0.0d0
-        if (pol_iter_for_u .gt. 0) then
-          allocate(chimat_high_tau_packed(n_pbt,n_pbt,ndim3_tau)) !
-          chimat_high_tau_packed=0.0d0        
-          allocate(chimat_high_packed(n_pbt,n_pbt,ndim3_nu)) !
-          chimat_high_packed=0.0d0        
-          allocate(chimat_high_tau(n_pbt,n_pbt,ndim3_tau)) !
-          chimat_high_tau=0.0d0
-        endif
-      endif
+c$$$  if (we_need_u) then      
+c$$$  allocate(chimat_packed(n_pbt,n_pbt,ndim3_nu)) !
+c$$$  chimat_packed=0.0d0
+c$$$  allocate(chimat_tau_packed(n_pbt,n_pbt,ndim3_tau)) !
+c$$$  chimat_tau_packed=0.0d0
+c$$$  allocate(chimat_tau(n_pbt,n_pbt,ndim3_tau)) !
+c$$$  chimat_tau=0.0d0
+c$$$  if (pol_iter_for_u .gt. 0) then
+c$$$  allocate(chimat_high_tau_packed(n_pbt,n_pbt,ndim3_tau)) !
+c$$$  chimat_high_tau_packed=0.0d0        
+c$$$  allocate(chimat_high_packed(n_pbt,n_pbt,ndim3_nu)) !
+c$$$  chimat_high_packed=0.0d0        
+c$$$  allocate(chimat_high_tau(n_pbt,n_pbt,ndim3_tau)) !
+c$$$  chimat_high_tau=0.0d0
+c$$$  endif
+c$$$  endif
       call from_tau_to_nu_ba(w_c_nu,n_pbt,
      $  p_w_solid_q_tau(1,1,1,ind_k),nvopt_max,n_pbt)
       
@@ -204,6 +215,16 @@ c$$$  if(w_q_zero==1) allocate(eps_singular(2,n_pbt))
       do ind_nu=1,ndim3_nu
 c$$$  if (we_need_w) then
         i_nu=me3_tau*ndim3_nu+ind_nu-1
+
+c$$$        call cpu_time(timeval)        
+c$$$        print '(a, 3i5,f12.6)', 'ws_k_nu_solid_0 k, nu',
+c$$$     $    me+1, k, i_nu, timeval
+c$$$        write(179, '(a, 3i5,f12.6)') 'ws_k_nu_solid_0 k, nu',
+c$$$     $    me+1, k, i_nu, timeval        
+c$$$        call flush(179)        
+
+
+        
         work=0.0d0
         call unpack_hermit(work,w_c_nu(1,1,ind_nu),n_pbt,n_pbt,n_pbt,
      &    (0.d0,0.d0),(1.d0,0.d0))
@@ -225,10 +246,10 @@ c$$$  &    eps_singular)
               call invers_h(n_pbt,w_s,n_pbt)
               w_s=w_s-work
               call invers_h(n_pbt,w_s,n_pbt)
-!              if(maswrk) then
-!                 write(993,*)'v_tmp',v_tmp,'w_s',w_s,
+!     if(maswrk) then
+!     write(993,*)'v_tmp',v_tmp,'w_s',w_s,
 !     $           'work',work,'n_pbt',n_pbt
-!              endif
+!     endif
             else
               w_s=em1_gg0(1,i_nu)*v_tmp
             endif
@@ -334,64 +355,64 @@ c$$$  endif
      $        (0.0d0,0.0d0),work1,n_pbt)
           endif
 
-          call boson_wan_k(work1,n_pbt,ind_k,1,1,1,
-     $      chi_k_den(1,1,1,1,1,ind_k,ind_nu),
-     $      tempmat2)
-          chi_loc(:,:,:,:,:,:,ind_nu)
-     $      =chi_loc(:,:,:,:,:,:,ind_nu)+tempmat2
+c$$$  call boson_wan_k(work1,n_pbt,ind_k,1,1,1,
+c$$$  $      chi_k_den(1,1,1,1,1,ind_k,ind_nu),
+c$$$  $      tempmat2)
+c$$$  chi_loc(:,:,:,:,:,:,ind_nu)
+c$$$  $      =chi_loc(:,:,:,:,:,:,ind_nu)+tempmat2
 
-          call pack_hermit(work1,chimat_packed(1,1,ind_nu),
-     $      n_pbt,n_pbt,n_pbt,0.d0,1.d0)
+c$$$  call pack_hermit(work1,chimat_packed(1,1,ind_nu),
+c$$$  $      n_pbt,n_pbt,n_pbt,0.d0,1.d0)
 
-        
+          
 c     ----- Contribution to Etot_C from PW --------------------------------
-          ! for w
+! for w
           call boson_wan_k(w_s,n_pbt,ind_k,1,1,1,
      $      w_k_den(1,1,1,1,1,ind_k,ind_nu),
      $      tempmat2)
           w_loc(:,:,:,:,:,:,ind_nu)
      $      =w_loc(:,:,:,:,:,:,ind_nu)+tempmat2
 
-          if (u_mode .eq. 'edmf') then
-            call boson_wpb_k(w_s,n_pbt,ind_k,1,1,1,
-     $        w_wpb_k(1,1,1,1,1,ind_k,ind_nu))
-            
-            do kst=1,k_star(k)                    
-              w_wpb_local(:,:,:,:,ind_nu)
-     $          =w_wpb_local(:,:,:,:,ind_nu)
-     $          +w_wpb_k(:,:,:,:,kst,ind_k,ind_nu)          
-            enddo
-          endif
-! for epsilon_inv
-          call boson_wan_k(epsinv,n_pbt,ind_k,1,1,1,
-     $      epsinv_k_den(1,1,1,1,1,ind_k,ind_nu),
-     $      tempmat2)
-          epsinv_loc(:,:,:,:,:,:,ind_nu)
-     $      =epsinv_loc(:,:,:,:,:,:,ind_nu)+tempmat2
-! for epsilon
-          call boson_wan_k(v_p,n_pbt,ind_k,1,1,1,
-     $      eps_k_den(1,1,1,1,1,ind_k,ind_nu),
-     $      tempmat2)
-          eps_loc(:,:,:,:,:,:,ind_nu)
-     $      =eps_loc(:,:,:,:,:,:,ind_nu)+tempmat2
-! for polarizability
-          call boson_wan_k(work,n_pbt,ind_k,1,1,1,
-     $      chi0_k_den(1,1,1,1,1,ind_k,ind_nu),
-     $      tempmat2)
-          chi0_loc(:,:,:,:,:,:,ind_nu)
-     $      =chi0_loc(:,:,:,:,:,:,ind_nu)+tempmat2
+c$$$  if (u_mode .eq. 'edmf') then
+c$$$  call boson_wpb_k(w_s,n_pbt,ind_k,1,1,1,
+c$$$  $        w_wpb_k(1,1,1,1,1,ind_k,ind_nu))
+c$$$  
+c$$$  do kst=1,k_star(k)                    
+c$$$  w_wpb_local(:,:,:,:,ind_nu)
+c$$$  $          =w_wpb_local(:,:,:,:,ind_nu)
+c$$$  $          +w_wpb_k(:,:,:,:,kst,ind_k,ind_nu)          
+c$$$  enddo
+c$$$  endif
+!     for epsilon_inv
+c$$$  call boson_wan_k(epsinv,n_pbt,ind_k,1,1,1,
+c$$$  $      epsinv_k_den(1,1,1,1,1,ind_k,ind_nu),
+c$$$  $      tempmat2)
+c$$$  epsinv_loc(:,:,:,:,:,:,ind_nu)
+c$$$  $      =epsinv_loc(:,:,:,:,:,:,ind_nu)+tempmat2
+!     for epsilon
+c$$$  call boson_wan_k(v_p,n_pbt,ind_k,1,1,1,
+c$$$  $      eps_k_den(1,1,1,1,1,ind_k,ind_nu),
+c$$$  $      tempmat2)
+c$$$  eps_loc(:,:,:,:,:,:,ind_nu)
+c$$$  $      =eps_loc(:,:,:,:,:,:,ind_nu)+tempmat2
+!     for polarizability
+c$$$  call boson_wan_k(work,n_pbt,ind_k,1,1,1,
+c$$$  $      chi0_k_den(1,1,1,1,1,ind_k,ind_nu),
+c$$$  $      tempmat2)
+c$$$  chi0_loc(:,:,:,:,:,:,ind_nu)
+c$$$  $      =chi0_loc(:,:,:,:,:,:,ind_nu)+tempmat2
 
-c$$$          call boson_wpb_k(work,n_pbt,ind_k,0,0,1,
-c$$$     $      chi0_wpb_k(1,1,1,1,1,ind_k,ind_nu))
-c$$$          
-c$$$          do kst=1,k_star(k)          
-c$$$            chi0_wpb_local(:,:,:,:,ind_nu)
-c$$$     $        =chi0_wpb_local(:,:,:,:,ind_nu)
-c$$$     $        +chi0_wpb_k(:,:,:,:,kst,ind_k,ind_nu)
-c$$$          enddo                    
+c$$$  call boson_wpb_k(work,n_pbt,ind_k,0,0,1,
+c$$$  $      chi0_wpb_k(1,1,1,1,1,ind_k,ind_nu))
+c$$$  
+c$$$  do kst=1,k_star(k)          
+c$$$  chi0_wpb_local(:,:,:,:,ind_nu)
+c$$$  $        =chi0_wpb_local(:,:,:,:,ind_nu)
+c$$$  $        +chi0_wpb_k(:,:,:,:,kst,ind_k,ind_nu)
+c$$$  enddo                    
           
 
-! for polarizability
+!     for polarizability
 
         endif
         w_s=w_s-v_tmp
@@ -415,18 +436,18 @@ c$$$  w_s=em1_gg0_low(1,i_nu)*v_tmp
             else
               w_s=w_s+v_tmp
             endif
-C$$$            if(w_q_zero==0) then
-C$$$              if(i_nu==0.and.metal) then
-C$$$                w_s=v_tmp
-C$$$                call invers_h(n_pbt,w_s,n_pbt)
-C$$$                w_s=w_s-work
-C$$$                call invers_h(n_pbt,w_s,n_pbt)
-C$$$              else
-C$$$                w_s=em1_gg0_low(1,i_nu)*v_tmp
-C$$$              endif
-C$$$            endif
-C$$$c     ------- We enforce the hermiticity here ------------------------------
-C$$$            dd2=max(dd2,check_hermit(w_s,n_pbt,n_pbt))
+C$$$  if(w_q_zero==0) then
+C$$$  if(i_nu==0.and.metal) then
+C$$$  w_s=v_tmp
+C$$$  call invers_h(n_pbt,w_s,n_pbt)
+C$$$  w_s=w_s-work
+C$$$  call invers_h(n_pbt,w_s,n_pbt)
+C$$$  else
+C$$$  w_s=em1_gg0_low(1,i_nu)*v_tmp
+C$$$  endif
+C$$$  endif
+C$$$  c     ------- We enforce the hermiticity here ------------------------------
+C$$$  dd2=max(dd2,check_hermit(w_s,n_pbt,n_pbt))
           else                  !!!if(k/=1) then
 c     ------- V_P = V*P ------------------------------
             if (.not. u_linear) then
@@ -490,14 +511,14 @@ c     ------- Contribution to eps^(-1) for q=(0,0,0) --------------------
      $        (0.0d0,0.0d0),work1,n_pbt)
           endif
 
-! for polarizability
-          call boson_wan_k(work1,n_pbt,ind_k,1,1,1,
-     $      chi_high_k_den(1,1,1,1,1,ind_k,ind_nu),
-     $      tempmat2)
-          chi_high_loc(:,:,:,:,:,:,ind_nu)
-     $      =chi_high_loc(:,:,:,:,:,:,ind_nu)+tempmat2
-          call pack_hermit(work1,chimat_high_packed(1,1,ind_nu),
-     $      n_pbt,n_pbt,n_pbt,0.d0,1.d0)
+!     for polarizability
+c$$$  call boson_wan_k(work1,n_pbt,ind_k,1,1,1,
+c$$$  $      chi_high_k_den(1,1,1,1,1,ind_k,ind_nu),
+c$$$  $      tempmat2)
+c$$$  chi_high_loc(:,:,:,:,:,:,ind_nu)
+c$$$  $      =chi_high_loc(:,:,:,:,:,:,ind_nu)+tempmat2
+c$$$  call pack_hermit(work1,chimat_high_packed(1,1,ind_nu),
+c$$$  $      n_pbt,n_pbt,n_pbt,0.d0,1.d0)
           
 c     ----- Contribution to Etot_C from PW --------------------------------
           
@@ -508,23 +529,23 @@ c     ----- Contribution to Etot_C from PW --------------------------------
      $      tempmat2)          
           u_loc(:,:,:,:,:,:,ind_nu)
      $      =u_loc(:,:,:,:,:,:,ind_nu)+tempmat2
-          call boson_wan_k(epsinv,n_pbt,ind_k,1,1,1,
-     $      epsinv_high_k_den(1,1,1,1,1,ind_k,ind_nu),
-     $      tempmat2)
-          epsinv_high_loc(:,:,:,:,:,:,ind_nu)
-     $      =epsinv_high_loc(:,:,:,:,:,:,ind_nu)+tempmat2
-! for epsilon
-          call boson_wan_k(v_p,n_pbt,ind_k,1,1,1,
-     $      eps_high_k_den(1,1,1,1,1,ind_k,ind_nu),
-     $      tempmat2)
-          eps_high_loc(:,:,:,:,:,:,ind_nu)
-     $      =eps_high_loc(:,:,:,:,:,:,ind_nu)+tempmat2
-! for polarizability
-          call boson_wan_k(work,n_pbt,ind_k,1,1,1,
-     $      chi0_high_k_den(1,1,1,1,1,ind_k,ind_nu),
-     $      tempmat2)
-          chi0_high_loc(:,:,:,:,:,:,ind_nu)
-     $      =chi0_high_loc(:,:,:,:,:,:,ind_nu)+tempmat2
+c$$$  call boson_wan_k(epsinv,n_pbt,ind_k,1,1,1,
+c$$$  $      epsinv_high_k_den(1,1,1,1,1,ind_k,ind_nu),
+c$$$  $      tempmat2)
+c$$$  epsinv_high_loc(:,:,:,:,:,:,ind_nu)
+c$$$  $      =epsinv_high_loc(:,:,:,:,:,:,ind_nu)+tempmat2
+!     for epsilon
+c$$$  call boson_wan_k(v_p,n_pbt,ind_k,1,1,1,
+c$$$  $      eps_high_k_den(1,1,1,1,1,ind_k,ind_nu),
+c$$$  $      tempmat2)
+c$$$  eps_high_loc(:,:,:,:,:,:,ind_nu)
+c$$$  $      =eps_high_loc(:,:,:,:,:,:,ind_nu)+tempmat2
+!     for polarizability
+c$$$  call boson_wan_k(work,n_pbt,ind_k,1,1,1,
+c$$$  $      chi0_high_k_den(1,1,1,1,1,ind_k,ind_nu),
+c$$$  $      tempmat2)
+c$$$  chi0_high_loc(:,:,:,:,:,:,ind_nu)
+c$$$  $      =chi0_high_loc(:,:,:,:,:,:,ind_nu)+tempmat2
 
 
 c     -------------------------------------------------------------------
@@ -533,38 +554,38 @@ c     -------------------------------------------------------------------
 
       if(we_need_u) then
         
-        chimat_tau=0.0d0
-        chimat_tau_packed=0.0d0
-        call from_nu_to_tau_ba(chimat_packed,n_pbt,
-     $    chimat_tau_packed,n_pbt,n_pbt)
-        do ind_tau=1, ndim3_tau
-          call boson_unpack_tau(chimat_tau(1,1,ind_tau),n_pbt,
-     &      chimat_tau_packed(1,1,ind_tau),n_pbt,n_pbt)
-          call boson_wan_k(chimat_tau(1,1,ind_tau),n_pbt,ind_k,1,1,1,
-     $      chi_k_den_tau(1,1,1,1,1,ind_k,ind_tau),
-     $      tempmat2)
-        enddo
+c$$$  chimat_tau=0.0d0
+c$$$  chimat_tau_packed=0.0d0
+c$$$  call from_nu_to_tau_ba(chimat_packed,n_pbt,
+c$$$  $    chimat_tau_packed,n_pbt,n_pbt)
+c$$$  do ind_tau=1, ndim3_tau
+c$$$  call boson_unpack_tau(chimat_tau(1,1,ind_tau),n_pbt,
+c$$$  &      chimat_tau_packed(1,1,ind_tau),n_pbt,n_pbt)
+c$$$  call boson_wan_k(chimat_tau(1,1,ind_tau),n_pbt,ind_k,1,1,1,
+c$$$  $      chi_k_den_tau(1,1,1,1,1,ind_k,ind_tau),
+c$$$  $      tempmat2)
+c$$$  enddo
 
-        if (pol_iter_for_u .gt. 0) then
-          chimat_high_tau=0.0d0
-          chimat_high_tau_packed=0.0d0
-          call from_nu_to_tau_ba(chimat_high_packed,n_pbt,
-     $      chimat_high_tau_packed,n_pbt,n_pbt)
-          do ind_tau=1, ndim3_tau
-            call boson_unpack_tau(chimat_high_tau(1,1,ind_tau),n_pbt,
-     &        chimat_high_tau_packed(1,1,ind_tau),n_pbt,n_pbt)
-            call boson_wan_k(chimat_high_tau(1,1,ind_tau),
-     $        n_pbt,ind_k,1,1,1,
-     $        chi_high_k_den_tau(1,1,1,1,1,ind_k,ind_tau),
-     $      tempmat2)
-          enddo
-          deallocate(chimat_high_tau_packed)        
-          deallocate(chimat_high_packed)        
-          deallocate(chimat_high_tau)
-        endif
-        deallocate(chimat_packed)
-        deallocate(chimat_tau_packed)
-        deallocate(chimat_tau)
+c$$$  if (pol_iter_for_u .gt. 0) then
+c$$$  chimat_high_tau=0.0d0
+c$$$  chimat_high_tau_packed=0.0d0
+c$$$  call from_nu_to_tau_ba(chimat_high_packed,n_pbt,
+c$$$  $      chimat_high_tau_packed,n_pbt,n_pbt)
+c$$$  do ind_tau=1, ndim3_tau
+c$$$  call boson_unpack_tau(chimat_high_tau(1,1,ind_tau),n_pbt,
+c$$$  &        chimat_high_tau_packed(1,1,ind_tau),n_pbt,n_pbt)
+c$$$  call boson_wan_k(chimat_high_tau(1,1,ind_tau),
+c$$$  $        n_pbt,ind_k,1,1,1,
+c$$$  $        chi_high_k_den_tau(1,1,1,1,1,ind_k,ind_tau),
+c$$$  $      tempmat2)
+c$$$  enddo
+c$$$  deallocate(chimat_high_tau_packed)        
+c$$$  deallocate(chimat_high_packed)        
+c$$$  deallocate(chimat_high_tau)
+c$$$  endif
+c$$$  deallocate(chimat_packed)
+c$$$  deallocate(chimat_tau_packed)
+c$$$  deallocate(chimat_tau)
         deallocate(tempmat2)        
 
         
@@ -614,10 +635,10 @@ c$$$  endif ! myrevision
 c$$$  if(w_q_zero==1) deallocate(eps_singular)
       if(q2<1.d-10) then
         if(nproc_tau/=1) call mpi_allreduce_dble(dd1,1,mpi_max,comm_k)
-C$$$        if(nproc_tau/=1) call mpi_allreduce_dble(dd2,1,mpi_max,comm_k)
+C$$$  if(nproc_tau/=1) call mpi_allreduce_dble(dd2,1,mpi_max,comm_k)
         if(maswrk) then
           write(iun,*)' Max deviation from Hermiticity in W is ',dd1
-C$$$          write(iun,*)' Max deviation from Hermiticity in U is ',dd2
+C$$$  write(iun,*)' Max deviation from Hermiticity in U is ',dd2
         endif
       endif
 c$$$  if(key_u==1) deallocate(p_low, p_low_0)
@@ -649,24 +670,24 @@ C$$$  enddo
       call from_nu_to_tau_ba(w_c_nu,n_pbt,p_w_solid_q_tau(1,1,1,ind_k),
      &  nvopt_max,n_pbt)
 
-      if (we_need_u) then
-        allocate(tempmat2(num_orb_proj,num_orb_proj,
-     $    num_orb_proj,num_orb_proj,nspin,nspin))
-        
-        allocate(wcmat_tau(n_pbt,n_pbt,ndim3_tau)) !
-        wcmat_tau=0.0d0
-        
-        
-        do ind_tau=1, ndim3_tau
-          call boson_unpack_tau(wcmat_tau(1,1,ind_tau),n_pbt,
-     &      p_w_solid_q_tau(1,1,ind_tau,ind_k),n_pbt,n_pbt)
-          call boson_wan_k(wcmat_tau(1,1,ind_tau),n_pbt,ind_k,1,1,1,
-     $      wc_k_den_tau(1,1,1,1,1,ind_k,ind_tau),
-     $      tempmat2)
-        enddo
-        deallocate(wcmat_tau)
-        deallocate(tempmat2)
-      endif
+c$$$  if (we_need_u) then
+c$$$  allocate(tempmat2(num_orb_proj,num_orb_proj,
+c$$$  $    num_orb_proj,num_orb_proj,nspin,nspin))
+c$$$  
+c$$$  allocate(wcmat_tau(n_pbt,n_pbt,ndim3_tau)) !
+c$$$  wcmat_tau=0.0d0
+c$$$  
+c$$$  
+c$$$  do ind_tau=1, ndim3_tau
+c$$$  call boson_unpack_tau(wcmat_tau(1,1,ind_tau),n_pbt,
+c$$$  &      p_w_solid_q_tau(1,1,ind_tau,ind_k),n_pbt,n_pbt)
+c$$$  call boson_wan_k(wcmat_tau(1,1,ind_tau),n_pbt,ind_k,1,1,1,
+c$$$  $      wc_k_den_tau(1,1,1,1,1,ind_k,ind_tau),
+c$$$  $      tempmat2)
+c$$$  enddo
+c$$$  deallocate(wcmat_tau)
+c$$$  deallocate(tempmat2)
+c$$$  endif
       
       if(ind_k==1) call timel('***** W: NU_to_TAU finished ********')
       deallocate(w_c_nu)

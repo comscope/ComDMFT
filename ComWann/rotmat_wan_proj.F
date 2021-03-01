@@ -13,7 +13,7 @@
 !     $  rot1(jdim, jdim),
 !     $  rot2(jdim, jdim),rot3(jdim, jdim),
      $  alpha,
-     $  rotmat_ordinary(3,3)
+     $  rotmat_ordinary(3,3),pi
       double precision, external :: ddot
       complex*16 :: ai
 !     $  tempmat3(jdim,jdim)
@@ -25,7 +25,7 @@
       endif
 
 
-!      pi=datan2(1.0d0,1.0d0)*4.0d0
+      pi=datan2(1.0d0,1.0d0)*4.0d0
       ai=dcmplx(0.0d0,1.0d0)
 
       proj_z_unit=proj_z_dir
@@ -68,6 +68,9 @@
         alpha=0.0d0
         gamma=datan2(rotmat_ordinary(2,1),rotmat_ordinary(2,2))
       endif
+
+      if (alpha <-1.0d-6) alpha=alpha+2*pi
+      if (gamma <-1.0d-6) gamma=gamma+2*pi            
 
       rotmat=0.0d0
 

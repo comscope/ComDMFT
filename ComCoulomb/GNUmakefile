@@ -140,7 +140,7 @@ o_files = \
  z_wan_rr_mt.o \
  z_wan_rr_int.o \
  wannier_interface.o \
- read_gwl_bni.o \
+ read_uca_info.o \
  qft.o \
  beging.o \
  start_par_mb.o \
@@ -149,7 +149,7 @@ o_files = \
  correlated_atoms.o \
  read_ini.o \
  cal_weig_rc.o \
- read_ntau_bni.o \
+ read_ntau_uca_info.o \
  get_rr.o 
 
 mod_files = \
@@ -160,12 +160,11 @@ mod_files = \
  solid_mod.mod \
  units_mod.mod \
  vertex_mod.mod \
- wannier90_mod.mod \
- lda_dmft_mod.mod
+ wannier90_mod.mod
 
 ifdef USE_HDF5
-  o_files +=  read_gwl_bni_hdf5.o
-  o_files +=  read_ntau_bni_hdf5.o
+  o_files +=  read_uca_info_hdf5.o
+  o_files +=  read_ntau_uca_info_hdf5.o
   o_files +=  hdf5io_mod.o
   o_files +=  read_wannier_dat_hdf5.o
   mod_files += hdf5io_mod.mod

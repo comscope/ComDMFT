@@ -30,19 +30,19 @@
       ai=dcmplx(0.0d0, 1.0d0)
       open(unit=iun, file='comlowh.log')
 
-      if (me .lt. 10) then
-        write(ch, '(a, i1, a)') "check_comlowh_", me, ".dat"
-      elseif (me .lt. 100) then
-        write(ch, '(a, i2, a)') "check_comlowh_", me, ".dat"
-      elseif (me .lt. 1000) then
-        write(ch, '(a, i3, a)') "check_comlowh_", me, ".dat"
-      elseif (me .lt. 10000) then
-        write(ch, '(a, i4, a)') "check_comlowh_", me, ".dat"
-      elseif (me .lt. 100000) then
-        write(ch, '(a, i5, a)') "check_comlowh_", me, ".dat"
-      elseif (me .lt. 1000000) then
-        write(ch, '(a, i6, a)') "check_comlowh_", me, ".dat"        
-      endif
+c$$$      if (me .lt. 10) then
+c$$$        write(ch, '(a, i1, a)') "check_comlowh_", me, ".dat"
+c$$$      elseif (me .lt. 100) then
+c$$$        write(ch, '(a, i2, a)') "check_comlowh_", me, ".dat"
+c$$$      elseif (me .lt. 1000) then
+c$$$        write(ch, '(a, i3, a)') "check_comlowh_", me, ".dat"
+c$$$      elseif (me .lt. 10000) then
+c$$$        write(ch, '(a, i4, a)') "check_comlowh_", me, ".dat"
+c$$$      elseif (me .lt. 100000) then
+c$$$        write(ch, '(a, i5, a)') "check_comlowh_", me, ".dat"
+c$$$      elseif (me .lt. 1000000) then
+c$$$        write(ch, '(a, i6, a)') "check_comlowh_", me, ".dat"        
+c$$$      endif
 
 c$$$      open(179, file=trim(ch))
 
@@ -58,19 +58,34 @@ c$$$      write(179,*) 'here'
         read(10,*) cal_mode
 !     cal_mode 1 => delta
 !     cal_mode 2 => delta real
-!     cal_mode 3 => delta real path               
+!     cal_mode 3 => delta real path
+!     cal_mode 4 => delta imag qp hamiltonian
+!     cal_mode 5 => delta imag path qp hamiltonian       
         if (cal_mode .eq. 1) then
           is_matsubara=1
           is_kpath=0
           is_recal_ef=1
+          is_qp=0
         elseif (cal_mode .eq. 2) then
           is_matsubara=0
           is_kpath=0
-          is_recal_ef=0          
+          is_recal_ef=0
+          is_qp=0
         elseif (cal_mode .eq. 3) then
           is_matsubara=0
           is_kpath=1
-          is_recal_ef=0                    
+          is_recal_ef=0
+          is_qp=0
+        elseif (cal_mode .eq. 4) then
+          is_matsubara=1
+          is_kpath=0
+          is_recal_ef=0
+          is_qp=1
+        elseif (cal_mode .eq. 5) then
+          is_matsubara=1
+          is_kpath=1
+          is_recal_ef=0
+          is_qp=1
         endif
         
         num_cell=1
@@ -221,13 +236,15 @@ c$$$        is_metal=1
 c$$$            write(179, *) kpt_latt_fi(:,irk)        
           enddo
         else
-          open(unit=11, file='kpath.dat', status='old')
+          open(unit=11, file='kpoints', status='old')
+          read(11,*)
+          read(11,*)           
           read(11,*) nqdiv_fi
           if (nqdiv_fi .gt. 0) then
             allocate(kpt_latt_fi(3,nqdiv_fi))
             kpt_latt_fi=0.0d0
             do ii=1, nqdiv_fi
-              read(11,*) (kpt_latt_fi(jj, ii), jj=1,3)
+              read(11,*) jj, (kpt_latt_fi(jj, ii), jj=1,3)
             enddo
           endif
           close(11)
@@ -253,7 +270,8 @@ c$$$  endif
       call mpi_bcast(cal_mode,1,mpi_integer,0,MPI_COMM_WORLD,mpierr) !
       call mpi_bcast(is_matsubara,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
       call mpi_bcast(is_kpath,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
-      call mpi_bcast(is_recal_ef,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)                  
+      call mpi_bcast(is_recal_ef,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
+      call mpi_bcast(is_qp,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)                        
       call mpi_bcast(num_cell,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)      
       call mpi_bcast(num_atom,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
       if (.not. maswrk) allocate(num_orb(num_atom))      
@@ -629,9 +647,22 @@ c$$$      write(179,*) 'v_matrix', sum(abs(v_matrix)**2, 1)
       n_mpi_kk_fi=0
       call size_shift_par(nqdiv_fi,nproc,ndim_kk_fi,n_mpi_kk_fi)
       ndim_kk_fi_max=maxval(ndim_kk_fi)
-      
-      call cal_g(nqdiv_fi,ndim_kk_fi,n_mpi_kk_fi,ndim_kk_fi_max,
+
+      if (is_qp .eq. 0) then
+        if (maswrk) then
+          write(iun, *) 'cal_g run'
+        endif
+c$$$        write(179, *) 'cal_g run'        
+        call cal_g(nqdiv_fi,ndim_kk_fi,n_mpi_kk_fi,ndim_kk_fi_max,
      $    kpt_latt_fi)
+      else
+        if (maswrk) then
+          write(iun, *) 'cal_h_qp run'
+        endif
+c$$$        write(179, *) 'cal_h_qp run'        
+        call cal_h_qp(nqdiv_fi,ndim_kk_fi,n_mpi_kk_fi,ndim_kk_fi_max,
+     $    kpt_latt_fi)
+      endif
       deallocate(num_orb)
       deallocate(iac)      
       deallocate(ndeg_iac)
@@ -723,7 +754,7 @@ c$$$      close(179)
      $  g_path_trace(:,:),
      $  g_path_orb(:,:,:), 
      $  g_path(:,:,:,:),
-     $  g_lat_kw_diagonal(:,:,:)
+     $  g_lat_kw_diagonal_orb(:,:,:)
 
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -953,55 +984,62 @@ c$$$      endif
      $    proj,proj_renorm,'fine_grid')
       endif
 
-      allocate(trans_basis
-     $  (num_orb_max,num_orb_max,n_iac_mat_i:n_iac_mat_f))
-      trans_basis=0.0d0
+      inquire(file="trans_basis.dat", exist=is_trans_basis)      
       
-      if (maswrk) then
-        open(unit=305, file='trans_basis.dat')
-        allocate(tempdble(2,num_orb_max))
-        do ii=n_iac_mat_i, n_iac_mat_f
-          tempdble=0.0d0            
-          if (ii .eq. 0) cycle
-          do jorb=1, norb_iac(ii)
-            read(305,*) ((tempdble(jj,iorb), jj=1, 2), 
-     $        iorb=1,norb_iac(ii))
-            do iorb=1, norb_iac(ii)
-              trans_basis(jorb,iorb,ii)
-     $          =dcmplx(tempdble(1,iorb), tempdble(2,iorb))
+      if (is_trans_basis) then      
+        allocate(trans_basis
+     $    (num_orb_max,num_orb_max,n_iac_mat_i:n_iac_mat_f))
+        trans_basis=0.0d0
+        
+        if (maswrk) then
+          open(unit=305, file='trans_basis.dat')
+          allocate(tempdble(2,num_orb_max))
+          do ii=n_iac_mat_i, n_iac_mat_f
+            tempdble=0.0d0            
+            if (ii .eq. 0) cycle
+            do jorb=1, norb_iac(ii)
+              read(305,*) ((tempdble(jj,iorb), jj=1, 2), 
+     $          iorb=1,norb_iac(ii))
+              do iorb=1, norb_iac(ii)
+                trans_basis(jorb,iorb,ii)
+     $            =dcmplx(tempdble(1,iorb), tempdble(2,iorb))
+              enddo
+            enddo
+c$$$  test if it is unitary
+            call check_if_unitary(norb_iac(ii),num_orb_max,
+     $        trans_basis(1,1,ii),fail_ind)
+            if (fail_ind .ne. 0) then
+              write(iun,*) 'trans_basis matrix is not unitary'
+              call ending                
+            endif
+          enddo
+          deallocate(tempdble)
+          close(305)
+        endif
+        call mpi_bcast(trans_basis,n_iac_mat*num_orb_max**2,
+     $    mpi_double_complex,0,MPI_COMM_WORLD,mpierr)
+      endif
+
+
+      if (is_trans_basis) then
+      
+        do icell=1, num_cell
+          do iatom=1, num_atom
+            do ik=1, ndim_k(me1)
+              irk=n_mpi_k(me1)+ik                          
+              ii=iac(iatom,icell)
+              tempmat1=proj_renorm(:,:,iatom,icell,ik)
+              proj_renorm(:,:,iatom,icell,ik)=0.0d0              
+              call zgemm('n','n',num_orb(iatom),num_wancell,
+     $          num_orb(iatom),(1.d0,0.d0),
+     $          trans_basis(1,1,ii),num_orb_max,
+     $          tempmat1,num_orb_max,
+     $          (0.d0,0.d0),
+     $          proj_renorm(1,1,iatom,icell,ik),num_orb_max)
             enddo
           enddo
-c$$$  test if it is unitary
-          call check_if_unitary(norb_iac(ii),num_orb_max,
-     $      trans_basis(1,1,ii),fail_ind)
-          if (fail_ind .ne. 0) then
-            write(iun,*) 'trans_basis matrix is not unitary'
-            call ending                
-          endif
         enddo
-        deallocate(tempdble)
-        close(305)
       endif
-      call mpi_bcast(trans_basis,n_iac_mat*num_orb_max**2,
-     $  mpi_double_complex,0,MPI_COMM_WORLD,mpierr)
-      
-      do icell=1, num_cell
-        do iatom=1, num_atom
-          do ik=1, ndim_k(me1)
-            irk=n_mpi_k(me1)+ik                          
-            ii=iac(iatom,icell)
-            tempmat1=proj_renorm(:,:,iatom,icell,ik)
-            proj_renorm(:,:,iatom,icell,ik)=0.0d0              
-            call zgemm('n','n',num_orb(iatom),num_wancell,
-     $        num_orb(iatom),(1.d0,0.d0),
-     $        trans_basis(1,1,ii),num_orb_max,
-     $        tempmat1,num_orb_max,
-     $        (0.d0,0.d0),
-     $        proj_renorm(1,1,iatom,icell,ik),num_orb_max)
-          enddo
-        enddo
-      enddo
-
       
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !     5. projected green's function at each frequency
@@ -1020,23 +1058,26 @@ c$$$  test if it is unitary
         delta_mat=0.0d0
         e_projected_mat=0.0d0
         if (cal_mode .eq. 1) then
-          allocate(g_lat_kw_diagonal(num_wancell,ndim_k_max,n_omega))
-          g_lat_kw_diagonal=0.0d0
+          allocate(g_lat_kw_diagonal_orb
+     $      (num_wancell,ndim_k_max,n_omega))
+          g_lat_kw_diagonal_orb=0.0d0
         elseif (cal_mode .eq. 2) then
           allocate(tdos(n_omega))
           allocate(pdos(n_omega, num_wancell))
           tdos=0.0d0
           pdos=0.0d0
         endif
-      elseif (cal_mode .eq. 3) then
-        allocate(g_path_trace(numk,n_omega))
-        allocate(g_path_orb(numk,n_omega,num_wancell))
-        allocate(g_path(num_wancell,num_wancell,n_omega,ndim_k_max))
-        g_path_trace=0.0d0
-        g_path_orb=0.0d0          
-        g_path=0.0d0
+      else
+        if (cal_mode .eq. 3) then
+          allocate(g_path_trace(numk,n_omega))
+          allocate(g_path_orb(numk,n_omega,num_wancell))
+          allocate(g_path(num_wancell,num_wancell,n_omega,ndim_k_max))
+          g_path_trace=0.0d0
+          g_path_orb=0.0d0          
+          g_path=0.0d0
+        endif
       endif
-
+      
       allocate(h_nonint(num_wancell,num_wancell,ndim_k_max))
       h_nonint=0.0d0
 
@@ -1242,8 +1283,10 @@ c$$$  write(179,*) 'e_projected', e_projected
           close(305)
         endif
       endif
-      
-      g_lat_kw_diagonal=0.0d0
+
+      if (cal_mode .eq. 1) then      
+        g_lat_kw_diagonal_orb=0.0d0
+      endif
 
       do iomega=1,n_omega
         
@@ -1289,10 +1332,16 @@ c$$$  write(179,*) 'e_projected', e_projected
               enddo
             enddo
             if (cal_mode .eq. 1) then
-              do ibnd=1, num_wancell
-                g_lat_kw_diagonal(ibnd,ik,iomega)
-     $            =g_lat_kw_diagonal(ibnd,ik,iomega)
-     $            +g_lat_kw(ibnd,ibnd)
+              do iwancell=1, num_wancell
+                do jwancell=1, num_wancell
+                  do kwancell=1, num_wancell
+                    g_lat_kw_diagonal_orb(iwancell,ik,iomega)
+     $                =g_lat_kw_diagonal_orb(iwancell,ik,iomega)
+     $                +w_matrix_fi(iwancell,jwancell,ik)
+     $                *g_lat_kw(jwancell,kwancell)
+     $                *dconjg(w_matrix_fi(iwancell,kwancell,ik))
+                  enddo
+                enddo
               enddo
             elseif (cal_mode .eq. 2) then
               do iwancell=1, num_wancell
@@ -1476,8 +1525,8 @@ c$$$          close(305)
         if (cal_mode .eq. 1) then
 
           call fermi_level_spectral_function_local
-          call fermi_level_spectral_function
-     $      (numk, ndim_k, n_mpi_k, ndim_k_max, g_lat_kw_diagonal)
+          call fermi_level_spectral_function_ksum
+     $      (numk, ndim_k, n_mpi_k, ndim_k_max, g_lat_kw_diagonal_orb)
           
           allocate(eigenvalues_co(num_wancell,ndim_kk_co_max)) !
           eigenvalues_co=0.0d0
@@ -1539,22 +1588,24 @@ c$$$          close(305)
      $      proj_co,proj_renorm_co,'coarse_grid')
 
 
-          do icell=1, num_cell
-            do iatom=1, num_atom
-              do ik=1, ndim_kk_co(me1)
-                irk=n_mpi_kk_co(me1)+ik                          
-                ii=iac(iatom,icell)
-                tempmat1=proj_renorm_co(:,:,iatom,icell,ik)
-                proj_renorm(:,:,iatom,icell,ik)=0.0d0              
-                call zgemm('n','n',num_orb(iatom),num_wancell,
-     $            num_orb(iatom),(1.d0,0.d0),
-     $            trans_basis(1,1,ii),num_orb_max,
-     $            tempmat1,num_orb_max,
-     $            (0.d0,0.d0),
-     $            proj_renorm_co(1,1,iatom,icell,ik),num_orb_max)
+          if (is_trans_basis) then      
+            do icell=1, num_cell
+              do iatom=1, num_atom
+                do ik=1, ndim_kk_co(me1)
+                  irk=n_mpi_kk_co(me1)+ik                          
+                  ii=iac(iatom,icell)
+                  tempmat1=proj_renorm_co(:,:,iatom,icell,ik)
+                  proj_renorm_co(:,:,iatom,icell,ik)=0.0d0              
+                  call zgemm('n','n',num_orb(iatom),num_wancell,
+     $              num_orb(iatom),(1.d0,0.d0),
+     $              trans_basis(1,1,ii),num_orb_max,
+     $              tempmat1,num_orb_max,
+     $              (0.d0,0.d0),
+     $              proj_renorm_co(1,1,iatom,icell,ik),num_orb_max)
+                enddo
               enddo
             enddo
-          enddo          
+          endif
 
           call cal_vw_matrix_co
           call cal_n_matrix
@@ -1755,7 +1806,9 @@ c$$$  endif
       deallocate(proj)
       deallocate(proj_renorm)
       deallocate(g_lat_inv)
-      deallocate(trans_basis)                    
+      if (is_trans_basis) then            
+        deallocate(trans_basis)
+      endif
       
       if (is_kpath .eq. 0) then
         deallocate(gloc)
@@ -1773,6 +1826,691 @@ c$$$  endif
       endif
       end
 
+
+
+      subroutine cal_h_qp(numk,ndim_k,n_mpi_k,ndim_k_max,kvec)
+
+      use comlowh_mod
+      use pfit_mod
+
+      implicit none
+      include "mpif.h"
+
+      integer, intent(in) :: numk, ndim_k(nproc), n_mpi_k(nproc),
+     $  ndim_k_max
+      double precision, intent(in) :: kvec(3,numk)
+
+      integer ::
+     $  ii,jj,i1,j1,ik,irk,iomega,ibnd,jbnd,iwancell,jwancell,kwancell,
+     $  iorb,jorb,iatom,icell,jcell,iwan,jwan,igshift,
+     $  iio,fail_ind,proc_num,indout,tempind(1)
+
+      double precision ::pi,inv_numk,
+     $  deltaij,diag(num_wancell),
+     $  coeff1(4),
+     $  coeff2(4),      
+     $  zinv_m1_imp(n_ioac,n_iac_mat_i:n_iac_mat_f),        
+     $  sig0(n_ioac,n_iac_mat_i:n_iac_mat_f),
+     $  tempvec(num_wancell)
+      complex*16 :: ai, phaseval_dcmplx(num_cell),
+     $  h_k_wan_co(nqdiv),
+     $  h_r_wan(nrpts),
+     $  tempmat1(num_orb_max,num_wancell),
+     $  tempmat2(num_orb_max,num_orb_max),
+     $  tempmat3(num_wancell,num_wancell),
+     $  zinv(num_wancell,num_wancell),
+     $  zinv_imp(num_wancell,num_wancell),      
+     $  zinv_half(num_wancell,num_wancell),
+     $  z_half_imp(num_wancell,num_wancell),
+
+     $  mat_loc_ackw(num_orb_max,num_orb_max),
+     $  tempmat5(num_orb_max,num_orb_max),
+     $  tempmat11(num_wancell, num_wancell),
+     $  tempmat12(num_wancell, num_wancell),
+     $  fac,
+     $  h_qp_tmp(num_wancell,num_wancell)
+
+
+      integer :: irequest,istatus(mpi_status_size)      
+      logical :: mpiflag
+      logical :: file_exist      
+      
+      double precision, allocatable :: tempdble(:,:),
+     $  eigenvalues_fi_all(:,:),
+     $  eigenvalues_qp_fi_all(:,:),
+     $  eigenvalues_qp_orb(:,:),
+     $  eigenvalues_orb(:,:)            
+      complex*16, allocatable :: tempmat4(:,:),h_qp(:,:,:)
+
+
+c$$$      write(179,*) 'here1'
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!     1. zone_folding information
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ai=dcmplx(0.0d0, 1.0d0)
+      pi=datan2(1.0d0, 1.0d0)*4.0d0
+
+      
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!     2. h_k in fine grid
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      
+      allocate(h_k_wan_fi(num_wancell,num_wancell,ndim_k_max))
+      h_k_wan_fi=0.0d0
+
+      do iwan=1, num_wann
+        do jwan=1, num_wann
+          
+          h_k_wan_co=0.0d0
+          
+          do irk=1, nqdiv
+            do ibnd=1, num_bands                
+              h_k_wan_co(irk)=h_k_wan_co(irk)+
+     $          eigenvalues(ibnd,irk)*v_matrix(ibnd,jwan,irk)
+     $          *dconjg(v_matrix(ibnd,iwan,irk))
+            enddo
+          enddo
+          
+!     fourier transform to r space
+          
+          h_r_wan=0.0d0          
+          do i1=1, nrpts
+            do j1=1, nqdiv
+              h_r_wan(i1)=h_r_wan(i1)
+     $          +h_k_wan_co(j1)*
+     $          cdexp(-2.0*ai*pi*
+     $          sum(irvec(:,i1)*kpt_latt(:,j1)))
+     $          /dble(nqdiv)
+            enddo
+          enddo
+
+          if (num_cell .eq. 1) then
+            do ik=1, ndim_k(me1)
+              irk=n_mpi_k(me1)+ik
+              
+              do j1=1, nrpts
+                h_k_wan_fi(iwan,jwan,ik)
+     $            =h_k_wan_fi(iwan,jwan,ik)
+     $            +h_r_wan(j1)*
+     $            cdexp(2.0*ai*pi*
+     $            sum(
+     $            kvec(:,irk)
+     $            *irvec(:,j1))
+     $            )/dble(ndegen(j1))
+              enddo
+            enddo
+c$$$          else
+c$$$            do ik=1, ndim_k(me1)
+c$$$              irk=n_mpi_k(me1)+ik
+c$$$              do icell=1, num_cell
+c$$$                do jcell=1, num_cell
+c$$$                  iwancell=iwan+(icell-1)*num_wann
+c$$$                  jwancell=jwan+(jcell-1)*num_wann
+c$$$                  do igshift=1,num_cell ! gvec_conv_shift_fi vector
+c$$$                    do j1=1, nrpts
+c$$$                      phaseval
+c$$$     $                  =sum(irvec(:,j1)
+c$$$     $                  *matmul(
+c$$$     $                  matmul(transpose(real_lattice),
+c$$$     $                  recip_lattice_conv),
+c$$$     $                  (kvec(:,irk)+gvec_conv_shift(:,igshift,irk))
+c$$$     $                  )
+c$$$     $                  )
+c$$$                      phasetau
+c$$$     $                  =sum((lpoint(:,icell)-lpoint(:,jcell))
+c$$$     $                  *matmul(recip_lattice_conv,
+c$$$     $                  (kvec(:,irk)+gvec_conv_shift(:,igshift,irk))
+c$$$     $                  )
+c$$$     $                  )
+c$$$                      
+c$$$                      h_k_wan_fi(iwancell,jwancell,ik)
+c$$$     $                  =h_k_wan_fi(iwancell,jwancell,ik)
+c$$$     $                  +h_r_wan(j1)*
+c$$$     $                  cdexp(ai*(phaseval+phasetau))
+c$$$     $                  /dble(ndegen(j1))/dble(num_cell)
+c$$$                    enddo
+c$$$                  enddo      
+c$$$                enddo
+c$$$              enddo    
+c$$$            enddo
+          endif
+        enddo
+      enddo
+c$$$      write(179,*) 'here2'      
+      
+      allocate(eigenvalues_fi(num_wancell,ndim_k_max)) !
+      eigenvalues_fi=0.0d0
+      allocate(eigenvalues_fi_all(num_wancell,numk))
+      eigenvalues_fi_all=0.0d0
+      allocate(eigenvalues_qp_fi_all(num_wancell,numk))
+      eigenvalues_qp_fi_all=0.0d0
+      allocate(eigenvalues_orb(num_wancell,numk))
+      eigenvalues_orb=0.0d0
+      allocate(eigenvalues_qp_orb(num_wancell,numk))
+      eigenvalues_qp_orb=0.0d0            
+      allocate(w_matrix_fi(num_wancell,num_wancell,ndim_k_max))
+      w_matrix_fi=0.0d0
+      
+      w_matrix_fi=h_k_wan_fi
+
+      eigenvalues_fi_all=0.0d0
+      if (maswrk) then
+        open(unit=10, file='ef.dat', status='old')
+        read(10,*) ef
+        close(10)
+      endif
+
+      
+      call mpi_bcast(ef,1,mpi_double_precision,0,
+     $  MPI_COMM_WORLD,mpierr)
+
+      do ik=1, ndim_k(me1)
+        irk=n_mpi_k(me1)+ik
+        call hermitianeigen_cmplxdouble
+     $    (num_wancell,eigenvalues_fi(1,ik),w_matrix_fi(1,1,ik))
+        eigenvalues_fi_all(:,irk)=eigenvalues_fi(:,ik)
+        do iwancell=1, num_wancell
+          tempvec=cdabs(w_matrix_fi(iwancell,:,ik))
+          tempind=maxloc(tempvec)
+          eigenvalues_orb(iwancell,irk)=eigenvalues_fi(tempind(1),ik)
+        enddo
+        
+        
+      enddo
+
+      call mpi_allreduce_dble(eigenvalues_fi_all,
+     $  numk*num_wancell,mpi_sum,mpi_comm_world)
+      call mpi_allreduce_dble(eigenvalues_orb,
+     $  numk*num_wancell,mpi_sum,mpi_comm_world)      
+c$$$  write(179,*) 'here3'
+      
+      
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!     renormalize projector
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      
+      allocate(proj
+     $  (num_orb_max,num_wancell,num_atom,num_cell,ndim_k_max))
+      allocate(proj_renorm
+     $  (num_orb_max,num_wancell,num_atom,num_cell,ndim_k_max))
+
+      
+      proj=0.0d0
+      proj_renorm=0.0d0      
+
+      call dmft_projector
+     $  (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,
+     $  w_matrix_fi,proj)
+
+      if (is_kpath .eq. 0) then
+        call cal_hmat_rhomat_from_proj
+     $    (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,
+     $    eigenvalues_fi,proj,
+     $    ', bare projector, fine grid')
+      endif
+
+c$$$      write(179,*) 'here4'
+        
+      allocate(nbnd_in_win(numk))
+      allocate(bnd_in_win(num_wancell,numk))      
+      
+
+      call find_bnd_in_win(eigenvalues_fi_all,numk,num_wancell,
+     $  ewin_min,ewin_max,den_mode,is_spinorbit,nbnd_in_win,bnd_in_win)
+c$$$      if (maswrk) then
+c$$$        write(iun,*) 'num_band information in a find grid'
+c$$$        write(iun,'(a, 10000i5)') 'bands in the window',
+c$$$     $    maxval(nbnd_in_win), nbnd_in_win
+c$$$        do irk=1, numk
+c$$$          do ibnd=1, nbnd_in_win(irk)
+c$$$            jbnd=bnd_in_win(ibnd,irk)
+c$$$            write(iun,'(2i5, 2f12.6)')
+c$$$     $        ibnd, jbnd,
+c$$$     $        eigenvalues_fi_all(jbnd,irk)
+c$$$          enddo
+c$$$        enddo
+c$$$      endif
+      
+      call projector_renormalization_allk  
+     $  (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,    
+     $  eigenvalues_fi,proj,nbnd_in_win,bnd_in_win,proj_renorm)
+
+
+      if (is_kpath .eq. 0) then      
+        call cal_hmat_rhomat_from_proj
+     $    (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,
+     $    eigenvalues_fi,proj_renorm,
+     $    ', renormalized projector, fine grid')
+        call projector_compare
+     $    (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,          
+     $    proj,proj_renorm,'fine_grid')
+      endif
+c$$$      write(179,*) 'here5'
+      
+
+      inquire(file="trans_basis.dat", exist=is_trans_basis)      
+      
+      if (is_trans_basis) then      
+        allocate(trans_basis
+     $    (num_orb_max,num_orb_max,n_iac_mat_i:n_iac_mat_f))
+        trans_basis=0.0d0
+        
+        if (maswrk) then
+          open(unit=305, file='trans_basis.dat')
+          allocate(tempdble(2,num_orb_max))
+          do ii=n_iac_mat_i, n_iac_mat_f
+            tempdble=0.0d0            
+            if (ii .eq. 0) cycle
+            do jorb=1, norb_iac(ii)
+              read(305,*) ((tempdble(jj,iorb), jj=1, 2), 
+     $          iorb=1,norb_iac(ii))
+              do iorb=1, norb_iac(ii)
+                trans_basis(jorb,iorb,ii)
+     $            =dcmplx(tempdble(1,iorb), tempdble(2,iorb))
+              enddo
+            enddo
+c$$$  test if it is unitary
+            call check_if_unitary(norb_iac(ii),num_orb_max,
+     $        trans_basis(1,1,ii),fail_ind)
+            if (fail_ind .ne. 0) then
+              write(iun,*) 'trans_basis matrix is not unitary'
+              call ending                
+            endif
+          enddo
+          deallocate(tempdble)
+          close(305)
+        endif
+        call mpi_bcast(trans_basis,n_iac_mat*num_orb_max**2,
+     $    mpi_double_complex,0,MPI_COMM_WORLD,mpierr)
+      endif
+
+
+      if (is_trans_basis) then
+      
+        do icell=1, num_cell
+          do iatom=1, num_atom
+            do ik=1, ndim_k(me1)
+              irk=n_mpi_k(me1)+ik                          
+              ii=iac(iatom,icell)
+              tempmat1=proj_renorm(:,:,iatom,icell,ik)
+              proj_renorm(:,:,iatom,icell,ik)=0.0d0              
+              call zgemm('n','n',num_orb(iatom),num_wancell,
+     $          num_orb(iatom),(1.d0,0.d0),
+     $          trans_basis(1,1,ii),num_orb_max,
+     $          tempmat1,num_orb_max,
+     $          (0.d0,0.d0),
+     $          proj_renorm(1,1,iatom,icell,ik),num_orb_max)
+            enddo
+          enddo
+        enddo
+      endif
+
+c$$$      write(179,*) 'here6'
+      
+
+c$$$  self_energy
+
+      zinv_m1_imp=0.0d0
+      sig0=0.0d0
+      do ii=n_iac_mat_i, n_iac_mat_f
+        if ((is_magnetic .eq. 1) .and. (ii .eq. 0)) cycle
+        do iio=1, maxval(ioac(:,:,ii))
+          call pfit(frequency_dble(1:6),dble(sig(iio,ii,1:6)),
+     $      (/1.0d0,1.0d0,1.0d0,1.0d0,1.0d0,1.0d0/),
+     $      (/0,1,2,3/), coeff1)          
+          call pfit(frequency_dble(1:6),dimag(sig(iio,ii,1:6)),
+     $      (/1.0d0,1.0d0,1.0d0,1.0d0,1.0d0,1.0d0/),
+     $      (/0,1,2,3/), coeff2)
+          sig0(iio,ii)=coeff1(1)          
+          zinv_m1_imp(iio,ii)=-coeff2(2)
+          if (maswrk) then
+            write(iun,'(a, 2i5,6(2x,f12.6))') 'sig fit real part',
+     $        ii,iio,coeff1
+            write(iun,'(a, 2i5,6(2x,f12.6))') 'sig fit imag part',
+     $        ii,iio,coeff2            
+          endif
+        enddo
+      enddo
+      
+      
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!     5. projected green's function at each frequency
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      allocate(h_qp(num_wancell,num_wancell,ndim_k_max))
+      h_qp=0.0d0
+      
+      allocate(h_nonint(num_wancell,num_wancell,ndim_k_max))
+      h_nonint=0.0d0
+
+      do ik=1, ndim_k(me1)
+        irk=n_mpi_k(me1)+ik
+        if (zinv_m1_exist) then
+          zinv=0.0d0
+          do iwancell=1, num_wancell
+            zinv(iwancell,iwancell)=1.0d0
+          enddo
+          
+          do icell=1, num_cell
+            do iatom=1, num_atom
+              ii=iac(iatom,icell)
+              mat_loc_ackw=0.0d0
+              do iorb=1, num_orb(iatom)
+                do jorb=1, num_orb(iatom)
+                  iio=ioac(iorb,jorb,ii)
+                  if (iio .ne. 0) then
+                    mat_loc_ackw(iorb,jorb)
+     $                =mat_loc_ackw(iorb,jorb)
+     $                +zinv_m1(iio,ii)
+                  endif
+                enddo
+              enddo
+              
+              tempmat1=0.0d0
+              call zgemm('n','n',num_orb(iatom),num_wancell,
+     $          num_orb(iatom),(1.d0,0.d0),
+     $          mat_loc_ackw,num_orb_max,
+     $          proj_renorm(1,1,iatom,icell,ik),num_orb_max,
+     $          (0.d0,0.d0),
+     $          tempmat1,num_orb_max)
+              
+              call zgemm('c','n',num_wancell,num_wancell,
+     $          num_orb(iatom),(1.d0,0.d0),
+     $          proj_renorm(1,1,iatom,icell,ik),num_orb_max,
+     $          tempmat1,num_orb_max,(1.d0,0.d0),
+     $          zinv,num_wancell)
+            enddo
+          enddo
+          
+          call hermitianeigen_cmplxdouble
+     $      (num_wancell,diag,zinv)
+          
+          zinv_half=0.0d0
+          do iwancell=1, num_wancell
+            do jwancell=1, num_wancell
+              do kwancell=1, num_wancell                              
+                zinv_half(iwancell,jwancell)
+     $            =zinv_half(iwancell,jwancell)
+     $            +zinv(iwancell,kwancell)*dsqrt(diag(kwancell))
+     $            *dconjg(zinv(jwancell,kwancell))
+              enddo
+            enddo
+          enddo
+          
+          do iwancell=1, num_wancell
+            do jwancell=1, num_wancell
+              do kwancell=1, num_wancell                              
+                h_nonint(iwancell,jwancell,ik)
+     $            =h_nonint(iwancell,jwancell,ik)
+     $            +zinv_half(iwancell,kwancell)
+     $            *(eigenvalues_fi(kwancell,ik))
+     $            *zinv_half(kwancell,jwancell)
+              enddo
+            enddo
+          enddo
+        else
+          do iwancell=1, num_wancell
+            h_nonint(iwancell,iwancell,ik)
+     $        =eigenvalues_fi(iwancell,ik)
+          enddo
+        endif
+        do iwancell=1,num_wancell
+          h_nonint(iwancell,iwancell,ik)
+     $      =h_nonint(iwancell,iwancell,ik)-ef
+        enddo
+      enddo
+
+
+        
+c$$$      write(179,*) 'here7'
+        
+      
+      eigenvalues_qp_fi_all=0.0d0     
+
+      do ik=1, ndim_k(me1)
+        irk=n_mpi_k(me1)+ik        
+        
+!     embeding self-energy term:E(Sigma-DC)
+        
+        do icell=1, num_cell
+          do iatom=1, num_atom
+            ii=iac(iatom,icell)
+            mat_loc_ackw=0.0d0
+            do iorb=1, num_orb(iatom)
+              do jorb=1, num_orb(iatom)
+                iio=ioac(iorb,jorb,ii)
+                if (iio .ne. 0) then
+                  mat_loc_ackw(iorb,jorb)
+     $              =mat_loc_ackw(iorb,jorb)
+     $              +sig0(iio,ii)
+     $              -dc(iio,ii)
+                endif
+                
+              enddo
+            enddo
+            
+            tempmat1=0.0d0
+            call zgemm('n','n',num_orb(iatom),num_wancell,
+     $        num_orb(iatom),(1.d0,0.d0),
+     $        mat_loc_ackw,num_orb_max,
+     $        proj_renorm(1,1,iatom,icell,ik),num_orb_max,
+     $        (0.d0,0.d0),
+     $        tempmat1,num_orb_max)
+            
+            call zgemm('c','n',num_wancell,num_wancell,
+     $        num_orb(iatom),(1.d0,0.d0),
+     $        proj_renorm(1,1,iatom,icell,ik),num_orb_max,
+     $        tempmat1,num_orb_max,(1.d0,0.d0),
+     $        h_nonint(1,1,ik),num_wancell)
+          enddo
+        enddo
+
+
+        zinv_imp=0.0d0
+        do iwancell=1, num_wancell
+          zinv_imp(iwancell,iwancell)=1.0d0
+        enddo
+        
+        do icell=1, num_cell
+          do iatom=1, num_atom
+            ii=iac(iatom,icell)
+            mat_loc_ackw=0.0d0
+            do iorb=1, num_orb(iatom)
+              do jorb=1, num_orb(iatom)
+                iio=ioac(iorb,jorb,ii)
+                if (iio .ne. 0) then
+                  mat_loc_ackw(iorb,jorb)
+     $              =mat_loc_ackw(iorb,jorb)
+     $              +zinv_m1_imp(iio,ii)
+                endif
+              enddo
+            enddo
+            
+            tempmat1=0.0d0
+            call zgemm('n','n',num_orb(iatom),num_wancell,
+     $        num_orb(iatom),(1.d0,0.d0),
+     $        mat_loc_ackw,num_orb_max,
+     $        proj_renorm(1,1,iatom,icell,ik),num_orb_max,
+     $        (0.d0,0.d0),
+     $        tempmat1,num_orb_max)
+            
+            call zgemm('c','n',num_wancell,num_wancell,
+     $        num_orb(iatom),(1.d0,0.d0),
+     $        proj_renorm(1,1,iatom,icell,ik),num_orb_max,
+     $        tempmat1,num_orb_max,(1.d0,0.d0),
+     $        zinv_imp,num_wancell)
+          enddo
+        enddo
+        
+        call hermitianeigen_cmplxdouble
+     $    (num_wancell,diag,zinv_imp)
+        z_half_imp=0.0d0
+        do iwancell=1, num_wancell
+          do jwancell=1, num_wancell
+            do kwancell=1, num_wancell                              
+              z_half_imp(iwancell,jwancell)
+     $          =z_half_imp(iwancell,jwancell)
+     $          +zinv_imp(iwancell,kwancell)
+     $          *1.0d0/dsqrt(diag(kwancell))
+     $          *dconjg(zinv_imp(jwancell,kwancell))
+            enddo
+          enddo
+        enddo
+        
+        
+        call zgemm('n','n',num_wancell,num_wancell,num_wancell,
+     $    (1.0d0,0.0d0), z_half_imp(1,1),num_wancell,
+     $    h_nonint(1,1,ik),num_wancell,          
+     $    (0.d0,0.d0),tempmat11,num_wancell)
+        
+        call zgemm('n','n',num_wancell,num_wancell,num_wancell,
+     $    (1.d0,0.d0),tempmat11,num_wancell,
+     $    z_half_imp(1,1),num_wancell,
+     $    (0.d0,0.d0),tempmat12,num_wancell)
+        
+        call zgemm('n','n',num_wancell,num_wancell,num_wancell,
+     $    (1.0d0,0.0d0), w_matrix_fi(1,1,ik),num_wancell,
+     $    tempmat12,num_wancell,          
+     $    (0.d0,0.d0),tempmat11,num_wancell)
+        
+        call zgemm('n','c',num_wancell,num_wancell,num_wancell,
+     $    (1.d0,0.d0),tempmat11,num_wancell,
+     $    w_matrix_fi(1,1,ik),num_wancell,
+     $    (0.d0,0.d0),h_qp(1,1,ik),num_wancell)
+        
+c$$$        do iwancell=1, num_wancell
+c$$$          h_qp(iwancell,iwancell,ik)
+c$$$     $      =h_qp(iwancell,iwancell,ik)-ef
+c$$$        enddo
+
+
+        tempmat12=h_qp(:,:,ik)
+        call hermitianeigen_cmplxdouble
+     $    (num_wancell,eigenvalues_qp_fi_all(1,irk),
+     $    tempmat12)
+c$$$  write(179,*) 'here8',irk,ik
+       do iwancell=1, num_wancell
+          tempvec=cdabs(tempmat12(iwancell,:))
+          tempind=maxloc(tempvec)
+          eigenvalues_qp_orb(iwancell,irk)
+     $      =eigenvalues_qp_fi_all(tempind(1),irk)
+        enddo
+        
+      enddo
+
+c$$$      write(179,*) 'here8'
+        
+
+      
+      call mpi_allreduce_dble(eigenvalues_qp_fi_all,
+     $  numk*num_wancell,mpi_sum,mpi_comm_world)
+c$$$  write(179,*) 'here9'
+      call mpi_allreduce_dble(eigenvalues_qp_orb,
+     $  numk*num_wancell,mpi_sum,mpi_comm_world)            
+      
+      
+      if (maswrk) then
+        open(unit = 990, file = 'wannier_band_qp_interpolated.dat')
+        do ibnd=1,num_wancell
+          do irk=1, numk
+            write(990,'(2i7, f20.12)')
+     $        irk, ibnd,eigenvalues_qp_fi_all(ibnd,irk)
+          enddo
+        enddo
+        close(990)
+
+        open(unit = 990, file = 'wannier_band_non_interpolated.dat')
+        do ibnd=1,num_wancell
+          do irk=1, numk
+            write(990,'(2i7, f20.12)')
+     $        irk, ibnd,eigenvalues_fi_all(ibnd,irk)
+          enddo
+        enddo
+        close(990)
+
+        open(unit = 990, file = 'wannier_band_qp_interpolated_orb.dat')
+        do ibnd=1,num_wancell
+          do irk=1, numk
+            write(990,'(2i7, f20.12)')
+     $        irk, ibnd,eigenvalues_qp_orb(ibnd,irk)
+          enddo
+        enddo
+        close(990)
+
+        open(unit = 990, file = 'wannier_band_non_interpolated_orb.dat')
+        do ibnd=1,num_wancell
+          do irk=1, numk
+            write(990,'(2i7, f20.12)')
+     $        irk, ibnd,eigenvalues_orb(ibnd,irk)
+          enddo
+        enddo
+        close(990)        
+      endif        
+
+c$$$      if (maswrk) then      
+c$$$        open(unit=990, file='h_qp_matrix.dat')
+c$$$      endif
+c$$$      
+c$$$      if (.not. maswrk) then
+c$$$        do ik=1, ndim_k(me1)
+c$$$          irk=n_mpi_k(me1)+ik
+c$$$          call mpi_isend(h_qp(1,1,ik),
+c$$$     $      num_wancell**2,mpi_double_complex,0,irk,
+c$$$     $      mpi_comm_world,irequest,mpierr)
+c$$$          call mpi_wait(irequest,istatus,mpierr)
+c$$$          call mpi_test(irequest,mpiflag,istatus,mpierr)
+c$$$          if (.not.mpiflag)
+c$$$     $      call mpi_abort(mpi_comm_world,mpierr)
+c$$$        enddo
+c$$$      else
+c$$$        do irk=1, numk
+c$$$          call find_proc_ind(ndim_k, n_mpi_k, nproc,irk,
+c$$$     $      proc_num,indout)
+c$$$          if (proc_num .eq. 0)then
+c$$$            write(990,'(2000(2f20.12,2x))')
+c$$$     $        ((h_qp(iwancell,jwancell,indout),
+c$$$     $        iwancell=1,num_wancell),
+c$$$     $        jwancell=1,num_wancell)
+c$$$          else
+c$$$            h_qp_tmp=0.0d0
+c$$$            call mpi_irecv(h_qp_tmp,
+c$$$     $        num_wancell**2,mpi_double_complex,proc_num,
+c$$$     $        irk,mpi_comm_world,irequest,mpierr)
+c$$$            call mpi_wait(irequest,istatus,mpierr)
+c$$$            call mpi_test(irequest,mpiflag,istatus,mpierr)
+c$$$            if (.not.mpiflag)
+c$$$     $        call mpi_abort(mpi_comm_world,mpierr)
+c$$$            write(990,'(2000(2f20.12,2x))')
+c$$$     $        ((h_qp_tmp(iwancell,jwancell),
+c$$$     $        iwancell=1,num_wancell),
+c$$$     $        jwancell=1,num_wancell)              
+c$$$          endif
+c$$$        enddo
+c$$$      endif
+c$$$      if (maswrk) then
+c$$$        close(990)
+c$$$      endif
+      
+      
+      
+
+
+      deallocate(nbnd_in_win) !
+      deallocate(bnd_in_win) !
+      
+      deallocate(h_k_wan_fi) !
+      deallocate(eigenvalues_fi) !
+      deallocate(eigenvalues_fi_all) !
+      deallocate(eigenvalues_qp_fi_all) !      
+      deallocate(w_matrix_fi) !
+      deallocate(h_nonint) !
+      deallocate(proj)!
+      deallocate(proj_renorm) !
+      if (is_trans_basis) then            
+        deallocate(trans_basis) !
+      endif
+      
+      end
+      
 
 
       subroutine size_shift_par(n,npr,ndim_pr,n_mpi_pr)
@@ -1860,6 +2598,7 @@ c$$$  enddo
       enddo
       deallocate(buff)
       END
+
 
       SUBROUTINE mpi_allreduce_dcmplx(X,LENX,OP,comm)
       implicit none
@@ -3962,6 +4701,93 @@ c$$$  call flush(179)
         close(305)
       endif
       end
+
+
+
+      subroutine fermi_level_spectral_function_ksum
+     $  (numk, ndim_k, n_mpi_k,ndim_k_max, g_lat_kw_diagonal)
+      
+      use comlowh_mod
+      
+      implicit none
+      include "mpif.h"      
+
+      integer, intent(in) :: numk, ndim_k(nproc), n_mpi_k(nproc),
+     $  ndim_k_max      
+
+      complex*16, intent(in) ::
+     $  g_lat_kw_diagonal(num_wancell, ndim_k_max, n_omega)
+      integer :: iomega,ik,irk,ibnd
+
+      double precision :: pi
+      complex*16 :: g2, g3,spectral(num_wancell),
+     $  g_lat_w(num_wancell,n_omega)
+
+      pi=4.0d0*datan2(1.0d0,1.0d0)
+
+      g2=0.0d0
+      g3=0.0d0
+      spectral=0.0d0
+
+
+      g_lat_w=0.0d0
+      do ik=1, ndim_k(me1)
+        do iomega=1, n_omega
+          do ibnd=1, num_wancell
+            g_lat_w(ibnd,iomega)=g_lat_w(ibnd,iomega)
+     $        +g_lat_kw_diagonal(ibnd,ik,iomega)/numk
+          enddo
+        enddo
+      enddo
+
+      call mpi_allreduce_dcmplx(g_lat_w,
+     $  num_wancell*n_omega,mpi_sum,mpi_comm_world)      
+      
+            
+      do ibnd=1, num_wancell
+        
+        g2=dble(g_lat_w(ibnd,n_omega))
+     $    *frequency(n_omega)**2
+        g3=(dimag(g_lat_w(ibnd,n_omega))
+     $    -1.0d0/frequency(n_omega))
+     $    *frequency(n_omega)**3                
+        
+        do iomega=1, n_omega
+          spectral(ibnd)
+     $      =spectral(ibnd)
+     $      +1.0d0/beta*cdexp(-beta/2.0d0*frequency(iomega))
+     $      *(
+     $      g_lat_w(ibnd,iomega)
+     $      -1.0d0/frequency(iomega)
+     $      -g2/(frequency(iomega))**2
+     $      -g3/(frequency(iomega))**3                  
+     $      )
+     $      +1.0d0/beta*cdexp(beta/2.0d0*frequency(iomega))
+     $      *(
+     $      dconjg(g_lat_w(ibnd,iomega))
+     $      +1.0d0/frequency(iomega)
+     $      -g2/(frequency(iomega))**2
+     $      +g3/(frequency(iomega))**3                 
+     $      )
+        enddo
+        spectral(ibnd)
+     $    =spectral(ibnd)
+     $    -1.0d0/2.0d0
+     $    -g3*beta**2/4.0d0
+     $    *((1.0d0/2.0d0)**2-(1.0d0/2.0d0))
+      enddo
+
+      
+      if (maswrk) then
+        open(305, file='spectral_matrix_ef.dat')
+        do ibnd=1, num_wancell
+          write(305, '(f20.12, 2x)')
+     $      dble(spectral(ibnd))
+     $      /pi*beta*(-1.0d0)
+        enddo
+        close(305)
+      endif
+      end      
 
       subroutine indexing(ntot,ndivision,divisionarray,flag,n1,n2)
       use comlowh_mod

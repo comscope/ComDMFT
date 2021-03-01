@@ -89,26 +89,26 @@ c$$$        call mpi_allreduce_dcmplx(chi0_high_loc,
 c$$$     $    num_orb_proj**4*nspin**2*ndim3_nu,mpi_sum,comm_tau)
 c$$$        call mpi_allreduce_dcmplx(chi_high_loc,
 c$$$     $    num_orb_proj**4*nspin**2*ndim3_nu,mpi_sum,comm_tau)
-      elseif (u_mode .eq. 'edmf') then
-        call mpi_allreduce_dcmplx(w_wpb_local,
-     $    nwpb_max**2*natom_ciw**2*ndim3_nu,mpi_sum,comm_tau)
-
-      if (maswrk) then
-        write(iun,*) 'here-6'
-      endif        
+c$$$      elseif (u_mode .eq. 'edmf') then
+c$$$        call mpi_allreduce_dcmplx(w_wpb_local,
+c$$$     $    nwpb_max**2*natom_ciw**2*ndim3_nu,mpi_sum,comm_tau)
+c$$$
+c$$$      if (maswrk) then
+c$$$        write(iun,*) 'here-6'
+c$$$      endif        
       endif
 
       if (maswrk) then
         write(iun,*) 'here-7'
       endif      
 c$$$  
-      if (u_mode .eq. 'edmf') then
-c$$$  call chi0_projection
-        if (maswrk) then
-          write(iun,*) 'here1'
-        endif
-        call u_weiss
-      endif        
+c$$$      if (u_mode .eq. 'edmf') then
+c$$$c$$$  call chi0_projection
+c$$$        if (maswrk) then
+c$$$          write(iun,*) 'here1'
+c$$$        endif
+c$$$        call u_weiss
+c$$$      endif        
 c$$$
 c$$$      call boson_rr_dens_nu(w_k_den,'w',rydberg)
 c$$$      call boson_rr_dens_nu(epsinv_k_den,'epsinv',1.0d0)

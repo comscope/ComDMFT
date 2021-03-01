@@ -51,9 +51,9 @@ c -------------------------------------------------------------------
      &	' BANDS: Max mismatch in value, slope : ',err_val,err_slo
 c      call symmetrization_z
 c -------------------------------------------------------------
-      do ispin=1,nspin
-	  if(ubi=='dft') call output_eigen_states('_dft',0,ispin)
-	  if(ubi==' hf') call output_eigen_states('_ hf',1,ispin)
-      enddo   !! over ispin
+c$$$      do ispin=1,nspin
+c$$$	  if(ubi=='dft') call output_eigen_states('_dft',0,ispin)
+c$$$	  if(ubi==' hf') call output_eigen_states('_ hf',1,ispin)
+c$$$      enddo   !! over ispin
       call timel('******* bands finished *************')
       end

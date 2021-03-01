@@ -24,7 +24,7 @@ c$$$  dimension determination`
       if (ubi_num==4) then      
         call t_t1_x_all
       endif
-
+      
 c$$$      weight_in_froz_win=0.0d0
 
 

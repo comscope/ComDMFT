@@ -24,6 +24,8 @@ c	---- Get Direct Lattice Vectors encompassing the active polygon --
       call getrbs
 c ---------------------------------------------------------------------      
       call neighbors_atoms
+
+      call timel('****** neighbors_atoms *************')      
 c ----------------------------------------------------------------
       allocate(rr_pnt_ind(nqdiv,natom,natom))
       allocate(rr_pnt(3,nqdiv))
@@ -31,7 +33,9 @@ c ----------------------------------------------------------------
       allocate(r0_pair(nqdiv,natom,natom))
       allocate(ig_pair(nqdiv,natom,natom))
       allocate(nrr_red(3,nqdiv*natom*natom))
-	call get_rr
+      call get_rr
+
+      call timel('****** get_rr finished *************')            
 c --------------------------------------------------------------
       allocate(indplw(-maxia:maxia,-maxib:maxib,-maxic:maxic))
 	indplw=0
@@ -49,10 +53,14 @@ c --------------------------------------------------------------
 	allocate(k_star(npnt))
 	allocate(ind_k_star_back(nqdiv))
 	call inf_qnt(npnt,i_kref,k_group,index_k1,pnt,ip_k,k_star,
-     &	           k_star_max)
+     &    k_star_max)
+
+      call timel('****** inf_qnt finished ************')        
       call k_sym_intact
 c --------------------------------------------------------------
-	call k_for_band_plot	
+      call k_for_band_plot
+
+      call timel('** k_for_band_plot finished *********')              
       call getmaxb
       call timel('***** getmaxb finished *************')
       if(maswrk) then

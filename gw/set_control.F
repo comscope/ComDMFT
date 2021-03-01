@@ -5,6 +5,7 @@
       use parallel_mod
       use solid_mod
       use units_mod
+      use lda_dmft_mod      
       implicit none
       integer :: i1,ii,isort,jsort
       logical :: file_exist
@@ -36,7 +37,7 @@ c     Output file
           call goto_end(iun)
         endif
         open(cun,file='convergence.log')
-        if (restart) then
+        if (restart .and. (.not. is_lda_dmft)) then
           call goto_end(cun)
         endif        
       endif

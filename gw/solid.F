@@ -37,7 +37,7 @@ c     &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
       call warp
 c     ------- Here for pair correlation function -------------------	
       call g_pair_print_prepare
-      call print_xsf
+c$$$      call print_xsf
 c     ----------------------------------------------------------------
       call memory_flapw
       call rkmaxtest
@@ -65,6 +65,10 @@ c     ----------------------------------------------------------------
           write(iun,'(a, i5,3x,a, f12.6)')
      $      'isort', isort, 'rk/l',
      $      smt(isort)*cutoff*2.0d0*pi/par/lmb(isort)
+          write(cun,'(a, i5,3x,a, f12.6)')
+     $      'isort', isort, 'rk/l',
+     $      smt(isort)*cutoff*2.0d0*pi/par/lmb(isort)          
         enddo
+        call flush(cun)
       endif
       end

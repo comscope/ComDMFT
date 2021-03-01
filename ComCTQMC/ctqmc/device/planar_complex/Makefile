@@ -1,0 +1,39 @@
+include ../../../Makefile.in
+
+.SUFFIXES:.cu .C .o
+
+HEADERS_IS = ../include/bath/Bath.h ../include/Utilities.h ../include/bath/Hyb.h ../include/observables/OneParticle.h ../include/impurity/Product.h ../include/impurity/Algebra.h ../include/impurity/Node.h ../include/impurity/Operators.h ../include/MarkovChain.h ../include/MonteCarlo.h ../include/Data.h ../include/State.h ../include/Observables.h ../../include/mpi/Utilities.h ../../include/BlasLapack.h ../../include/JsonX.h ../../include/measurements/Measurements.h ../include/impurity/BitSet.h
+
+o_files = \
+ctqmc.o
+
+cu_o_files = \
+Algebra.o
+
+.C.o:
+	$(CXX_MPI) $(CXXFLAGS) $(CPPFLAGS) -c $<
+
+.cu.o:
+	$(NVCC) $(NVCCFLAGS) $(CPPFLAGS) -dc $< -o $@bj.o
+	$(NVCC) -arch=sm_70 -dlink -lcublas_device $@bj.o -o $@         
+
+all:     CTQMC
+gpu:	 CTQMC
+
+CTQMC: $(o_files) $(cu_o_files)
+	$(CXX_MPI) -o $@ Algebra.obj.o $(o_files) $(cu_o_files) -lcudart -lcudadevrt $(LDFLAGS) $(LIBS)
+	cp CTQMC ../../../bin/CTQMC
+
+clean:
+	rm -f *.o ../../../bin/CTQMC CTQMC
+	
+
+
+
+
+
+
+
+
+
+ 

@@ -1,7 +1,7 @@
 #i&&&&&&&&&&&&&&&&&&&&&&&&&&&&        UNIX MPICH MPI       &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 include ../arch.mk
 
-# compfl = -debug -g -CB -check bounds -traceback -check uninit -fp-model precise
+##compfl = -debug -g -CB -check bounds -traceback -check uninit -fp-model precise
 
 wan90_dir = ../wannier90_2.1
 
@@ -118,8 +118,8 @@ o_files = \
  start_par_solid.o \
  read_restart_file.o \
  set_memory.o \
- read_wan_bni.o \
- read_wan_bni2.o \
+ read_wan_files.o \
+ read_wan_files2.o \
  read_wan_ini.o \
  
 
@@ -127,7 +127,7 @@ mod_files = \
  comwann_mod.mod
 
 ifdef USE_HDF5
-  o_files +=  read_wan_bni_hdf5.o
+  o_files +=  read_wan_files_hdf5.o
   o_files +=  read_restart_file_hdf5.o
   o_files +=  write_wannier_dat_hdf5.o
   o_files +=  hdf5io_mod.o

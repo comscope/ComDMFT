@@ -1,5 +1,5 @@
-#ifndef ENDIAN
-#define ENDIAN
+#ifndef INCLUDE_IO_ENDIAN_H
+#define INCLUDE_IO_ENDIAN_H
 
 #include <utility>
 #include <cstdlib>

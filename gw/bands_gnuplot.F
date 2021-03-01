@@ -29,7 +29,7 @@ c ----------------------------------------------------------
       do ispin=1,nspin
         do i=1,nbn
           do k=1,num_k_plot
-            write(3,'(2E16.8)')k_dist(k),
+            write(3,'(i6,2x, 2E16.8)')k, k_dist(k),
      &			               (epl(i,k,ispin)-chem_pot)*evolt/2
 	    enddo
           write(3,*) ' '
@@ -60,20 +60,20 @@ c ----------------------------------------------------------------
       end do
       glabel(num_k_path+1)=' '//k_label(2,num_k_path)//' '
 c ---------------------------------------------------------------------
-      write(3,*)
-     & 'set loadpath "C:/P4Win/Gnuplot/gnuplot/bin/share/PostScript/"'
+c$$$      write(3,*)
+c$$$     & 'set loadpath "C:/P4Win/Gnuplot/gnuplot/bin/share/PostScript/"'
       write(3,*)'set terminal postscript "fontsize" 26'
 	if(ubi=='dft') then
         write(3,*)'set output "'//allfile(1:i_len)//
      &                       '_lda_bnd_LAPW.eps"'
 	else if(ubi==' hf') then
-        write(3,*)'set output "'//allfile(1:i_len)//'_hf_bnd.eps"'
+        write(3,*)'set output "'//allfile(1:i_len)//'_hf_band.eps"'
 	else if(ubi==' qp') then
-        write(3,*)'set output "'//allfile(1:i_len)//'_qp_bnd.eps"'
+        write(3,*)'set output "'//allfile(1:i_len)//'_qp_band.eps"'
 	else if(ubi==' gw') then
-        write(3,*)'set output "'//allfile(1:i_len)//'_gw_bnd.eps"'
+        write(3,*)'set output "'//allfile(1:i_len)//'_gw_band.eps"'
 	else if(ubi=='gwg') then
-        write(3,*)'set output "'//allfile(1:i_len)//'_gwg_bnd.eps"'
+        write(3,*)'set output "'//allfile(1:i_len)//'_gwg_band.eps"'
       endif
       write(3,701)k_dist(num_k_plot),emindos*evolt/2,emaxdos*evolt/2
       do i = 1, num_k_path-1
@@ -83,10 +83,11 @@ c ---------------------------------------------------------------------
       write(3,702, advance="no")glabel(1),0.d0,
      &	            (glabel(i+1),sum(kpath_len(1:i)),i=1,num_k_path-1)
       write(3,703)glabel(num_k_path+1),sum(kpath_len(:))
-      write(3,*)'plot ','"'//trim(f_bnd)//'" with lines lw 3 lt 1 lc 1'
+      write(3,*)'plot ','"'//trim(f_bnd)//
+     $  '" using 2:3 with lines lw 3 lt 1 lc 1'
       write(3,*)'unset output'
       write(3,*)'unset terminal'
-      write(3,*)'unset loadpath'   
+c$$$      write(3,*)'unset loadpath'   
       close(3)
       deallocate(glabel,e)
 701   format('set data style lines',/,'set nokey',/,

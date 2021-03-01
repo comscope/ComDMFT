@@ -7,7 +7,7 @@
       character*500 :: allfilet
       i_len=len_trim(allfile)
 c     write(179,*) 'allfile', allfile(1:i_len)      
-      allfilet=rstpath(1:len_trim(rstpath))//'/'//
+      allfilet=rstpath(1:len_trim(rstpath))//'/checkpoint/'//
      $  allfile(1:i_len) 
       i_len=len_trim(allfilet)
       iread=0
@@ -82,7 +82,7 @@ c     write(179,*)'bk-read chem 4'
       character*8 :: k0_ch
       character*500 :: allfilet
       i_len=len_trim(allfile)
-      allfilet=rstpath(1:len_trim(rstpath))//'/'//
+      allfilet=rstpath(1:len_trim(rstpath))//'/checkpoint/'//
      $  allfile(1:i_len)
 !     allfilet=allfile
       i_len=len_trim(allfilet)

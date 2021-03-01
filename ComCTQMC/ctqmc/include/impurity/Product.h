@@ -1,5 +1,5 @@
-#ifndef IMPURITY_PRODUCT_H
-#define IMPURITY_PRODUCT_H
+#ifndef CTQMC_INCLUDE_IMPURITY_PRODUCT_H
+#define CTQMC_INCLUDE_IMPURITY_PRODUCT_H
 
 #include <iostream>
 #include <random>
@@ -13,13 +13,13 @@ namespace imp {
     
     namespace itf {
         
+        template<typename Value>
         struct Product {
             virtual int size() const = 0;
-            virtual int perm() const = 0;
             virtual int height() const = 0;
-            virtual bool insert(ut::KeyType const key, int flavor, double* ptr) = 0;
+            virtual bool insert(ut::KeyType const key, int flavor) = 0;
             virtual void erase(ut::KeyType key) = 0;
-            virtual void accept() = 0;
+            virtual int accept() = 0;
             virtual void reject() = 0;
             virtual ~Product() = default;
         };
@@ -27,37 +27,36 @@ namespace imp {
     };
     
     
-    template<typename Alloc>
-    struct Product : itf::Product {
-        using ValueType = Value<Alloc>;
-        using NodeType  = Node<ValueType>;
+    // Todo: remove flavor from node 
+    
+    template<typename Mode, typename Value>
+    struct Product : itf::Product<Value> {
+        using NodeType  = Node<NodeValue<Mode, Value>>;
         
-        using AccessType  = Access<ValueType, Product>;
-        using CAccessType = Access<ValueType const, Product>;
+        using AccessType  = Access<NodeValue<Mode, Value>, Product>;
+        using CAccessType = Access<NodeValue<Mode, Value> const, Product>;
         
         Product() = delete;
-        Product(jsx::value const& jParams, itf::EigenValues const& eigItf, itf::Operator const& ideItf, itf::Operators const& opsItf) : Product(jParams, get<Alloc>(eigItf), get<Alloc>(ideItf), get<Alloc>(opsItf)) {
-        };
-        Product(jsx::value const& jParams, EigenValues<Alloc> const& eig, Operator<Alloc> const& ide, Operators<Alloc> const& ops) :
-        eig_(eig), ide_(ide), ops_(ops),
+        Product(jsx::value const& jParams, itf::EigenValues const& eig, itf::Operator<Value> const& ide, itf::Operators<Value> const& ops) :
+        eig_(get<Mode>(eig)), ide_(get<Mode>(ide)), ops_(get<Mode>(ops)),
         urng_(std::mt19937(234), std::uniform_real_distribution<double>(.0, 1.)),
 		prob_(jParams.is("skip-list probability") ? jParams("skip-list probability").real64() : .5),
 		baseProb_(std::pow(prob_, (jParams.is("skip-list shift") ? jParams("skip-list shift").int64() : 0) + 1)),
 		maxHeight_(50),
 		height_(1), heightBackup_(1),
 		size_(0), sizeBackup_(0),
-        perm_(0), permBackup_(0),
-        first_(new NodeType(         0, maxHeight_ + 1,   &ide_, -1, nullptr, eig_)),
-        last_( new NodeType(ut::KeyMax,              0, nullptr, -1, nullptr, eig_)) {
+        sign_(1),
+        first_(new NodeType(         0, maxHeight_ + 1,   &ide_, -1, eig_)),
+        last_( new NodeType(ut::KeyMax,              0, nullptr, -1, eig_)) {
             for(int l = 0; l <= height_; ++l) { first_->next[l] = last_; first_->entries[l] = size_ + 1;}
             first_->accept();
             
             all_.begin = new SectorNorm*[(maxHeight_ + 2)*eig.sectorNumber()];
             
             int maxDim = 0; for(int s = eig.sectorNumber(); s; --s) maxDim = std::max(eig_.at(s).dim(), maxDim);
-            bufferA_.reset(new Matrix<Alloc>(maxDim*maxDim));
-            bufferB_.reset(new Matrix<Alloc>(maxDim*maxDim));
-            bufferC_.reset(new Matrix<Alloc>(maxDim*maxDim));
+            bufferA_.reset(new Matrix<Mode, Value>(maxDim*maxDim));
+            bufferB_.reset(new Matrix<Mode, Value>(maxDim*maxDim));
+            bufferC_.reset(new Matrix<Mode, Value>(maxDim*maxDim));
 		};
         Product(Product const&) = delete;
         Product(Product&&) = delete;
@@ -79,19 +78,22 @@ namespace imp {
 
         int size() const { return size_;};
         int height() const { return height_;};
-        int perm() const { return perm_%2 ? -1 : 1;};
 
         CAccessType first() const { return first_;};
         CAccessType last() const { return last_;};
         
-        bool insert(ut::KeyType const key, int flavor, double* ptr) {
-            return last() != insert_impl(key, random_height(), &ops_.at(flavor), flavor, ptr, eig_);
+        bool insert(ut::KeyType const key, int flavor) {
+            return last() != insert_impl(key, random_height(), &ops_.at(flavor), flavor, eig_);
         };
-
-        CAccessType insert(ut::KeyType const key, itf::Operator const* op, int height) {
+        // Todo: remove flavor entry
+        CAccessType insert(ut::KeyType const key, itf::Operator<Value> const* op, int flavor) {
+            return insert_impl(key, random_height(), &get<Mode>(*op), flavor, eig_);
+        };
+        CAccessType insert(ut::KeyType const key, itf::Operator<Value> const* op, int flavor, int height) {
             if(height > maxHeight_ + 1) throw std::runtime_error("imp::Product::insert: invalid height");
-            return insert_impl(key, height, &get<Alloc>(*op), -1, nullptr, eig_);
+            return insert_impl(key, height, &get<Mode>(*op), flavor, eig_);
         };
+        
         void erase(ut::KeyType key) {
             erase_impl(key);
         };
@@ -106,7 +108,7 @@ namespace imp {
 
             return result;
         };
-        void multiply(CAccessType cbegin, int level, int sec, itf::Batcher& batcher) {
+        void multiply(CAccessType cbegin, int level, int sec, itf::Batcher<Value>& batcher) {
             auto begin = AccessType(cbegin.node_); if(begin->op(level)->isMat(sec)) return;
 
             if(begin.next(level) != begin.next(0)) {
@@ -118,7 +120,7 @@ namespace imp {
             }
         };
 		
-		void accept() {
+		int accept() {
 			heightBackup_ = height_;
 			
             for(auto ptr : touched_) ptr->accept();
@@ -127,7 +129,9 @@ namespace imp {
 			
 			touched_.clear(); inserted_.clear(); erased_.clear();
 
-			sizeBackup_ = size_; permBackup_ = perm_;
+            sizeBackup_ = size_;
+            
+            int temp = sign_; sign_ = 1; return temp;
         };
 		void reject() {
 			height_ = heightBackup_;
@@ -137,17 +141,19 @@ namespace imp {
 			
 			touched_.clear(); inserted_.clear(); erased_.clear();
 
-            size_ = sizeBackup_; perm_ = permBackup_;
+            size_ = sizeBackup_;
+            
+            sign_ = 1;
 		};
         
-        Matrix<Alloc>& bufferA() { return *bufferA_;};
-        Matrix<Alloc>& bufferB() { return *bufferB_;};
-        Matrix<Alloc>& bufferC() { return *bufferC_;};
+        Matrix<Mode, Value>& bufferA() { return *bufferA_;};
+        Matrix<Mode, Value>& bufferB() { return *bufferB_;};
+        Matrix<Mode, Value>& bufferC() { return *bufferC_;};
 
     private:
-        EigenValues<Alloc> const& eig_;
-        Operator<Alloc> const& ide_;
-        Operators<Alloc> const& ops_;
+        EigenValues<Mode> const& eig_;
+        Operator<Mode, Value> const& ide_;
+        Operators<Mode, Value> const& ops_;
         
 		ut::RandomNumberGenerator<std::mt19937, std::uniform_real_distribution<double> > urng_;
 		
@@ -156,7 +162,7 @@ namespace imp {
 		int const maxHeight_;	
 		int height_, heightBackup_;
 		int size_, sizeBackup_;
-        unsigned int perm_, permBackup_;
+        int sign_;
 
 		NodeType* const first_; NodeType* const last_;		
 
@@ -164,9 +170,9 @@ namespace imp {
         
         SectorNormPtrs all_;
         
-        std::vector<Matrix<Alloc> const*> ptrMat_;
-        std::vector<Vector<Alloc> const*> ptrProp_;
-        std::unique_ptr<Matrix<Alloc>> bufferA_, bufferB_, bufferC_;
+        std::vector<Matrix<Mode, Value> const*> ptrMat_;
+        std::vector<Vector<Mode> const*> ptrProp_;
+        std::unique_ptr<Matrix<Mode, Value>> bufferA_, bufferB_, bufferC_;
 
 
 		int random_height() {
@@ -216,7 +222,7 @@ namespace imp {
                 if(node[l - 1] != node[l])
                     if(node[l]->touch(l)) touched_.push_back(node[l]);
 
-            perm_ += p; return n;
+            sign_ *= p%2 ? -1 : 1; return n;
         };
         
         void erase_impl(ut::KeyType const key) {
@@ -249,7 +255,7 @@ namespace imp {
             for(; height_ > 1 && first_->next[height_ - 1] == last_; --height_)
                 ;
             
-            perm_ += p;  //modulo hier ziemlich sicher nicht notwending ... guck standard wegen wraparound .... pass auf in sign() falls nicht notwending ...
+            sign_ *= p%2 ? -1 : 1;  //modulo hier ziemlich sicher nicht notwending ... guck standard wegen wraparound .... pass auf in sign() falls nicht notwending ...
         };
         
         
@@ -270,7 +276,7 @@ namespace imp {
             } while(it != last);
         }
         
-        static void multiply_impl(AccessType const begin, int const level, int const sec, Matrix<Alloc> const** const mat, Vector<Alloc> const** const prop, Matrix<Alloc>* A, Matrix<Alloc>* B, itf::Batcher& batcher) {
+        static void multiply_impl(AccessType const begin, int const level, int const sec, Matrix<Mode, Value> const** const mat, Vector<Mode> const** const prop, Matrix<Mode, Value>* A, Matrix<Mode, Value>* B, itf::Batcher<Value>& batcher) {
             auto const end = begin.next(level);
             auto l = level; while(begin.next(l) == end) --l;
 
@@ -301,12 +307,12 @@ namespace imp {
         };
     };
     
-    template<typename Alloc> Product<Alloc>& get(itf::Product& productItf) {
-        return static_cast<Product<Alloc>&>(productItf);
+    template<typename Mode, typename Value> Product<Mode, Value>& get(itf::Product<Value>& productItf) {
+        return static_cast<Product<Mode, Value>&>(productItf);
     };
     
-    template<typename Alloc> Product<Alloc> const& get(itf::Product const& productItf) {
-        return static_cast<Product<Alloc> const&>(productItf);
+    template<typename Mode, typename Value> Product<Mode, Value> const& get(itf::Product<Value> const& productItf) {
+        return static_cast<Product<Mode, Value> const&>(productItf);
     };
 }
 

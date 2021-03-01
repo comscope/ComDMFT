@@ -1,5 +1,5 @@
-#ifndef IMPURITY_OPERATORS_H
-#define IMPURITY_OPERATORS_H
+#ifndef CTQMC_INCLUDE_IMPURITY_OPERATORS_H
+#define CTQMC_INCLUDE_IMPURITY_OPERATORS_H
 
 #include <iostream>
 #include <algorithm>
@@ -13,6 +13,7 @@
 #include "BitSet.h"
 #include "Diagonal.h"
 #include "../Utilities.h"
+#include "../../../include/linalg/LinAlg.h"
 #include "../../../include/linalg/Operators.h"
 #include "../../../include/mpi/Utilities.h"
 
@@ -21,38 +22,42 @@ namespace imp {
     
     namespace itf {
         
+        template<typename Value>
         struct Operator {
+            virtual SectorNorm const& map(int) const = 0;
             virtual ~Operator() = default;
         };
         
+        template<typename Value>
         struct Operators {
             virtual int flavors() const = 0;
+            virtual Operator<Value> const& at(int) const = 0;
             virtual ~Operators() = default;
         };
         
     };
     
     //-----------------------------------------------------------------OPERATOR--------------------------------------------------------------------------------
-    template<typename Alloc>
-    struct Operator : itf::Operator {
+    template<typename Mode, typename Value>
+    struct Operator : itf::Operator<Value> {
         Operator() = delete;
         Operator(itf::EigenValues const& eigItf) :
-        eig_(get<Alloc>(eigItf)),
+        eig_(get<Mode>(eigItf)),
         isMap_(eig_.sectorNumber() + 1),
         isMat_(eig_.sectorNumber() + 1),
         map_(new SectorNorm[eig_.sectorNumber() + 1]),
-        mat_(static_cast<Matrix<Alloc>*>(::operator new(sizeof(Matrix<Alloc>)*(eig_.sectorNumber() + 1)))) {
+        mat_(static_cast<Matrix<Mode, Value>*>(::operator new(sizeof(Matrix<Mode, Value>)*(eig_.sectorNumber() + 1)))) {
         };
-        Operator(char option, itf::EigenValues const& eig) : Operator(eig) {
-            if(option != '1' && option != '0') throw std::runtime_error("Tr: option in operator constructor not defined");
-            
-            if(option == '1')
+        Operator(char const option, itf::EigenValues const& eigItf) : Operator(eigItf) {
+            if(option == '1') {
                 for(int s = eig_.sectorNumber(); s; --s) {
                     set_map(s) = { s, .0 };
-                    mat(s, typename Matrix<Alloc>::Identity(eig_.at(s).dim()));
+                    mat(s, typename Matrix<Mode, Value>::Identity(eig_.at(s).dim()));
                 }
+            } else
+                throw std::runtime_error("Tr: option in operator constructor not defined");
         };
-        Operator(jsx::value& jOperator, itf::EigenValues const& eigItf) : Operator(eigItf) {
+        Operator(jsx::value const& jOperator, itf::EigenValues const& eigItf) : Operator(eigItf) {
             if(static_cast<int>(jOperator.size()) != eig_.sectorNumber())
                 throw(std::runtime_error("Tr: wrong number of sectors."));
             
@@ -66,15 +71,20 @@ namespace imp {
                     if(temp[target_sector]++)
                         throw std::runtime_error("Tr: target sector not unique.");
                     
-                    auto const& matrix = jsx::at<io::rmat>(jBloc("matrix"));
+                    auto const& matrix = jsx::at<io::Matrix<Value>>(jBloc("matrix"));
                     
                     if(matrix.I() != eig_.at(target_sector).dim0() || matrix.J() != eig_.at(start_sector).dim0())
                         throw std::runtime_error("Tr: invalid matrix dimensions");
                     
-                    set_map(start_sector) = { target_sector, .0 };
-                    mat(start_sector, eig_.at(target_sector).dim(), eig_.at(start_sector).dim(), matrix);
+                    double const norm = linalg::spectral_norm(matrix);
                     
-                    jBloc("matrix") = jsx::empty_t();
+                    if(norm != .0) {
+                        set_map(start_sector) = { target_sector, std::log(norm) };
+                        mat(start_sector, eig_.at(target_sector).dim(), eig_.at(start_sector).dim(), matrix);
+                    } else
+                        set_map(start_sector) = { 0, .0 };
+                    
+                    //jBloc("matrix") = jsx::empty_t();
                 } else
                     set_map(start_sector) = { 0, .0 };
                 ++start_sector;
@@ -102,17 +112,17 @@ namespace imp {
         };
         
         int isMat(int s) const { return isMat_[s];};
-        template<typename... Args> Matrix<Alloc>& mat(int s, Args&& ... args) {
+        template<typename... Args> Matrix<Mode, Value>& mat(int s, Args&& ... args) {
             if(isMat(s)) throw std::runtime_error("imp::Operator::mat: matrix allocated");
-            new(mat_ + s) Matrix<Alloc>(std::forward<Args>(args)...);
+            new(mat_ + s) Matrix<Mode, Value>(std::forward<Args>(args)...);
             isMat_.set(s); return mat_[s];
         }
         
-        Matrix<Alloc>& mat(int s) {
+        Matrix<Mode, Value>& mat(int s) {
             if(!isMat_[s]) throw std::runtime_error("imp::Operator::mat: invalid sector");
             return mat_[s];
         };
-        Matrix<Alloc> const& mat(int s) const {
+        Matrix<Mode, Value> const& mat(int s) const {
             if(!isMat_[s]) throw std::runtime_error("imp::Operator::mat const: invalid sector");
             return mat_[s];
         };
@@ -144,37 +154,37 @@ namespace imp {
         };
         
     private:
-        EigenValues<Alloc> const& eig_;
+        EigenValues<Mode> const& eig_;
         
         BitSet isMap_, isMat_;
         SectorNorm* const map_;
-        Matrix<Alloc>* const mat_;
+        Matrix<Mode, Value>* const mat_;
     };
     
-    template<typename Alloc> Operator<Alloc>& get(itf::Operator& operatorItf) {
-        return static_cast<Operator<Alloc>&>(operatorItf);
+    template<typename Mode, typename Value> Operator<Mode, Value>& get(itf::Operator<Value>& operatorItf) {
+        return static_cast<Operator<Mode, Value>&>(operatorItf);
     };
     
-    template<typename Alloc> Operator<Alloc> const& get(itf::Operator const& operatorItf) {
-        return static_cast<Operator<Alloc> const&>(operatorItf);
+    template<typename Mode, typename Value> Operator<Mode, Value> const& get(itf::Operator<Value> const& operatorItf) {
+        return static_cast<Operator<Mode, Value> const&>(operatorItf);
     };
     
     
     
-    template<typename Alloc>
-    struct Operators : itf::Operators {
+    template<typename Mode, typename Value>
+    struct Operators : itf::Operators<Value> {
         Operators() = delete;
-        Operators(jsx::value const& jParams, jsx::value& jOperators, itf::EigenValues const& eigItf) :
+        Operators(jsx::value const& jParams, jsx::value const& jOperators, itf::EigenValues const& eigItf) :
         flavors_(2*jOperators.size()),
-        ops_(static_cast<Operator<Alloc>*>(::operator new(flavors_*sizeof(Operator<Alloc>)))) {
+        ops_(static_cast<Operator<Mode, Value>*>(::operator new(flavors_*sizeof(Operator<Mode, Value>)))) {
             mpi::cout << "Reading operators ... " << std::flush;
             
             int i = 0;
             for(auto& jOp : jOperators.array()) {
-                jsx::value jOpDagg = linalg::transpose(jOp);
+                jsx::value jOpDagg = linalg::conj<Value>(jOp);
                 
-                new(ops_ + 2*i    ) Operator<Alloc>(jOp, eigItf);
-                new(ops_ + 2*i + 1) Operator<Alloc>(jOpDagg, eigItf);
+                new(ops_ + 2*i    ) Operator<Mode, Value>(jOp, eigItf);
+                new(ops_ + 2*i + 1) Operator<Mode, Value>(jOpDagg, eigItf);
                 
                 ++i;
             }
@@ -192,19 +202,19 @@ namespace imp {
         
         int flavors() const { return flavors_;};
         
-        Operator<Alloc> const& at(int s) const { return ops_[s];};
+        itf::Operator<Value> const& at(int i) const { return ops_[i];};
         
     private:
         int const flavors_;
-        Operator<Alloc>* ops_;
+        Operator<Mode, Value>* ops_;
     };
     
-    template<typename Alloc> Operators<Alloc>& get(itf::Operators& operatorsItf) {
-        return static_cast<Operators<Alloc>&>(operatorsItf);
+    template<typename Mode, typename Value> Operators<Mode, Value>& get(itf::Operators<Value>& operatorsItf) {
+        return static_cast<Operators<Mode, Value>&>(operatorsItf);
     };
     
-    template<typename Alloc> Operators<Alloc> const& get(itf::Operators const& operatorsItf) {
-        return static_cast<Operators<Alloc> const&>(operatorsItf);
+    template<typename Mode, typename Value> Operators<Mode, Value> const& get(itf::Operators<Value> const& operatorsItf) {
+        return static_cast<Operators<Mode, Value> const&>(operatorsItf);
     };
     
 }

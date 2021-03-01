@@ -1,139 +1,139 @@
-      subroutine boson_wpb_k(w_s,matdim,ind_k,
-     $  s_multiply1,s_multiply2,qvopt_multiply,
-     $  boson_wpb)
-      
-!     need s_multiply
-!     need qvopt_multiply
-      use atom_mod
-      use manager_mod
-      use parallel_mod
-      use solid_mod
-      use units_mod
-      use vertex_mod
-      use wannier90_mod
-
-      implicit none
-      include "mpif.h"
-      integer, intent(in) :: ind_k,
-     $  s_multiply1,s_multiply2,qvopt_multiply,matdim
-      complex*16, intent(in) :: w_s(matdim,matdim)
-      complex*16, intent(out) ::
-     $  boson_wpb(nwpb_max,natom_ciw,nwpb_max,natom_ciw,k_star_max)
-
-      integer :: ii,jj,k,n_pbt,num_qpoint,matsize,kst,iq,
-     $  ispin,iorb,jspin,jorb,iorb1,iorb2,jorb1,jorb2,ind,ind_i,ind_j,
-     $  iat,jat
-      complex*16 :: v_tmp(n_pbtot,n_pbtot),tmp4(n_pbtot,nvopt_max),
-     $  v_tmp2(n_pbtot,n_pbtot), s(nplw_gw,nplw_gw),
-     $  smat(n_pbtot,n_pbtot),tmp2(n_pbtot,n_pbtot)
-      complex*16,allocatable ::v_tmp3(:,:),v_tmp4(:,:)
-
-
-      k=n3_mpi_k(me3_k+1)+ind_k
-
-      v_tmp=0.0d0
-
-      if (qvopt_multiply .eq. 1) then
-        call zgemm('n','n',n_pbtot,matdim,matdim,(1.d0,0.d0),
-     $    qvopt(1,1,ind_k),n_pbtot,w_s,matdim,(0.d0,0.d0),tmp4,
-     $    n_pbtot)
-        call zgemm('n','c',n_pbtot,n_pbtot,matdim,(1.d0,0.d0),tmp4,
-     $    n_pbtot,qvopt(1,1,ind_k),n_pbtot,(0.d0,0.d0),v_tmp,n_pbtot)
-      else
-        do ii=1, matdim
-          do jj=1, matdim
-            v_tmp(ii,jj)=w_s(ii,jj)
-          enddo
-        enddo
-      endif
-
-      boson_wpb=0.0d0
-
-c     ----------------------------------------------------------------------
-      n_pbt=n_pbmt+nplwgw(k)
-
-      if(.not.include_gamma_w) then
-        num_qpoint=nqdiv-1
-      else
-        num_qpoint=nqdiv
-      endif
-      matsize=nwpb_max*natom_ciw
-
-      allocate(v_tmp3(n_pbtot,matsize))
-      allocate(v_tmp4(matsize,matsize))
-
-      do kst=1,k_star(k)
-        iq=k_list(kst,k)
-        v_tmp3=0.0d0
-        v_tmp4=0.0d0
-        call zone1_number(pnt(:,iq),rb0,ndiv,ind)
-        if((.not.include_gamma_w).and.(iq.eq.1)) cycle
-c     -------- Obtaining W for the point Q from W in Q0 -----------------
-        v_tmp2=v_tmp
-        call sym_w(iq,k,v_tmp2)
-
-        if ((s_multiply1 .eq. 1) .or.(s_multiply2 .eq. 1) ) then
-          call s_overlap(0,s,nplw_gw,nplwgw(k),
-     &      indpw_gw(1,iq))
-          smat=0.0d0
-
-          do ii=1, n_pbmt
-            smat(ii,ii)=1.0d0
-          enddo
-
-          do ii=1, nplwgw(k)
-            do jj=1, nplwgw(k)
-              smat(ii+n_pbmt,jj+n_pbmt)=s(ii,jj)
-            enddo
-          enddo          
-
-          if (s_multiply1 .eq. 1) then
-            tmp2=0.0d0            
-            call zgemm('n','n',n_pbt,n_pbt,n_pbt,
-     $        (1.0d0,0.0d0),smat,n_pbtot,
-     $        v_tmp2,n_pbtot,(0.d0,0.d0),tmp2,n_pbtot)
-            v_tmp2=tmp2
-          endif
-          
-          
-          if (s_multiply2 .eq. 1) then
-            tmp2=0.0d0            
-            call zgemm('n','n',n_pbt,n_pbt,n_pbt,
-     $        (1.0d0,0.0d0),v_tmp2,n_pbtot,
-     $        smat,n_pbtot,(0.d0,0.d0),tmp2,n_pbtot)
-            v_tmp2=tmp2
-          endif
-        endif
-        
-        call zgemm('n','n',n_pbt,matsize,n_pbt,
-     $    (1.d0,0.d0),v_tmp2,n_pbtot,
-     $    m_pi(1,1,1,ind_k,kst),n_pbtot,
-     $    (0.d0,0.d0),v_tmp3,n_pbtot)
-        call zgemm('c','n',matsize,matsize,n_pbt,
-     $    (1.d0,0.d0),m_pi(1,1,1,ind_k,kst),n_pbtot,
-     $    v_tmp3,n_pbtot,
-     $    (0.d0,0.d0),v_tmp4,matsize)
-        
-
-        do iat=1, natom_ciw
-          do iorb=1,nwpb(iat)
-            call indexing(matsize,2,(/nwpb_max,natom_ciw/),1,ind_i,
-     $        (/iorb,iat/))
-            do jat=1, natom_ciw
-              do jorb=1,nwpb(jat)
-                call indexing(matsize,2,(/nwpb_max,natom_ciw/),1,ind_j,
-     $            (/jorb,jat/))                
-                boson_wpb(iorb,iat,jorb,jat,kst)
-     $            =v_tmp4(ind_i,ind_j)/dble(num_qpoint)
-              enddo
-            enddo
-          enddo
-        enddo
-      enddo
-      
-      deallocate(v_tmp3,v_tmp4)
-      end
-
+c$$$      subroutine boson_wpb_k(w_s,matdim,ind_k,
+c$$$     $  s_multiply1,s_multiply2,qvopt_multiply,
+c$$$     $  boson_wpb)
+c$$$      
+c$$$!     need s_multiply
+c$$$!     need qvopt_multiply
+c$$$      use atom_mod
+c$$$      use manager_mod
+c$$$      use parallel_mod
+c$$$      use solid_mod
+c$$$      use units_mod
+c$$$      use vertex_mod
+c$$$      use wannier90_mod
+c$$$
+c$$$      implicit none
+c$$$      include "mpif.h"
+c$$$      integer, intent(in) :: ind_k,
+c$$$     $  s_multiply1,s_multiply2,qvopt_multiply,matdim
+c$$$      complex*16, intent(in) :: w_s(matdim,matdim)
+c$$$      complex*16, intent(out) ::
+c$$$     $  boson_wpb(nwpb_max,natom_ciw,nwpb_max,natom_ciw,k_star_max)
+c$$$
+c$$$      integer :: ii,jj,k,n_pbt,num_qpoint,matsize,kst,iq,
+c$$$     $  ispin,iorb,jspin,jorb,iorb1,iorb2,jorb1,jorb2,ind,ind_i,ind_j,
+c$$$     $  iat,jat
+c$$$      complex*16 :: v_tmp(n_pbtot,n_pbtot),tmp4(n_pbtot,nvopt_max),
+c$$$     $  v_tmp2(n_pbtot,n_pbtot), s(nplw_gw,nplw_gw),
+c$$$     $  smat(n_pbtot,n_pbtot),tmp2(n_pbtot,n_pbtot)
+c$$$      complex*16,allocatable ::v_tmp3(:,:),v_tmp4(:,:)
+c$$$
+c$$$
+c$$$      k=n3_mpi_k(me3_k+1)+ind_k
+c$$$
+c$$$      v_tmp=0.0d0
+c$$$
+c$$$      if (qvopt_multiply .eq. 1) then
+c$$$        call zgemm('n','n',n_pbtot,matdim,matdim,(1.d0,0.d0),
+c$$$     $    qvopt(1,1,ind_k),n_pbtot,w_s,matdim,(0.d0,0.d0),tmp4,
+c$$$     $    n_pbtot)
+c$$$        call zgemm('n','c',n_pbtot,n_pbtot,matdim,(1.d0,0.d0),tmp4,
+c$$$     $    n_pbtot,qvopt(1,1,ind_k),n_pbtot,(0.d0,0.d0),v_tmp,n_pbtot)
+c$$$      else
+c$$$        do ii=1, matdim
+c$$$          do jj=1, matdim
+c$$$            v_tmp(ii,jj)=w_s(ii,jj)
+c$$$          enddo
+c$$$        enddo
+c$$$      endif
+c$$$
+c$$$      boson_wpb=0.0d0
+c$$$
+c$$$c     ----------------------------------------------------------------------
+c$$$      n_pbt=n_pbmt+nplwgw(k)
+c$$$
+c$$$      if(.not.include_gamma_w) then
+c$$$        num_qpoint=nqdiv-1
+c$$$      else
+c$$$        num_qpoint=nqdiv
+c$$$      endif
+c$$$      matsize=nwpb_max*natom_ciw
+c$$$
+c$$$      allocate(v_tmp3(n_pbtot,matsize))
+c$$$      allocate(v_tmp4(matsize,matsize))
+c$$$
+c$$$      do kst=1,k_star(k)
+c$$$        iq=k_list(kst,k)
+c$$$        v_tmp3=0.0d0
+c$$$        v_tmp4=0.0d0
+c$$$        call zone1_number(pnt(:,iq),rb0,ndiv,ind)
+c$$$        if((.not.include_gamma_w).and.(iq.eq.1)) cycle
+c$$$c     -------- Obtaining W for the point Q from W in Q0 -----------------
+c$$$        v_tmp2=v_tmp
+c$$$        call sym_w(iq,k,v_tmp2)
+c$$$
+c$$$        if ((s_multiply1 .eq. 1) .or.(s_multiply2 .eq. 1) ) then
+c$$$          call s_overlap(0,s,nplw_gw,nplwgw(k),
+c$$$     &      indpw_gw(1,iq))
+c$$$          smat=0.0d0
+c$$$
+c$$$          do ii=1, n_pbmt
+c$$$            smat(ii,ii)=1.0d0
+c$$$          enddo
+c$$$
+c$$$          do ii=1, nplwgw(k)
+c$$$            do jj=1, nplwgw(k)
+c$$$              smat(ii+n_pbmt,jj+n_pbmt)=s(ii,jj)
+c$$$            enddo
+c$$$          enddo          
+c$$$
+c$$$          if (s_multiply1 .eq. 1) then
+c$$$            tmp2=0.0d0            
+c$$$            call zgemm('n','n',n_pbt,n_pbt,n_pbt,
+c$$$     $        (1.0d0,0.0d0),smat,n_pbtot,
+c$$$     $        v_tmp2,n_pbtot,(0.d0,0.d0),tmp2,n_pbtot)
+c$$$            v_tmp2=tmp2
+c$$$          endif
+c$$$          
+c$$$          
+c$$$          if (s_multiply2 .eq. 1) then
+c$$$            tmp2=0.0d0            
+c$$$            call zgemm('n','n',n_pbt,n_pbt,n_pbt,
+c$$$     $        (1.0d0,0.0d0),v_tmp2,n_pbtot,
+c$$$     $        smat,n_pbtot,(0.d0,0.d0),tmp2,n_pbtot)
+c$$$            v_tmp2=tmp2
+c$$$          endif
+c$$$        endif
+c$$$        
+c$$$        call zgemm('n','n',n_pbt,matsize,n_pbt,
+c$$$     $    (1.d0,0.d0),v_tmp2,n_pbtot,
+c$$$     $    m_pi(1,1,1,ind_k,kst),n_pbtot,
+c$$$     $    (0.d0,0.d0),v_tmp3,n_pbtot)
+c$$$        call zgemm('c','n',matsize,matsize,n_pbt,
+c$$$     $    (1.d0,0.d0),m_pi(1,1,1,ind_k,kst),n_pbtot,
+c$$$     $    v_tmp3,n_pbtot,
+c$$$     $    (0.d0,0.d0),v_tmp4,matsize)
+c$$$        
+c$$$
+c$$$        do iat=1, natom_ciw
+c$$$          do iorb=1,nwpb(iat)
+c$$$            call indexing(matsize,2,(/nwpb_max,natom_ciw/),1,ind_i,
+c$$$     $        (/iorb,iat/))
+c$$$            do jat=1, natom_ciw
+c$$$              do jorb=1,nwpb(jat)
+c$$$                call indexing(matsize,2,(/nwpb_max,natom_ciw/),1,ind_j,
+c$$$     $            (/jorb,jat/))                
+c$$$                boson_wpb(iorb,iat,jorb,jat,kst)
+c$$$     $            =v_tmp4(ind_i,ind_j)/dble(num_qpoint)
+c$$$              enddo
+c$$$            enddo
+c$$$          enddo
+c$$$        enddo
+c$$$      enddo
+c$$$      
+c$$$      deallocate(v_tmp3,v_tmp4)
+c$$$      end
+c$$$
 
       subroutine boson_wan_k(w_s,matdim,ind_k,
      $  s_multiply1,s_multiply2,qvopt_multiply,
@@ -554,423 +554,423 @@ c$$$  endif
 c$$$  enddo
 c$$$  enddo
 c$$$  end      
-      
-
-
-      subroutine u_weiss
-      
-      use atom_mod
-      use manager_mod
-      use parallel_mod
-      use solid_mod
-      use units_mod
-      use vertex_mod
-      use wannier90_mod
-
-      implicit none
-      include "mpif.h"
-
-      integer :: ind_nu,i_nu,iat,iorb,jorb,iorb1,iorb2,jorb1,jorb2,
-     $  ind1,ind2,jnd1,jnd2,ispin,jspin,ndim,iatom,isort,
-     $  ind_i,ind_j,li,l,mudim,mudim_half,iwpb,
-     $  m1,m2,m3,m4,km1,km2,km3,km4,ii,
-     $  iat_c,
-     $  dim_pi(natom_cw)
-
-      complex*16 :: ff(0:3,0:n_nu),cc(0:3,0:n_nu),
-     $  pi_projection(nwpb_max,nwpb_max,natom_cw),
-     $  pi_ww_corr(nwpb_max,n_cw_max,n_cw_max,nspin,natom_cw),
-     $  pi_ww_corr_dual(nwpb_max,n_cw_max,n_cw_max,nspin,natom_cw)      
-      complex*16,allocatable ::
-     $  chi0_wpb(:,:,:), 
-      
-     $  chi0_wpb_p(:,:) ,
-     $  chi0_wpb_pp(:,:), 
-
-     $  w_wpb(:,:), 
-     $  w_wpb_p(:,:),
-     $  w_wpb_pp(:,:),
-
-     $  tempmat1(:,:),
-     $  tempmat2(:,:), 
-      
-     $  tempmat3(:,:),
-     $  tempmat4(:,:),
-      
-     $  eps_wpb_pp(:,:), 
-     $  epsinv_wpb_pp(:,:),
-     $  u_wpb_pp(:,:), 
-     $  uloc_temp(:,:,:,:), 
-     $  uloc_temp2(:,:,:,:), 
-     $  rotmat(:,:)
-      character(len=5) :: lchar,catom
-
-      integer, external :: find_ind
-
-      call cal_projection_and_pi_ww_corr(dim_pi, pi_projection,
-     $  pi_ww_corr, pi_ww_corr_dual)
-
-      if (maswrk) then
-        write(iun,*) 'here2'
-      endif      
-
-      do iat_c=1, natom_cw
-        iatom=iatom_cw(iat_c)
-        iat=find_ind(iatom, natom_ciw, iatom_ciw)        
-        isort=is(iatom)
-
-        if (iatom .lt. 10)then
-          write(catom,'(i1)') iatom
-        elseif (iatom .lt. 10)then
-          write(catom,'(i2)') iatom
-        elseif (iatom .lt. 100)then
-          write(catom,'(i3)') iatom
-        endif        
-
-        do l=0, lmb(isort)
-
-          write(lchar,'(i2)') l          
-
-          if ((corr(l,iatom) .eq. 2)
-     $      .and.
-     $      (at_bonding(l,iatom) .eq. 0)
-     $      ) then
-            
-            if(maswrk) then
-              open(3,file=adjustl(trim(allfile))
-     $          //'_u_Slater_'
-     $          //trim(adjustl(txtel(isort)))//trim(adjustl(catom))
-     $          //'_'//trim(adjustl(lchar))//'.dat')
-              write(3,'(a)')
-     $          '# Slater integral representation for U_matrix'
-              open(4,file=adjustl(trim(allfile))
-     $          //'_chi0_Slater_'
-     $          //trim(adjustl(txtel(isort)))//trim(adjustl(catom))
-     $          //'_'//trim(adjustl(lchar))//'.dat')
-              write(4,'(a)')
-     $          '# Slater integral representation for chi0_matrix'              
-            endif
-
-            ndim=n_cw_max*n_cw_max
-
-            allocate(chi0_wpb(nwpb(iat),nwpb(iat),ndim3_nu))
-            allocate(chi0_wpb_p(nwpb(iat),dim_pi(iat_c)))
-            allocate(chi0_wpb_pp(dim_pi(iat_c),dim_pi(iat_c)))
-            
-            allocate(w_wpb(nwpb(iat),nwpb(iat)))
-            allocate(w_wpb_p(nwpb(iat),dim_pi(iat_c)))
-            allocate(w_wpb_pp(dim_pi(iat_c),dim_pi(iat_c)))            
-
-            allocate(eps_wpb_pp(dim_pi(iat_c),dim_pi(iat_c)))
-            allocate(epsinv_wpb_pp(dim_pi(iat_c),dim_pi(iat_c)))
-            allocate(u_wpb_pp(dim_pi(iat_c),dim_pi(iat_c)))                                    
-
-
-            allocate(tempmat3(dim_pi(iat_c),ndim))
-            allocate(tempmat4(ndim,ndim))
-            allocate(tempmat1(dim_pi(iat_c),ndim))
-            allocate(tempmat2(ndim,ndim))            
-
-
-            call chi0_loc_correlated (l,iat,chi0_wpb)
-
-            if (maswrk) then
-              write(iun,*) 'here3'
-            endif            
-            
-            if (nrel .eq. 1) then          
-              li=l+1
-              mudim=l+l+1
-
-              allocate(rotmat(mudim,mudim))
-              rotmat=0.0d0
-              call cal_rotmat_cmplx2real(mudim, rotmat)
-            else
-              mudim=4*l+2
-              mudim_half=mudim/2
-              
-              allocate(rotmat(mudim,mudim))
-              rotmat=0.0d0
-              
-              call cal_rotmat_mlms2jmj(l, rotmat)
-              
-              allocate(uloc_temp2(mudim_half,mudim_half,
-     $          mudim_half,mudim_half))
-              uloc_temp2=0.0d0              
-            endif
-            allocate(uloc_temp(mudim,mudim,mudim,mudim))                                    
-
-            if (maswrk) then
-              write(iun,*) 'here4'
-            endif
-
-c$$$  allocate(projection(nwpb(iat),nwpb(iat)))
+c$$$      
+c$$$
+c$$$
+c$$$      subroutine u_weiss
+c$$$      
+c$$$      use atom_mod
+c$$$      use manager_mod
+c$$$      use parallel_mod
+c$$$      use solid_mod
+c$$$      use units_mod
+c$$$      use vertex_mod
+c$$$      use wannier90_mod
+c$$$
+c$$$      implicit none
+c$$$      include "mpif.h"
+c$$$
+c$$$      integer :: ind_nu,i_nu,iat,iorb,jorb,iorb1,iorb2,jorb1,jorb2,
+c$$$     $  ind1,ind2,jnd1,jnd2,ispin,jspin,ndim,iatom,isort,
+c$$$     $  ind_i,ind_j,li,l,mudim,mudim_half,iwpb,
+c$$$     $  m1,m2,m3,m4,km1,km2,km3,km4,ii,
+c$$$     $  iat_c,
+c$$$     $  dim_pi(natom_cw)
+c$$$
+c$$$      complex*16 :: ff(0:3,0:n_nu),cc(0:3,0:n_nu),
+c$$$     $  pi_projection(nwpb_max,nwpb_max,natom_cw),
+c$$$     $  pi_ww_corr(nwpb_max,n_cw_max,n_cw_max,nspin,natom_cw),
+c$$$     $  pi_ww_corr_dual(nwpb_max,n_cw_max,n_cw_max,nspin,natom_cw)      
+c$$$      complex*16,allocatable ::
+c$$$     $  chi0_wpb(:,:,:), 
+c$$$      
+c$$$     $  chi0_wpb_p(:,:) ,
+c$$$     $  chi0_wpb_pp(:,:), 
+c$$$
+c$$$     $  w_wpb(:,:), 
+c$$$     $  w_wpb_p(:,:),
+c$$$     $  w_wpb_pp(:,:),
+c$$$
+c$$$     $  tempmat1(:,:),
+c$$$     $  tempmat2(:,:), 
+c$$$      
+c$$$     $  tempmat3(:,:),
+c$$$     $  tempmat4(:,:),
+c$$$      
+c$$$     $  eps_wpb_pp(:,:), 
+c$$$     $  epsinv_wpb_pp(:,:),
+c$$$     $  u_wpb_pp(:,:), 
+c$$$     $  uloc_temp(:,:,:,:), 
+c$$$     $  uloc_temp2(:,:,:,:), 
+c$$$     $  rotmat(:,:)
+c$$$      character(len=5) :: lchar,catom
+c$$$
+c$$$      integer, external :: find_ind
+c$$$
+c$$$      call cal_projection_and_pi_ww_corr(dim_pi, pi_projection,
+c$$$     $  pi_ww_corr, pi_ww_corr_dual)
+c$$$
+c$$$      if (maswrk) then
+c$$$        write(iun,*) 'here2'
+c$$$      endif      
+c$$$
+c$$$      do iat_c=1, natom_cw
+c$$$        iatom=iatom_cw(iat_c)
+c$$$        iat=find_ind(iatom, natom_ciw, iatom_ciw)        
+c$$$        isort=is(iatom)
+c$$$
+c$$$        if (iatom .lt. 10)then
+c$$$          write(catom,'(i1)') iatom
+c$$$        elseif (iatom .lt. 10)then
+c$$$          write(catom,'(i2)') iatom
+c$$$        elseif (iatom .lt. 100)then
+c$$$          write(catom,'(i3)') iatom
+c$$$        endif        
+c$$$
+c$$$        do l=0, lmb(isort)
+c$$$
+c$$$          write(lchar,'(i2)') l          
+c$$$
+c$$$          if ((corr(l,iatom) .eq. 2)
+c$$$     $      .and.
+c$$$     $      (at_bonding(l,iatom) .eq. 0)
+c$$$     $      ) then
+c$$$            
+c$$$            if(maswrk) then
+c$$$              open(3,file=adjustl(trim(allfile))
+c$$$     $          //'_u_Slater_'
+c$$$     $          //trim(adjustl(txtel(isort)))//trim(adjustl(catom))
+c$$$     $          //'_'//trim(adjustl(lchar))//'.dat')
+c$$$              write(3,'(a)')
+c$$$     $          '# Slater integral representation for U_matrix'
+c$$$              open(4,file=adjustl(trim(allfile))
+c$$$     $          //'_chi0_Slater_'
+c$$$     $          //trim(adjustl(txtel(isort)))//trim(adjustl(catom))
+c$$$     $          //'_'//trim(adjustl(lchar))//'.dat')
+c$$$              write(4,'(a)')
+c$$$     $          '# Slater integral representation for chi0_matrix'              
+c$$$            endif
+c$$$
+c$$$            ndim=n_cw_max*n_cw_max
+c$$$
+c$$$            allocate(chi0_wpb(nwpb(iat),nwpb(iat),ndim3_nu))
+c$$$            allocate(chi0_wpb_p(nwpb(iat),dim_pi(iat_c)))
+c$$$            allocate(chi0_wpb_pp(dim_pi(iat_c),dim_pi(iat_c)))
+c$$$            
+c$$$            allocate(w_wpb(nwpb(iat),nwpb(iat)))
+c$$$            allocate(w_wpb_p(nwpb(iat),dim_pi(iat_c)))
+c$$$            allocate(w_wpb_pp(dim_pi(iat_c),dim_pi(iat_c)))            
+c$$$
+c$$$            allocate(eps_wpb_pp(dim_pi(iat_c),dim_pi(iat_c)))
+c$$$            allocate(epsinv_wpb_pp(dim_pi(iat_c),dim_pi(iat_c)))
+c$$$            allocate(u_wpb_pp(dim_pi(iat_c),dim_pi(iat_c)))                                    
+c$$$
+c$$$
+c$$$            allocate(tempmat3(dim_pi(iat_c),ndim))
+c$$$            allocate(tempmat4(ndim,ndim))
+c$$$            allocate(tempmat1(dim_pi(iat_c),ndim))
+c$$$            allocate(tempmat2(ndim,ndim))            
+c$$$
+c$$$
+c$$$            call chi0_loc_correlated (l,iat,chi0_wpb)
+c$$$
+c$$$            if (maswrk) then
+c$$$              write(iun,*) 'here3'
+c$$$            endif            
+c$$$            
+c$$$            if (nrel .eq. 1) then          
+c$$$              li=l+1
+c$$$              mudim=l+l+1
+c$$$
+c$$$              allocate(rotmat(mudim,mudim))
+c$$$              rotmat=0.0d0
+c$$$              call cal_rotmat_cmplx2real(mudim, rotmat)
+c$$$            else
+c$$$              mudim=4*l+2
+c$$$              mudim_half=mudim/2
+c$$$              
+c$$$              allocate(rotmat(mudim,mudim))
+c$$$              rotmat=0.0d0
+c$$$              
+c$$$              call cal_rotmat_mlms2jmj(l, rotmat)
+c$$$              
+c$$$              allocate(uloc_temp2(mudim_half,mudim_half,
+c$$$     $          mudim_half,mudim_half))
+c$$$              uloc_temp2=0.0d0              
+c$$$            endif
+c$$$            allocate(uloc_temp(mudim,mudim,mudim,mudim))                                    
+c$$$
+c$$$            if (maswrk) then
+c$$$              write(iun,*) 'here4'
+c$$$            endif
+c$$$
+c$$$c$$$  allocate(projection(nwpb(iat),nwpb(iat)))
+c$$$c$$$  
+c$$$c$$$  call projection_coulomb(iat,l,projection)
+c$$$
+c$$$            
+c$$$            do jspin=1,nspin
+c$$$              do ispin=1,nspin
+c$$$                
+c$$$                if(maswrk) then
+c$$$                  write(3,'(a15,i1,a1,i1,a11,i2,2(a6,i2))')
+c$$$     &              '# ispin/jspin = ',ispin,'/',jspin,' iatom = ',
+c$$$     &              iatom,' L = ',l
+c$$$                  write(4,'(a15,i1,a1,i1,a11,i2,2(a6,i2))')
+c$$$     &              '# ispin/jspin = ',ispin,'/',jspin,' iatom = ',
+c$$$     &              iatom,' L = ',l
+c$$$                endif
+c$$$                
+c$$$                ff=0.0d0
+c$$$                cc=0.0d0
+c$$$                
+c$$$                do ind_nu=1,ndim3_nu
+c$$$                  i_nu=me3_tau*ndim3_nu+ind_nu-1
+c$$$                  
+c$$$                  w_wpb=0.0d0
+c$$$                  w_wpb_p=0.0d0                  
+c$$$                  
+c$$$                  do iorb=1,nwpb(iat)
+c$$$                    do jorb=1,nwpb(iat)
+c$$$                      w_wpb(iorb,jorb)
+c$$$     $                  =w_wpb_local(iorb,iat,jorb,iat,ind_nu)
+c$$$                    enddo
+c$$$                  enddo
+c$$$
+c$$$                  if (maswrk) then
+c$$$                    write(iun,*) 'here5'
+c$$$                  endif
+c$$$                  
+c$$$                  call zgemm('n','n',nwpb(iat),dim_pi(iat_c),nwpb(iat),
+c$$$     $              (1.0d0,0.0d0),w_wpb,nwpb(iat),
+c$$$     $              pi_projection(1,1,iat_c),
+c$$$     $              nwpb_max,(0.0d0,0.0d0),w_wpb_p,nwpb(iat))
+c$$$
+c$$$                  call zgemm('c','n',dim_pi(iat_c),dim_pi(iat_c),
+c$$$     $              nwpb(iat),
+c$$$     $              (1.0d0,0.0d0),pi_projection(1,1,iat_c),nwpb_max,
+c$$$     $              w_wpb_p,nwpb(iat),
+c$$$     $              (0.0d0,0.0d0),w_wpb_pp,dim_pi(iat_c))
+c$$$                  
+c$$$                  call zgemm('n','n',nwpb(iat),dim_pi(iat_c),nwpb(iat),
+c$$$     $              (1.0d0,0.0d0),chi0_wpb(1,1,ind_nu),nwpb(iat),
+c$$$     $              pi_projection(1,1,iat_c),nwpb_max,(0.0d0,0.0d0),
+c$$$     $              chi0_wpb_p,nwpb(iat))
+c$$$
+c$$$                  call zgemm('c','n',dim_pi(iat_c),dim_pi(iat_c),
+c$$$     $              nwpb(iat),
+c$$$     $              (1.0d0,0.0d0),pi_projection(1,1,iat_c),nwpb_max,
+c$$$     $              chi0_wpb_p,nwpb(iat),
+c$$$     $              (0.0d0,0.0d0),chi0_wpb_pp,dim_pi(iat_c))
+c$$$c$$$
+c$$$c$$$
+c$$$                  call zgemm('n','n',dim_pi(iat_c),ndim,dim_pi(iat_c),
+c$$$     $              (1.d0,0.d0),chi0_wpb_pp,dim_pi(iat_c),
+c$$$     $              pi_ww_corr_dual(1,1,1,ispin,iat_c),nwpb_max,
+c$$$     $              (0.0d0,0.0d0),tempmat1,dim_pi(iat_c))                  
+c$$$                  
+c$$$                  call zgemm('c','n',ndim,ndim,dim_pi(iat_c),
+c$$$     $              (1.d0,0.d0),pi_ww_corr_dual(1,1,1,jspin,iat_c),
+c$$$     $              nwpb_max,
+c$$$     $              tempmat1,dim_pi(iat_c),
+c$$$     $              (0.0d0,0.0d0),tempmat2,ndim)                                    
+c$$$
+c$$$
+c$$$                  if (maswrk) then
+c$$$                    write(iun,*) 'here6'
+c$$$                  endif
+c$$$                  eps_wpb_pp=0.0d0
+c$$$                  do iwpb=1, dim_pi(iat_c)
+c$$$                    eps_wpb_pp(iwpb,iwpb)=1.0d0
+c$$$                  enddo
+c$$$                  
+c$$$                  call zgemm('n','n',
+c$$$     $              dim_pi(iat_c),dim_pi(iat_c),dim_pi(iat_c),
+c$$$     $              (1.0d0,0.0d0),w_wpb_pp,dim_pi(iat_c),chi0_wpb_pp,
+c$$$     $              dim_pi(iat_c),(1.0d0,0.0d0),
+c$$$     $              eps_wpb_pp,dim_pi(iat_c))
+c$$$                  
+c$$$                  epsinv_wpb_pp=0.0d0
+c$$$                  
+c$$$                  call dcmplx_matinv(eps_wpb_pp, epsinv_wpb_pp,
+c$$$     $              dim_pi(iat_c),dim_pi(iat_c))
+c$$$                  
+c$$$                  u_wpb_pp=0.0d0
+c$$$
+c$$$                  if (maswrk) then
+c$$$                    write(iun,*) 'here7'
+c$$$                  endif                  
+c$$$                  
+c$$$                  call zgemm('n','n',
+c$$$     $              dim_pi(iat_c),dim_pi(iat_c),dim_pi(iat_c),                  
+c$$$     $              (1.0d0,0.0d0),epsinv_wpb_pp,dim_pi(iat_c),w_wpb_pp,
+c$$$     $              dim_pi(iat_c),(0.0d0,0.0d0),u_wpb_pp,dim_pi(iat_c))
+c$$$
+c$$$                  call zgemm('n','n',dim_pi(iat_c),ndim,dim_pi(iat_c),
+c$$$     $              (1.d0,0.d0),u_wpb_pp,dim_pi(iat_c),
+c$$$     $              pi_ww_corr(1,1,1,ispin,iat_c),nwpb_max,
+c$$$     $              (0.0d0,0.0d0),tempmat3,dim_pi(iat_c))                  
+c$$$                  
+c$$$                  call zgemm('c','n',ndim,ndim,dim_pi(iat_c),
+c$$$     $              (1.d0,0.d0),pi_ww_corr(1,1,1,jspin,iat_c),nwpb_max,
+c$$$     $              tempmat3,dim_pi(iat_c),
+c$$$     $              (0.0d0,0.0d0),tempmat4,ndim)                  
+c$$$                  
+c$$$                  uloc_temp=0.0d0
+c$$$                  do m4=1,mudim
+c$$$                    do m3=1,mudim
+c$$$                      call indexing(ndim,3,
+c$$$     $                  (/n_cw_max,n_cw_max,nspin/),
+c$$$     $                  1,ind1,(/m3,m4,ispin/))
+c$$$                      do m2=1,mudim
+c$$$                        do m1=1,mudim
+c$$$                          call indexing(ndim,3,
+c$$$     $                      (/n_cw_max,n_cw_max,nspin/),
+c$$$     $                      1,ind2,(/m1,m2,jspin/))                            
+c$$$                          uloc_temp(m2,m1,m3,m4)
+c$$$     $                      =uloc_temp(m2,m1,m3,m4)
+c$$$     $                      +tempmat4(ind2,ind1)
+c$$$                        enddo
+c$$$                      enddo
+c$$$                    enddo
+c$$$                  enddo
+c$$$
+c$$$                  if (maswrk) then
+c$$$                    write(iun,*) 'here8'
+c$$$                  endif                 
+c$$$!!!!!!from here
+c$$$                  if (nrel .eq. 1) then
+c$$$                    call rotate_umatrix(mudim,uloc_temp,
+c$$$     $                rotmat,1)
+c$$$                    call cal_slater_integral(uloc_temp,l,ff(0,i_nu))
+c$$$                  else
+c$$$                    call rotate_umatrix(mudim,uloc_temp,
+c$$$     $                rotmat,1)
+c$$$
+c$$$                    uloc_temp2=0.0d0
+c$$$                    uloc_temp2
+c$$$     $                =(
+c$$$     $                uloc_temp(1:mudim_half,1:mudim_half,
+c$$$     $                1:mudim_half,1:mudim_half)
+c$$$     $                +uloc_temp((mudim_half+1):mudim,
+c$$$     $                (mudim_half+1):mudim,1:mudim_half,
+c$$$     $                1:mudim_half)
+c$$$     $                +uloc_temp(1:mudim_half,1:mudim_half,
+c$$$     $                (mudim_half+1):mudim,
+c$$$     $                (mudim_half+1):mudim)              
+c$$$     $                +uloc_temp((mudim_half+1):mudim,
+c$$$     $                (mudim_half+1):mudim,
+c$$$     $                (mudim_half+1):mudim,(mudim_half+1):mudim)
+c$$$     $                )/4.0d0
+c$$$                    
+c$$$                    call cal_slater_integral(uloc_temp2,l,ff(0,i_nu))
+c$$$
+c$$$                    if (maswrk) then
+c$$$                      write(iun,*) 'here9'
+c$$$                    endif                    
+c$$$                    
+c$$$                  endif
+c$$$
+c$$$
+c$$$                  uloc_temp=0.0d0
+c$$$                  do m4=1,mudim
+c$$$                    do m3=1,mudim
+c$$$                        call indexing(ndim,3,
+c$$$     $                    (/n_cw_max,n_cw_max,nspin/),
+c$$$     $                    1,ind1,(/m3,m4,ispin/))
+c$$$                      do m2=1,mudim
+c$$$                        do m1=1,mudim
+c$$$                            call indexing(ndim,3,
+c$$$     $                        (/n_cw_max,n_cw_max,nspin/),
+c$$$     $                        1,ind2,(/m1,m2,jspin/))                            
+c$$$                          uloc_temp(m2,m1,m3,m4)
+c$$$     $                      =uloc_temp(m2,m1,m3,m4)
+c$$$     $                      +tempmat2(ind2,ind1)
+c$$$                        enddo
+c$$$                      enddo
+c$$$                    enddo
+c$$$                  enddo
 c$$$  
-c$$$  call projection_coulomb(iat,l,projection)
-
-            
-            do jspin=1,nspin
-              do ispin=1,nspin
-                
-                if(maswrk) then
-                  write(3,'(a15,i1,a1,i1,a11,i2,2(a6,i2))')
-     &              '# ispin/jspin = ',ispin,'/',jspin,' iatom = ',
-     &              iatom,' L = ',l
-                  write(4,'(a15,i1,a1,i1,a11,i2,2(a6,i2))')
-     &              '# ispin/jspin = ',ispin,'/',jspin,' iatom = ',
-     &              iatom,' L = ',l
-                endif
-                
-                ff=0.0d0
-                cc=0.0d0
-                
-                do ind_nu=1,ndim3_nu
-                  i_nu=me3_tau*ndim3_nu+ind_nu-1
-                  
-                  w_wpb=0.0d0
-                  w_wpb_p=0.0d0                  
-                  
-                  do iorb=1,nwpb(iat)
-                    do jorb=1,nwpb(iat)
-                      w_wpb(iorb,jorb)
-     $                  =w_wpb_local(iorb,iat,jorb,iat,ind_nu)
-                    enddo
-                  enddo
-
-                  if (maswrk) then
-                    write(iun,*) 'here5'
-                  endif
-                  
-                  call zgemm('n','n',nwpb(iat),dim_pi(iat_c),nwpb(iat),
-     $              (1.0d0,0.0d0),w_wpb,nwpb(iat),
-     $              pi_projection(1,1,iat_c),
-     $              nwpb_max,(0.0d0,0.0d0),w_wpb_p,nwpb(iat))
-
-                  call zgemm('c','n',dim_pi(iat_c),dim_pi(iat_c),
-     $              nwpb(iat),
-     $              (1.0d0,0.0d0),pi_projection(1,1,iat_c),nwpb_max,
-     $              w_wpb_p,nwpb(iat),
-     $              (0.0d0,0.0d0),w_wpb_pp,dim_pi(iat_c))
-                  
-                  call zgemm('n','n',nwpb(iat),dim_pi(iat_c),nwpb(iat),
-     $              (1.0d0,0.0d0),chi0_wpb(1,1,ind_nu),nwpb(iat),
-     $              pi_projection(1,1,iat_c),nwpb_max,(0.0d0,0.0d0),
-     $              chi0_wpb_p,nwpb(iat))
-
-                  call zgemm('c','n',dim_pi(iat_c),dim_pi(iat_c),
-     $              nwpb(iat),
-     $              (1.0d0,0.0d0),pi_projection(1,1,iat_c),nwpb_max,
-     $              chi0_wpb_p,nwpb(iat),
-     $              (0.0d0,0.0d0),chi0_wpb_pp,dim_pi(iat_c))
+c$$$!!!!!!from here
+c$$$                  if (nrel .eq. 1) then
+c$$$                    call rotate_umatrix(mudim,uloc_temp,
+c$$$     $                rotmat,1)
+c$$$                    call cal_slater_integral(uloc_temp,l,cc(0,i_nu))
+c$$$                  else
+c$$$                    call rotate_umatrix(mudim,uloc_temp,
+c$$$     $                rotmat,1)
+c$$$                    
+c$$$                    uloc_temp2=0.0d0
+c$$$                    uloc_temp2
+c$$$     $                =(
+c$$$     $                uloc_temp(1:mudim_half,1:mudim_half,
+c$$$     $                1:mudim_half,1:mudim_half)
+c$$$     $                +uloc_temp((mudim_half+1):mudim,
+c$$$     $                (mudim_half+1):mudim,1:mudim_half,
+c$$$     $                1:mudim_half)
+c$$$     $                +uloc_temp(1:mudim_half,1:mudim_half,
+c$$$     $                (mudim_half+1):mudim,
+c$$$     $                (mudim_half+1):mudim)              
+c$$$     $                +uloc_temp((mudim_half+1):mudim,
+c$$$     $                (mudim_half+1):mudim,
+c$$$     $                (mudim_half+1):mudim,(mudim_half+1):mudim)
+c$$$     $                )/4.0d0
+c$$$                    
+c$$$                    call cal_slater_integral(uloc_temp2,l,cc(0,i_nu))
+c$$$                    
+c$$$                    if (maswrk) then
+c$$$                      write(iun,*) 'here9'
+c$$$                    endif                    
+c$$$                    
+c$$$                  endif
+c$$$                  
+c$$$                enddo
+c$$$                
+c$$$                if(nproc_tau/=1) then
+c$$$                  call mpi_allreduce_dcmplx
+c$$$     $              (ff(0,0),4*(n_nu+1),mpi_sum,comm_k)
+c$$$                  call mpi_allreduce_dcmplx
+c$$$     $              (cc,4*(n_nu+1),mpi_sum,comm_k)                  
+c$$$                endif
+c$$$                if(maswrk) then
+c$$$                  do i_nu=0,n_nu
+c$$$                    write(3,'(10(1x,e12.5))')w_nu(i_nu)*evolt/2,
+c$$$     &                (dble(ff(ii,i_nu))*rydberg,ii=0,l)
+c$$$                    write(4,'(10(1x,e12.5))')w_nu(i_nu)*evolt/2,
+c$$$     &                (dble(cc(ii,i_nu))/rydberg,ii=0,l)
+c$$$                  enddo
+c$$$                endif                  
+c$$$              enddo
+c$$$            enddo
+c$$$
+c$$$            deallocate(chi0_wpb)
+c$$$            
+c$$$            deallocate(tempmat3)
+c$$$            deallocate(tempmat4)
+c$$$            deallocate(tempmat1)
+c$$$            deallocate(tempmat2)            
+c$$$            deallocate(w_wpb)
+c$$$            deallocate(w_wpb_p)
+c$$$            deallocate(w_wpb_pp)                        
+c$$$
+c$$$            deallocate(chi0_wpb_p)
+c$$$            deallocate(chi0_wpb_pp)                        
+c$$$            deallocate(eps_wpb_pp)
+c$$$            deallocate(epsinv_wpb_pp)
+c$$$            deallocate(u_wpb_pp)
+c$$$            deallocate(uloc_temp)
+c$$$            deallocate(rotmat)
+c$$$            if (nrel .eq. 2) then
+c$$$              deallocate(uloc_temp2)              
+c$$$            endif
+c$$$            if (maswrk) close(3)
+c$$$            if (maswrk) close(4)            
+c$$$          endif
+c$$$        enddo
+c$$$      enddo
+c$$$      end
 c$$$
 c$$$
-                  call zgemm('n','n',dim_pi(iat_c),ndim,dim_pi(iat_c),
-     $              (1.d0,0.d0),chi0_wpb_pp,dim_pi(iat_c),
-     $              pi_ww_corr_dual(1,1,1,ispin,iat_c),nwpb_max,
-     $              (0.0d0,0.0d0),tempmat1,dim_pi(iat_c))                  
-                  
-                  call zgemm('c','n',ndim,ndim,dim_pi(iat_c),
-     $              (1.d0,0.d0),pi_ww_corr_dual(1,1,1,jspin,iat_c),
-     $              nwpb_max,
-     $              tempmat1,dim_pi(iat_c),
-     $              (0.0d0,0.0d0),tempmat2,ndim)                                    
-
-
-                  if (maswrk) then
-                    write(iun,*) 'here6'
-                  endif
-                  eps_wpb_pp=0.0d0
-                  do iwpb=1, dim_pi(iat_c)
-                    eps_wpb_pp(iwpb,iwpb)=1.0d0
-                  enddo
-                  
-                  call zgemm('n','n',
-     $              dim_pi(iat_c),dim_pi(iat_c),dim_pi(iat_c),
-     $              (1.0d0,0.0d0),w_wpb_pp,dim_pi(iat_c),chi0_wpb_pp,
-     $              dim_pi(iat_c),(1.0d0,0.0d0),
-     $              eps_wpb_pp,dim_pi(iat_c))
-                  
-                  epsinv_wpb_pp=0.0d0
-                  
-                  call dcmplx_matinv(eps_wpb_pp, epsinv_wpb_pp,
-     $              dim_pi(iat_c),dim_pi(iat_c))
-                  
-                  u_wpb_pp=0.0d0
-
-                  if (maswrk) then
-                    write(iun,*) 'here7'
-                  endif                  
-                  
-                  call zgemm('n','n',
-     $              dim_pi(iat_c),dim_pi(iat_c),dim_pi(iat_c),                  
-     $              (1.0d0,0.0d0),epsinv_wpb_pp,dim_pi(iat_c),w_wpb_pp,
-     $              dim_pi(iat_c),(0.0d0,0.0d0),u_wpb_pp,dim_pi(iat_c))
-
-                  call zgemm('n','n',dim_pi(iat_c),ndim,dim_pi(iat_c),
-     $              (1.d0,0.d0),u_wpb_pp,dim_pi(iat_c),
-     $              pi_ww_corr(1,1,1,ispin,iat_c),nwpb_max,
-     $              (0.0d0,0.0d0),tempmat3,dim_pi(iat_c))                  
-                  
-                  call zgemm('c','n',ndim,ndim,dim_pi(iat_c),
-     $              (1.d0,0.d0),pi_ww_corr(1,1,1,jspin,iat_c),nwpb_max,
-     $              tempmat3,dim_pi(iat_c),
-     $              (0.0d0,0.0d0),tempmat4,ndim)                  
-                  
-                  uloc_temp=0.0d0
-                  do m4=1,mudim
-                    do m3=1,mudim
-                      call indexing(ndim,3,
-     $                  (/n_cw_max,n_cw_max,nspin/),
-     $                  1,ind1,(/m3,m4,ispin/))
-                      do m2=1,mudim
-                        do m1=1,mudim
-                          call indexing(ndim,3,
-     $                      (/n_cw_max,n_cw_max,nspin/),
-     $                      1,ind2,(/m1,m2,jspin/))                            
-                          uloc_temp(m2,m1,m3,m4)
-     $                      =uloc_temp(m2,m1,m3,m4)
-     $                      +tempmat4(ind2,ind1)
-                        enddo
-                      enddo
-                    enddo
-                  enddo
-
-                  if (maswrk) then
-                    write(iun,*) 'here8'
-                  endif                 
-!!!!!!from here
-                  if (nrel .eq. 1) then
-                    call rotate_umatrix(mudim,uloc_temp,
-     $                rotmat,1)
-                    call cal_slater_integral(uloc_temp,l,ff(0,i_nu))
-                  else
-                    call rotate_umatrix(mudim,uloc_temp,
-     $                rotmat,1)
-
-                    uloc_temp2=0.0d0
-                    uloc_temp2
-     $                =(
-     $                uloc_temp(1:mudim_half,1:mudim_half,
-     $                1:mudim_half,1:mudim_half)
-     $                +uloc_temp((mudim_half+1):mudim,
-     $                (mudim_half+1):mudim,1:mudim_half,
-     $                1:mudim_half)
-     $                +uloc_temp(1:mudim_half,1:mudim_half,
-     $                (mudim_half+1):mudim,
-     $                (mudim_half+1):mudim)              
-     $                +uloc_temp((mudim_half+1):mudim,
-     $                (mudim_half+1):mudim,
-     $                (mudim_half+1):mudim,(mudim_half+1):mudim)
-     $                )/4.0d0
-                    
-                    call cal_slater_integral(uloc_temp2,l,ff(0,i_nu))
-
-                    if (maswrk) then
-                      write(iun,*) 'here9'
-                    endif                    
-                    
-                  endif
-
-
-                  uloc_temp=0.0d0
-                  do m4=1,mudim
-                    do m3=1,mudim
-                        call indexing(ndim,3,
-     $                    (/n_cw_max,n_cw_max,nspin/),
-     $                    1,ind1,(/m3,m4,ispin/))
-                      do m2=1,mudim
-                        do m1=1,mudim
-                            call indexing(ndim,3,
-     $                        (/n_cw_max,n_cw_max,nspin/),
-     $                        1,ind2,(/m1,m2,jspin/))                            
-                          uloc_temp(m2,m1,m3,m4)
-     $                      =uloc_temp(m2,m1,m3,m4)
-     $                      +tempmat2(ind2,ind1)
-                        enddo
-                      enddo
-                    enddo
-                  enddo
-  
-!!!!!!from here
-                  if (nrel .eq. 1) then
-                    call rotate_umatrix(mudim,uloc_temp,
-     $                rotmat,1)
-                    call cal_slater_integral(uloc_temp,l,cc(0,i_nu))
-                  else
-                    call rotate_umatrix(mudim,uloc_temp,
-     $                rotmat,1)
-                    
-                    uloc_temp2=0.0d0
-                    uloc_temp2
-     $                =(
-     $                uloc_temp(1:mudim_half,1:mudim_half,
-     $                1:mudim_half,1:mudim_half)
-     $                +uloc_temp((mudim_half+1):mudim,
-     $                (mudim_half+1):mudim,1:mudim_half,
-     $                1:mudim_half)
-     $                +uloc_temp(1:mudim_half,1:mudim_half,
-     $                (mudim_half+1):mudim,
-     $                (mudim_half+1):mudim)              
-     $                +uloc_temp((mudim_half+1):mudim,
-     $                (mudim_half+1):mudim,
-     $                (mudim_half+1):mudim,(mudim_half+1):mudim)
-     $                )/4.0d0
-                    
-                    call cal_slater_integral(uloc_temp2,l,cc(0,i_nu))
-                    
-                    if (maswrk) then
-                      write(iun,*) 'here9'
-                    endif                    
-                    
-                  endif
-                  
-                enddo
-                
-                if(nproc_tau/=1) then
-                  call mpi_allreduce_dcmplx
-     $              (ff(0,0),4*(n_nu+1),mpi_sum,comm_k)
-                  call mpi_allreduce_dcmplx
-     $              (cc,4*(n_nu+1),mpi_sum,comm_k)                  
-                endif
-                if(maswrk) then
-                  do i_nu=0,n_nu
-                    write(3,'(10(1x,e12.5))')w_nu(i_nu)*evolt/2,
-     &                (dble(ff(ii,i_nu))*rydberg,ii=0,l)
-                    write(4,'(10(1x,e12.5))')w_nu(i_nu)*evolt/2,
-     &                (dble(cc(ii,i_nu))/rydberg,ii=0,l)
-                  enddo
-                endif                  
-              enddo
-            enddo
-
-            deallocate(chi0_wpb)
-            
-            deallocate(tempmat3)
-            deallocate(tempmat4)
-            deallocate(tempmat1)
-            deallocate(tempmat2)            
-            deallocate(w_wpb)
-            deallocate(w_wpb_p)
-            deallocate(w_wpb_pp)                        
-
-            deallocate(chi0_wpb_p)
-            deallocate(chi0_wpb_pp)                        
-            deallocate(eps_wpb_pp)
-            deallocate(epsinv_wpb_pp)
-            deallocate(u_wpb_pp)
-            deallocate(uloc_temp)
-            deallocate(rotmat)
-            if (nrel .eq. 2) then
-              deallocate(uloc_temp2)              
-            endif
-            if (maswrk) close(3)
-            if (maswrk) close(4)            
-          endif
-        enddo
-      enddo
-      end
-
-
       
 
 c$$$  subroutine projection_test

@@ -1,5 +1,5 @@
-#ifndef MPI_UTILITIES
-#define MPI_UTILITIES
+#ifndef INCLUDE_MPI_UTILITIES_H
+#define INCLUDE_MPI_UTILITIES_H
 
 #ifdef HAVE_MPI
 #include <mpi.h>
@@ -21,7 +21,7 @@ namespace mpi {
     inline jsx::value read(std::string name) {
 		int size; std::string buffer;
 		
-		if(rank() == master) {
+                if(rank() == master) {
 			std::ifstream file(name.c_str()); 
 			if(!file) throw std::runtime_error("mpi: file " + name + " not found !");
 			
@@ -43,7 +43,17 @@ namespace mpi {
         jsx::value value;
         if(*jsx::parse(&buffer.front(), value) != '\0') throw std::runtime_error("json: file contains more ...");
         return value;
-	}	
+	}
+    
+    inline jsx::value read(std::string name, jsx::value dvalue) {
+        int isFile = 1;
+        
+        if(rank() == master)
+            if(!std::ifstream(name.c_str())) isFile = 0;
+        
+        bcast(isFile, master);
+        return isFile ? read(name) : dvalue;
+    }
 	
     template<typename T>
     inline void write(T const& t, std::string name, std::size_t precision = 10) {
@@ -59,28 +69,6 @@ namespace mpi {
         
         barrier();  //Why the hell this ?!?!??!
 	}
-    
-
-    inline void broad_cast(jsx::value& value) {
-#ifdef HAVE_MPI
-        int size; std::string buffer;
-        
-        if(rank() == master) {
-            std::ostringstream stream;
-            jsx::write(value, stream);
-            buffer = stream.str();
-            buffer.push_back('\0');
-            size = buffer.size();
-        }
-        
-        bcast(size, master);
-        if(rank() != master) buffer.resize(size);
-        bcast(buffer, master);
-        
-        if(*jsx::parse(&buffer.front(), value) != '\0') throw std::runtime_error("json: file contains more ...");
-#endif    
-    };
-    
 
     
     enum class cout_mode { every, one, none };

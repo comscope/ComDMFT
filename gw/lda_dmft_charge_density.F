@@ -54,7 +54,8 @@ The code expects to be using MPI if you want to use HDF5
         call fclose(fid_rst)
 #else
         if (maswrk) then
-          open(3,file=trim(allfile)//'.rst',form="unformatted")
+          open(3,file=adjustl(trim(checkpoint_dir))//
+     $      trim(allfile)//'.rst',form="unformatted")
           write(3)'dft', 1
           close(3)
         endif
@@ -630,36 +631,36 @@ c     ----------------- Interstitial contribution ------------------------
 
 
 
-      subroutine print_xsf
-      
-      use parallel_mod
-      use solid_mod
-      use units_mod
-      use atom_mod
-      
-      implicit none
-
-      integer :: ii,jj
-
-      if (maswrk) then
-
-	 open(unit=992, file='coord.xsf')
-	 write(992,'(a)') "CRYSTAL"
-	 write(992,'(a)') "PRIMVEC"
-	 write(992,'(3(f12.7,3x))') (rbas(ii,1)*par*bohr, ii=1,3)
-	 write(992,'(3(f12.7,3x))') (rbas(ii,2)*par*bohr, ii=1,3)
-	 write(992,'(3(f12.7,3x))') (rbas(ii,3)*par*bohr, ii=1,3)
-	 write(992,'(a)') "CONVVEC"
-	 write(992,'(3(f12.7,3x))') (rbas(ii,1)*par*bohr, ii=1,3)
-	 write(992,'(3(f12.7,3x))') (rbas(ii,2)*par*bohr, ii=1,3)
-	 write(992,'(3(f12.7,3x))') (rbas(ii,3)*par*bohr, ii=1,3)
-	 write(992,'(a)') "PRIMCOORD"
-	 write(992,'(2(i5, 2x))') natom, 1
-	 do jj=1, natom
-	   write(992,'(i5, 2x, 3(f12.6,3x))') nint(z(is(jj))),
-     $      (tau(ii,jj)*par*bohr, ii=1,3)
-	 enddo        
-	 close(992)
-	 endif
-      end
-
+c$$$      subroutine print_xsf
+c$$$      
+c$$$      use parallel_mod
+c$$$      use solid_mod
+c$$$      use units_mod
+c$$$      use atom_mod
+c$$$      
+c$$$      implicit none
+c$$$
+c$$$      integer :: ii,jj
+c$$$
+c$$$      if (maswrk) then
+c$$$
+c$$$	 open(unit=992, file='coord.xsf')
+c$$$	 write(992,'(a)') "CRYSTAL"
+c$$$	 write(992,'(a)') "PRIMVEC"
+c$$$	 write(992,'(3(f12.7,3x))') (rbas(ii,1)*par*bohr, ii=1,3)
+c$$$	 write(992,'(3(f12.7,3x))') (rbas(ii,2)*par*bohr, ii=1,3)
+c$$$	 write(992,'(3(f12.7,3x))') (rbas(ii,3)*par*bohr, ii=1,3)
+c$$$	 write(992,'(a)') "CONVVEC"
+c$$$	 write(992,'(3(f12.7,3x))') (rbas(ii,1)*par*bohr, ii=1,3)
+c$$$	 write(992,'(3(f12.7,3x))') (rbas(ii,2)*par*bohr, ii=1,3)
+c$$$	 write(992,'(3(f12.7,3x))') (rbas(ii,3)*par*bohr, ii=1,3)
+c$$$	 write(992,'(a)') "PRIMCOORD"
+c$$$	 write(992,'(2(i5, 2x))') natom, 1
+c$$$	 do jj=1, natom
+c$$$	   write(992,'(i5, 2x, 3(f12.6,3x))') nint(z(is(jj))),
+c$$$     $      (tau(ii,jj)*par*bohr, ii=1,3)
+c$$$	 enddo        
+c$$$	 close(992)
+c$$$	 endif
+c$$$      end
+c$$$

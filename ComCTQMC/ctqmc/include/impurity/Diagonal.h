@@ -1,5 +1,5 @@
-#ifndef IMPURITY_DIAGONAL_H
-#define IMPURITY_DIAGONAL_H
+#ifndef CTQMC_INCLUDE_IMPURITY_DIAGONAL_H
+#define CTQMC_INCLUDE_IMPURITY_DIAGONAL_H
 
 #include <iostream>
 #include <algorithm>
@@ -11,6 +11,7 @@
 
 #include "Algebra.h"
 #include "BitSet.h"
+#include "Dynamic.h"
 #include "../Utilities.h"
 #include "../../../include/mpi/Utilities.h"
 #include "../../../include/JsonX.h"
@@ -32,21 +33,21 @@ namespace imp {
     struct SectorNormPtrs { typedef SectorNorm** iterator; SectorNorm** begin; SectorNorm** end;};
     
     // Koennte von std::vector abgeleited werden ... benötigt aber definition von move assignement (nothrow !) an verschiedenen stellen ... fuck that
-    template<typename Alloc>
+    template<typename Mode>
     struct EigenValues : itf::EigenValues {
         EigenValues() = delete;
-        EigenValues(jsx::value const& jParams, std::vector<double> const& filling, jsx::value jEigenValues) :
+        EigenValues(jsx::value const& jParams, jsx::value jEigenValues, std::vector<double> const& filling, imp::Simple const* dynFunc) :
         sectorNumber_(jEigenValues.size()),
-        energies_(static_cast<Energies<Alloc>*>(::operator new(sizeof(Energies<Alloc>)*(sectorNumber_ + 1)))) {
+        energies_(static_cast<Energies<Mode>*>(::operator new(sizeof(Energies<Mode>)*(sectorNumber_ + 1)))) {
             mpi::cout << "Reading eigenvalues ... " << std::flush;
             
-            auto const mu = jParams("mu").real64(), Ur0 = jParams.is("dyn") ? jParams("dyn")(0).real64() : .0;
+            auto const mu = jParams("mu").real64();
             
             int sector = 1;
             for(auto& jEnergies : jEigenValues.array()) {
                 for(auto& energy : jsx::at<io::rvec>(jEnergies))
-                    energy += -mu*filling.at(sector) + .5*Ur0*filling.at(sector)*filling.at(sector);
-                new(energies_ + sector++) Energies<Alloc>(jParams, jsx::at<io::rvec>(jEnergies));
+                    energy += -mu*filling.at(sector) + (dynFunc != nullptr ? dynFunc->shift(sector) : .0);
+                new(energies_ + sector++) Energies<Mode>(jParams, jsx::at<io::rvec>(jEnergies));
             }
             
             mpi::cout << "Ok" << std::endl;
@@ -61,31 +62,31 @@ namespace imp {
         };
         
         int sectorNumber() const { return sectorNumber_;};
-        Energies<Alloc> const& at(int s) const {
+        Energies<Mode> const& at(int s) const {
             return energies_[s];
         };
 
     private:
         int const sectorNumber_;
-        Energies<Alloc>* energies_;
+        Energies<Mode>* energies_;
     };
 
 	//----------------------------------------------------------------PROPAGATOR--------------------------------------------------------------------------
-    template<typename Alloc>
+    template<typename Mode>
 	struct Propagator {
         Propagator() = delete;
-        Propagator(double time, EigenValues<Alloc> const& eig) : eig_(eig), time_(time), isProp_(eig_.sectorNumber() + 1), prop_(static_cast<Vector<Alloc>*>(::operator new(sizeof(Vector<Alloc>)*(eig_.sectorNumber() + 1)))) {}; /////////!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        Propagator(double time, EigenValues<Mode> const& eig) : eig_(eig), time_(time), isProp_(eig_.sectorNumber() + 1), prop_(static_cast<Vector<Mode>*>(::operator new(sizeof(Vector<Mode>)*(eig_.sectorNumber() + 1)))) {}; /////////!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         Propagator(Propagator const&) = delete;
         Propagator(Propagator&&) = delete;
         Propagator& operator=(Propagator const&) = delete;
         Propagator& operator=(Propagator&&) = delete;
         double time() const { return time_;};
-		Vector<Alloc> const& at(int s) { 
+		Vector<Mode> const& at(int s) {
 			if(isProp_[s]) return prop_[s];
-            new(prop_ + s) Vector<Alloc>(time_, eig_.at(s)); isProp_.set(s); // Soetti ok sii so, oder ???
+            new(prop_ + s) Vector<Mode>(time_, eig_.at(s)); isProp_.set(s); // Soetti ok sii so, oder ???
             return prop_[s];
 		};
-        Vector<Alloc> const& at(int s) const {
+        Vector<Mode> const& at(int s) const {
             if(!isProp_[s]) throw std::runtime_error("imp::Propagator::at: null pointer");
             return prop_[s];
         };
@@ -99,19 +100,19 @@ namespace imp {
 		};
         
 	private:
-		EigenValues<Alloc> const& eig_;
+		EigenValues<Mode> const& eig_;
 
 		double const time_;
         BitSet isProp_;     //eleganz vo arsch vo chue aber z'schnellschte won ich bis jetzt gfunde han
-		Vector<Alloc>* const prop_;
+		Vector<Mode>* const prop_;
 	};
     
-    template<typename Alloc> EigenValues<Alloc>& get(itf::EigenValues& eigenValuesItf) {
-        return static_cast<EigenValues<Alloc>&>(eigenValuesItf);
+    template<typename Mode> EigenValues<Mode>& get(itf::EigenValues& eigenValuesItf) {
+        return static_cast<EigenValues<Mode>&>(eigenValuesItf);
     };
     
-    template<typename Alloc> EigenValues<Alloc> const& get(itf::EigenValues const& eigenValuesItf) {
-        return static_cast<EigenValues<Alloc> const&>(eigenValuesItf);
+    template<typename Mode> EigenValues<Mode> const& get(itf::EigenValues const& eigenValuesItf) {
+        return static_cast<EigenValues<Mode> const&>(eigenValuesItf);
     };
 	
 }

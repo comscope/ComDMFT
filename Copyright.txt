@@ -1,0 +1,7 @@
+  *** Copyright Notice ***
+  Comsuite, Copyright (c) 2019, Brookhaven National Laboratory, Rutgers University, The Ames Laboratory, Iowa State University, and Université de Sherbrooke (subject to
+  receipt of any required approvals from the U.S. Dept. of Energy).
+  All rights reserved.
+
+  For full license information see "license.txt"
+

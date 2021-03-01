@@ -16,7 +16,7 @@ PROG = rspflapw.exe
 
 #&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 o_files = \
-write_gwl_bni.o \
+write_uca_files.o \
 a_cont_coeff.o  \
 a_cont_ferm.o  \
 a_cont_weights.o  \
@@ -29,6 +29,7 @@ asympt_sums_nu.o  \
 asympt_sums_omega.o  \
 atom.o  \
 atom_mod.o  \
+qsort_mod.o \
 atscfp.o  \
 aux_sums.o  \
 bandener.o  \
@@ -394,6 +395,7 @@ scgr.o  \
 sckg2.o  \
 screened_w.o  \
 search_mu_0.o  \
+search_mu_brent.o  \
 search_mu.o  \
 self_energy_1.o  \
 self_energy_dft_basis.o  \
@@ -611,7 +613,7 @@ zone0_cart.o  \
 zone1_cart.o  \
 zone1_number.o  \
 zx_hf.o  \
-write_wan_bni.o  \
+write_wan_files.o  \
 zy_hf.o \
 
 
@@ -626,13 +628,14 @@ mod_files = \
  mkl_dfti.mod \
  optimize_mod.mod \
  parallel_mod.mod \
+ qsort_mod.mod \
  sitegen_mod.mod \
  solid_mod.mod \
  units_mod.mod
 
 ifdef USE_HDF5
-  o_files += write_wan_bni_hdf5.o
-  o_files += write_gwl_bni_hdf5.o
+  o_files += write_wan_files_hdf5.o
+  o_files += write_uca_files_hdf5.o
   o_files += hdf5io_mod.o
   mod_files += hdf5io_mod.mod
 endif

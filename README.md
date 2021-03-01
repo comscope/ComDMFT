@@ -7,25 +7,32 @@ A computational materials physics code for simulating correlated quantum materia
   - charge self-consistent LDA+DMFT,
   - and ab initio LQSGW+DMFT
   
+For the copyright and license information, please see Copyright.txt and license.txt. 
+  
 # 2. New version release announcement
+## 2021. 2. 26
+   - Updated interface to Flapwmbpt. Now Comsuite requires single input file for FlapwMBPT, Comsuite, and its postprocess. 
+   - Now Comsuite provides an option to calculate quasiparticle bandstructures within LDA+DMFT as well as LQSGW+DMFT.
+   - Now Comsuite provides options to choose "s"- or "p"-type corrlated orbitals.
+
+## 2020. 1. 6
+   - Now Comsuite can calculate antiferromagnetically ordered phase. Please go to tutorial directories (install_directory/tutorials/lda_dmft/NiO_afm and install_directory/tutorials/lqsgw_dmft/NiO_afm). Read pdf files to learn how to calculate the electronic structures of antiferromagnetically ordered NiO.  You have two choices of charge self-consistent LDA+DMFT and LQSGW+DMFT.
+
 ## 2019. 1. 4
    - The first version has been released!!!
    - Please go to tutorial directory(install_directory/tutorials) to learn how to calculate the electronic structures of NiO, MnO, and FeSe. You have three choices of charge self-consistent LDA+Gutzwiller, charge self-consistent LDA+DMFT, and LQSGW+DMFT.
    
-## 2020. 1. 6
-   - New version released !!!
-   - Now Comsuite can calculate antiferromagnetically ordered phase. Please go to tutorial directories (install_directory/tutorials/lda_dmft/NiO_afm and install_directory/tutorials/lqsgw_dmft/NiO_afm). Read pdf files to learn how to calculate the electronic structures of antiferromagnetically ordered NiO.  You have two choices of charge self-consistent LDA+DMFT and LQSGW+DMFT.
 
 # 3. Comsuite Installation
 
 ## Prerequisites
-Comsuite consists of programs, executables, and scripts, written in Fortran90, c (c++) and Python. Before you start the installation, you must make sure that the following packages are installed in your system.
+Comsuite consists of programs, executables, and scripts, written in Fortran90, c (c++) and Python3. Before you start the installation, you must make sure that the following packages are installed in your system.
   - Fortran, C, CXX compiler and blas/lapack library. The followings have been tested
     - ifort, icpc and mkl
   - MPI
     - Intel MPI (mpiifort, mpiicc, mpiicpc, mpirun, etc. Check https://software.intel.com/en-us/qualify-for-free-software)
     - open MPI (mpif90, mpicc, mpicxx, mpirun, etc. Check https://www.open-mpi.org/)
-  - Python (required package : numpy, scipy, tabulate, itertools, mpi4py, cython, matplotlib, Builtins, sympy, pymatgen, pyyaml and h5py)
+  - Python3 (required package : numpy, scipy, tabulate, itertools, mpi4py, cython, matplotlib, Builtins, sympy, pymatgen, pyyaml and h5py)
   
 ## Optional package
   - Data storage in Parallel HDF5 is also supported. Parallel HDF5 library (Check https://www.hdfgroup.org/HDF5/release/obtain5.html)
@@ -56,27 +63,29 @@ The directory contains the following sub-directories:
        F90 = ifort
        PF90 = ftn
        compfl = -O3
+	   
+       ##### f2py
+       fortran2python = f2py -c --fcompiler=intelem --compiler=intelem	   
 
        ### phdf5
        USE_HDF5 = defined  ### comment out this line if you don’t want to compile with hdf5 (for LDA+DMFT and LQSGW+DMFT)
 
        ifdef USE_HDF5
           FPPFLAGS += -DUSE_HDF5
-	  F90 = h5pfc
+	      F90 = h5pfc
        endif
 
        ### C and C++
        CXX = CC
-       CXX_MPI = CC
+       CXX_MPI = CC -DHAVE_MPI
 	   
-	    ##### lapack library
+	   ##### lapack library
        LAPACK_LIB = -mkl
 
        #### ComCTQMC
 
        BASE_CPPFLAGS = -DNDEBUG
        BASE_LIBS = -lm
-
        CXXFLAGS_CTQMC = -std=c++11 -fexceptions -Wall -O3
 
        #### ComRISB ######################
@@ -85,10 +94,13 @@ The directory contains the following sub-directories:
        FREE_FORM = -free
        PF90_RISB=h5pfc
        CXXFLAGS_RISB = -O2
+	   
+	   
 	 Below is the meaning of the each flag in the arch.mk.
   - F90 = ifort ; identify Fortran compiler for a serial fortran program
   - PF90 = ftn ; identify Fortran compiler for a MPI fortran program
   - compfl = -O3 ; compilation flag for Fortran programs
+  - fortran2python: fortran to python interface generator
   - USE_HDF5 = defined ; compilation option to enable program to read and write data in hdf5 file format (only works for LDA+DMFT and LQSGW+DMFT for now). Comment out this line if you dont want to compile with hdf5
   - CXX = CC ; standard environment variable to identify the serial C++ compiler. 
   - CXX_MPI = CC; identify the parallel C++ compiler
