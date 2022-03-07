@@ -1,0 +1,8 @@
+{
+    "sigfile": "../sig.dat",
+    "gaux_mode": "g",
+    "default_model": "g_mat",
+    "smearing": "0.01",
+    "gaussian_broadening": "0.2",
+    "interpolation": true
+}

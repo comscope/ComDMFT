@@ -1,0 +1,554 @@
+
+*********************************
+             ComDMFT
+*********************************
+
+here
+<class 'numpy.ndarray'>
+[[1]]
+here
+hdf5 False
+top_dir /global/cscratch1/sd/sang/bnl_school_2021/lda_dmft
+lattice_directory /global/cscratch1/sd/sang/bnl_school_2021/lda_dmft/lattice
+wannier_directory /global/cscratch1/sd/sang/bnl_school_2021/lda_dmft/wannier
+dc_directory /global/cscratch1/sd/sang/bnl_school_2021/lda_dmft/dc
+impurity_directory /global/cscratch1/sd/sang/bnl_school_2021/lda_dmft/impurity
+lowh_directory /global/cscratch1/sd/sang/bnl_school_2021/lda_dmft/lowh
+iter_num_impurity 0   max_iter_num_impurity 1
+iter_num_outer 1   max_iter_num_outer 50
+
+
+
+
+
+
+************************************************
+iteration:  1
+************************************************
+initial dft directory setup done
+wannier function construction
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComWann
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+[[1]]
+[[1]]
+dc.dat generation done
+initial_self_energy generation done
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 165.20786445892114
+second moment 167.94632639486187
+third moment 0.011511928229100427
+
+
+
+
+
+
+
+
+
+
+************************************************
+iteration:  2
+************************************************
+prepare_dft_input done
+dft calculation done
+wannier function construction
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComWann
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 159.4363906949742
+second moment 166.62052643305128
+third moment 0.04467799883948648
+
+
+
+
+
+
+
+
+
+
+************************************************
+iteration:  3
+************************************************
+prepare_dft_input done
+dft calculation done
+wannier function construction
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComWann
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 155.78643805195514
+second moment 169.74120450338341
+third moment 0.09156374521096312
+
+
+
+
+
+
+
+
+
+
+************************************************
+iteration:  4
+************************************************
+prepare_dft_input done
+dft calculation done
+wannier function construction
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComWann
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 153.3654763604729
+second moment 174.4262070125206
+third moment 0.05912207552836315
+
+
+
+
+
+
+
+
+
+
+************************************************
+iteration:  5
+************************************************
+prepare_dft_input done
+dft calculation done
+wannier function construction
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComWann
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 151.755851877398
+second moment 173.0148516997133
+third moment 0.06518449253187253
+
+
+
+
+
+
+
+
+
+
+************************************************
+iteration:  6
+************************************************
+prepare_dft_input done
+dft calculation done
+wannier function construction
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComWann
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 151.20689207632643
+second moment 162.63481178739207
+third moment 0.08287976960685234
+
+
+
+
+
+
+
+
+
+
+************************************************
+iteration:  7
+************************************************
+prepare_dft_input done
+dft calculation done
+wannier function construction
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComWann
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+Error in CTQMC. Check standard error file for error message.
+
+*********************************
+             ComDMFT
+*********************************
+
+here
+<class 'numpy.ndarray'>
+[[1]]
+here
+hdf5 False
+top_dir /global/cscratch1/sd/sang/bnl_school_2021/lda_dmft
+lattice_directory /global/cscratch1/sd/sang/bnl_school_2021/lda_dmft/lattice
+wannier_directory /global/cscratch1/sd/sang/bnl_school_2021/lda_dmft/wannier
+dc_directory /global/cscratch1/sd/sang/bnl_school_2021/lda_dmft/dc
+impurity_directory /global/cscratch1/sd/sang/bnl_school_2021/lda_dmft/impurity
+lowh_directory /global/cscratch1/sd/sang/bnl_school_2021/lda_dmft/lowh
+iter_num_impurity 0   max_iter_num_impurity 1
+iter_num_outer 7   max_iter_num_outer 50
+
+
+
+
+
+
+************************************************
+iteration:  7
+************************************************
+prepare_dft_input done
+dft calculation done
+wannier function construction
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComWann
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 149.95671871647664
+second moment 176.96135821599896
+third moment 0.0016316603308319266
+
+
+
+
+
+
+
+
+
+
+************************************************
+iteration:  8
+************************************************
+prepare_dft_input done
+dft calculation done
+wannier function construction
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComWann
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 149.2887142343475
+second moment 180.526407623078
+third moment 0.04649375124968244
+
+
+
+
+
+
+
+
+
+
+************************************************
+iteration:  9
+************************************************
+prepare_dft_input done
+dft calculation done
+wannier function construction
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComWann
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 149.39078228750432
+second moment 176.35186189716924
+third moment 0.014274652641915853
+
+
+
+
+
+
+
+
+
+
+************************************************
+iteration:  10
+************************************************
+prepare_dft_input done
+dft calculation done
+wannier function construction
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComWann
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 149.38469703331384
+second moment 171.9517524943628
+third moment 0.06216222433804238
+
+
+
+
+
+
+
+
+
+
+************************************************
+iteration:  11
+************************************************
+prepare_dft_input done
+dft calculation done
+wannier function construction
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComWann
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 149.44016343986306
+second moment 172.36765008753696
+third moment 0.050668099232127846
+
+
+
+
+
+
+
+
+
+
+************************************************
+iteration:  12
+************************************************
+prepare_dft_input done
+dft calculation done
+wannier function construction
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComWann
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params

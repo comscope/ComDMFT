@@ -108,7 +108,8 @@
      $  cut_low,
      $  cut_total,
      $  clight,
-     $  mt_fac
+     $  mt_fac,
+     $  dis_froz_max_fac
 
       double precision, allocatable ::
      &  bett(:),
@@ -198,7 +199,7 @@
 !     $  write_wan_pdos,
 !     $  cal_photoemission_input,
 !     $  cal_optics_input,
-     $  nbnd_in_froz(2),
+
      $  num_kpts_fi,
      $  mp_grid_fi(3),
      $  num_iter,
@@ -236,7 +237,8 @@
      $  irvec(:,:),
      $  alimj(:,:,:),
      $  nalimj(:),
-     $  ndim_mp_grid_fi(:)
+     $  ndim_mp_grid_fi(:),
+     $  band_ind_froz(:,:)      
 !     $  n_mpi_mp_grid_fi(:)
 
 
@@ -274,7 +276,8 @@ c$$$     $  weight_in_froz_win(:,:,:),
      $  weight_total(:,:,:),
      $  occ_iwan(:,:,:),
      $  occ_fwan(:,:,:),
-     $  weight_fwan(:,:,:)            
+     $  weight_fwan(:,:,:),
+     $  band_eig_froz(:,:)            
 !     $  wb(:,:),
 !     $  bk(:,:,:)
 

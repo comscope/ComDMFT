@@ -7,7 +7,7 @@ cpu:  EVALSIM
 gpu:  EVALSIM
 
 EVALSIM:  Evalsim.C $(HEADERS)
-	$(CXX_MPI) $(CPPFLAGS) $(CXXFLAGS) -o $@  Evalsim.C $(LDFLAGS) $(LIBS)
+	$(CXX_MPI) $(CPPFLAGS) $(CXXFLAGS) -o $@  Evalsim.C $(LDFLAGS) $(LIBS) -lmpi_cxx -lstdc++
 	mv EVALSIM ../bin/.
 
 clean:

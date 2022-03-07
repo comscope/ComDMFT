@@ -494,7 +494,7 @@ c$$$  close(100)
         
         num_wann=0
         open(unit=42, file='orb_for_froz_win.dat')
-        write(42,*) 'nbnd_in_froz', nbnd_in_froz
+c$$$        write(42,*) 'nbnd_in_froz', nbnd_in_froz
         open(unit=43, file=adjustl(trim(seed_name))//'.inip')
 
         do iatom=1, natom
@@ -554,30 +554,47 @@ c$$$  close(100)
       use comwann_mod
       implicit none
 
-      integer :: ik,tempint,ibnd
+      integer :: ik,tempint,ibnd, ind(1)
+      
 
-      nbnd_in_froz(1)=10000000
-      nbnd_in_froz(2)=0              
+
+      if (maswrk) then
+        open(unit=112, file='band_in_froz_win.dat')
+      endif      
+
       do ik=1, nqdiv
-        tempint=0
-        do ibnd=1, num_bands
-          if (
-     $      (eigenvalues(ibnd,ik) .ge. dis_froz_min)
-     $      .and. 
-     $      (eigenvalues(ibnd,ik) .le. dis_froz_max)
-     $      ) then
-            tempint=tempint+1
-          endif
-        enddo
-        if (tempint .lt. nbnd_in_froz(1)) then
-          nbnd_in_froz(1)=tempint
-        endif                
-        if (tempint .gt. nbnd_in_froz(2)) then
-          nbnd_in_froz(2)=tempint
+
+
+        ind=minloc(eigenvalues(:,ik),
+     $    mask=eigenvalues(:,ik) .gt. dis_froz_min)
+        band_ind_froz(1,ik)=ind(1)                
+        
+        band_eig_froz(1,ik)        
+     $    =eigenvalues(band_ind_froz(1,ik),ik)
+
+
+        ind=maxloc(eigenvalues(:,ik),
+     $    mask=eigenvalues(:,ik) .lt. dis_froz_max)
+        band_ind_froz(2,ik)=ind(1)                
+
+        band_eig_froz(2,ik)        
+     $    =eigenvalues(band_ind_froz(2,ik),ik)        
+
+        band_ind_froz(3,ik)
+     $    = band_ind_froz(2,ik)-band_ind_froz(1,ik)+1
+
+        if (maswrk) then
+          write(112,
+     $      '(a,2x,i5,2x,a,2x,2(i5,2x),a,2x,2(f20.12,2x),a,2x,i5)')
+     $      'ik=', ik, 'index:',
+     $      band_ind_froz(1:2,ik),  'energy:',
+     $      band_eig_froz(1:2,ik),
+     $      'total number:' ,
+     $      band_ind_froz(3,ik)
         endif
       enddo
-      if (maswrk) then
-        write(iun, *) 'nbnd_in_froz', nbnd_in_froz
+      if(maswrk) then
+        close(112)
       endif
       end
 
@@ -585,8 +602,14 @@ c$$$  close(100)
       subroutine reset_dis_froz_max
       use comwann_mod
       implicit none
-      
-      dis_froz_max=maxval(eigenvalues(nbnd_in_froz(1),:))-0.1d0
+c$$$      integer :: ik, ind
+c$$$      double precision :: tempval
+
+c$$$      tempval=0.0d0
+c$$$      do ik=1, nqdiv
+c$$$        ind=band_ind_froz(1,ik)+band_ind_froz(3,ik)
+c$$$        if 
+      dis_froz_max=dis_froz_max*dis_froz_max_fac
       if (maswrk) then
         write(iun,*) 
         write(iun,*) 'dis_froz_max has been reset to ', dis_froz_max

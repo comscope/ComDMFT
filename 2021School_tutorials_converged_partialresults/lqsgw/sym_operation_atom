@@ -1,0 +1,576 @@
+    1 operation    1
+   rotation
+    1.000000    0.000000    0.000000
+   -0.000000    1.000000    0.000000
+    0.000000    0.000000    1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+    2 operation    1
+   rotation
+   -1.000000   -0.000000    0.000000
+    0.000000   -1.000000    0.000000
+    0.000000    0.000000   -1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+    3 operation    1
+   rotation
+   -0.000000   -1.000000    0.000000
+    1.000000   -0.000000    0.000000
+    0.000000    0.000000    1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+    4 operation    1
+   rotation
+    0.000000    1.000000    0.000000
+   -1.000000    0.000000    0.000000
+    0.000000    0.000000   -1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+    5 operation    1
+   rotation
+   -1.000000   -0.000000    0.000000
+    0.000000   -1.000000    0.000000
+    0.000000    0.000000    1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+    6 operation    1
+   rotation
+    1.000000    0.000000    0.000000
+   -0.000000    1.000000    0.000000
+    0.000000    0.000000   -1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+    7 operation    1
+   rotation
+   -0.000000    1.000000    0.000000
+   -1.000000   -0.000000    0.000000
+    0.000000    0.000000    1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+    8 operation    1
+   rotation
+    0.000000   -1.000000    0.000000
+    1.000000    0.000000    0.000000
+    0.000000    0.000000   -1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+    9 operation    1
+   rotation
+    1.000000    0.000000    0.000000
+    0.000000   -1.000000    0.000000
+    0.000000    0.000000   -1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   10 operation    1
+   rotation
+   -1.000000   -0.000000   -0.000000
+   -0.000000    1.000000    0.000000
+   -0.000000   -0.000000    1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   11 operation    1
+   rotation
+    0.000000   -1.000000    0.000000
+   -1.000000   -0.000000    0.000000
+    0.000000   -0.000000   -1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   12 operation    1
+   rotation
+   -0.000000    1.000000   -0.000000
+    1.000000    0.000000    0.000000
+   -0.000000    0.000000    1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   13 operation    1
+   rotation
+   -1.000000   -0.000000    0.000000
+   -0.000000    1.000000    0.000000
+   -0.000000   -0.000000   -1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   14 operation    1
+   rotation
+    1.000000    0.000000   -0.000000
+    0.000000   -1.000000    0.000000
+    0.000000    0.000000    1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   15 operation    1
+   rotation
+    0.000000    1.000000    0.000000
+    1.000000   -0.000000    0.000000
+    0.000000    0.000000   -1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   16 operation    1
+   rotation
+   -0.000000   -1.000000   -0.000000
+   -1.000000    0.000000    0.000000
+   -0.000000   -0.000000    1.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   17 operation    1
+   rotation
+   -0.000000   -0.000000    1.000000
+    1.000000    0.000000    0.000000
+   -0.000000    1.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   18 operation    1
+   rotation
+    0.000000    0.000000   -1.000000
+   -1.000000   -0.000000   -0.000000
+    0.000000   -1.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   19 operation    1
+   rotation
+   -0.000000    0.000000    1.000000
+   -0.000000   -1.000000    0.000000
+    1.000000   -0.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   20 operation    1
+   rotation
+    0.000000   -0.000000   -1.000000
+    0.000000    1.000000   -0.000000
+   -1.000000    0.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   21 operation    1
+   rotation
+   -0.000000    0.000000    1.000000
+   -1.000000   -0.000000   -0.000000
+    0.000000   -1.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   22 operation    1
+   rotation
+    0.000000   -0.000000   -1.000000
+    1.000000    0.000000    0.000000
+   -0.000000    1.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   23 operation    1
+   rotation
+    0.000000    0.000000    1.000000
+    0.000000    1.000000   -0.000000
+   -1.000000    0.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   24 operation    1
+   rotation
+   -0.000000   -0.000000   -1.000000
+   -0.000000   -1.000000    0.000000
+    1.000000   -0.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   25 operation    1
+   rotation
+    0.000000   -0.000000   -1.000000
+    1.000000    0.000000    0.000000
+    0.000000   -1.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   26 operation    1
+   rotation
+   -0.000000    0.000000    1.000000
+   -1.000000   -0.000000   -0.000000
+   -0.000000    1.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   27 operation    1
+   rotation
+    0.000000   -0.000000   -1.000000
+   -0.000000   -1.000000    0.000000
+   -1.000000    0.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   28 operation    1
+   rotation
+   -0.000000    0.000000    1.000000
+    0.000000    1.000000   -0.000000
+    1.000000   -0.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   29 operation    1
+   rotation
+   -0.000000   -0.000000   -1.000000
+   -1.000000   -0.000000    0.000000
+   -0.000000    1.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   30 operation    1
+   rotation
+    0.000000    0.000000    1.000000
+    1.000000    0.000000   -0.000000
+    0.000000   -1.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   31 operation    1
+   rotation
+    0.000000    0.000000   -1.000000
+    0.000000    1.000000    0.000000
+    1.000000   -0.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   32 operation    1
+   rotation
+   -0.000000   -0.000000    1.000000
+   -0.000000   -1.000000   -0.000000
+   -1.000000    0.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   33 operation    1
+   rotation
+   -0.000000    1.000000    0.000000
+   -0.000000   -0.000000    1.000000
+    1.000000    0.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   34 operation    1
+   rotation
+    0.000000   -1.000000   -0.000000
+    0.000000    0.000000   -1.000000
+   -1.000000   -0.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   35 operation    1
+   rotation
+    1.000000    0.000000    0.000000
+   -0.000000    0.000000    1.000000
+    0.000000   -1.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   36 operation    1
+   rotation
+   -1.000000   -0.000000   -0.000000
+    0.000000   -0.000000   -1.000000
+   -0.000000    1.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   37 operation    1
+   rotation
+   -0.000000   -1.000000    0.000000
+    0.000000    0.000000    1.000000
+   -1.000000    0.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   38 operation    1
+   rotation
+    0.000000    1.000000   -0.000000
+   -0.000000   -0.000000   -1.000000
+    1.000000   -0.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   39 operation    1
+   rotation
+   -1.000000   -0.000000    0.000000
+    0.000000   -0.000000    1.000000
+   -0.000000    1.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   40 operation    1
+   rotation
+    1.000000    0.000000   -0.000000
+   -0.000000    0.000000   -1.000000
+    0.000000   -1.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   41 operation    1
+   rotation
+   -0.000000   -1.000000   -0.000000
+    0.000000    0.000000   -1.000000
+    1.000000   -0.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   42 operation    1
+   rotation
+    0.000000    1.000000    0.000000
+   -0.000000   -0.000000    1.000000
+   -1.000000    0.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   43 operation    1
+   rotation
+   -1.000000   -0.000000   -0.000000
+    0.000000   -0.000000   -1.000000
+    0.000000   -1.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   44 operation    1
+   rotation
+    1.000000    0.000000    0.000000
+   -0.000000    0.000000    1.000000
+   -0.000000    1.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   45 operation    1
+   rotation
+    0.000000    1.000000   -0.000000
+    0.000000   -0.000000   -1.000000
+   -1.000000    0.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   46 operation    1
+   rotation
+   -0.000000   -1.000000    0.000000
+   -0.000000    0.000000    1.000000
+    1.000000   -0.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   47 operation    1
+   rotation
+    1.000000    0.000000   -0.000000
+   -0.000000   -0.000000   -1.000000
+   -0.000000    1.000000   -0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 
+   48 operation    1
+   rotation
+   -1.000000   -0.000000    0.000000
+    0.000000    0.000000    1.000000
+    0.000000   -1.000000    0.000000
+   shift
+    0.000000    0.000000    0.000000
+jatom, iatom, r_{iatom}-r_{R tau_jatom +tshift} cartesian r_{iatom}-r_{R tau_jatom +tshift} latticevec
+    1    1    0.000000    0.000000    0.000000    0    0    0
+ 
+ 
+ 

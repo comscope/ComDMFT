@@ -1,0 +1,638 @@
+isort    1   rk/l    2.323602
+************ iteration        1 ************
+ charge density self-consistency= 0.9066598E-04
+ dft: ETOT F =      -323.407112833561     -323.409069733407
+delta energy per electron in ev -0.488896329177E+03
+chemical potential change -0.175653233256E+01
+ 
+************ iteration        2 ************
+ charge density self-consistency= 0.6730070E-04
+ dft: ETOT F =      -323.407926569449     -323.409883802963
+delta energy per electron in ev -0.123012906267E-02
+chemical potential change -0.306431097510E-01
+ 
+************ iteration        3 ************
+ charge density self-consistency= 0.5433986E-04
+ dft: ETOT F =      -323.408294555396     -323.410251839437
+delta energy per electron in ev -0.556286399213E-03
+chemical potential change -0.210702689912E-01
+ 
+************ iteration        4 ************
+ charge density self-consistency= 0.4532442E-04
+ dft: ETOT F =      -323.408554320757     -323.410511626779
+delta energy per electron in ev -0.392688740515E-03
+chemical potential change -0.178989958327E-01
+ 
+************ iteration        5 ************
+ charge density self-consistency= 0.3817496E-04
+ dft: ETOT F =      -323.408757292758     -323.410714615526
+delta energy per electron in ev -0.306833900383E-03
+chemical potential change -0.157055664735E-01
+ 
+************ iteration        6 ************
+ charge density self-consistency= 0.3219890E-04
+ dft: ETOT F =      -323.408920027944     -323.410877365718
+delta energy per electron in ev -0.246007686128E-03
+chemical potential change -0.138992853640E-01
+ 
+************ iteration        7 ************
+ charge density self-consistency= 0.2712010E-04
+ dft: ETOT F =      -323.409051445248     -323.411008796719
+delta energy per electron in ev -0.198664268345E-03
+chemical potential change -0.123437379589E-01
+ 
+************ iteration        8 ************
+ charge density self-consistency= 0.2279011E-04
+ dft: ETOT F =      -323.409157812721     -323.411115176591
+delta energy per electron in ev -0.160796299169E-03
+chemical potential change -0.109846559175E-01
+ 
+************ iteration        9 ************
+ charge density self-consistency= 0.1910381E-04
+ dft: ETOT F =      -323.409243987247     -323.411201362245
+delta energy per electron in ev -0.130270509643E-03
+chemical potential change -0.978993078475E-02
+ 
+************ iteration       10 ************
+ charge density self-consistency= 0.1597467E-04
+ dft: ETOT F =      -323.409313844995     -323.411271229929
+delta energy per electron in ev -0.105604346140E-03
+chemical potential change -0.873597859570E-02
+ 
+************ iteration       11 ************
+ charge density self-consistency= 0.1332731E-04
+ dft: ETOT F =      -323.409370504760     -323.411327898545
+delta energy per electron in ev -0.856528811735E-04
+chemical potential change -0.780384143022E-02
+ 
+************ iteration       12 ************
+ charge density self-consistency= 0.1109502E-04
+ dft: ETOT F =      -323.409416481654     -323.411373883320
+delta energy per electron in ev -0.695035266032E-04
+chemical potential change -0.697772916817E-02
+ 
+************ iteration       13 ************
+ charge density self-consistency= 0.9218730E-05
+ dft: ETOT F =      -323.409453805789     -323.411411214473
+delta energy per electron in ev -0.564231019895E-04
+chemical potential change -0.624427948166E-02
+ 
+************ iteration       14 ************
+ charge density self-consistency= 0.7646371E-05
+ dft: ETOT F =      -323.409484116964     -323.411441531905
+delta energy per electron in ev -0.458215720876E-04
+chemical potential change -0.559208292763E-02
+ 
+************ iteration       15 ************
+ charge density self-consistency= 0.6332322E-05
+ dft: ETOT F =      -323.409508740715     -323.411466161240
+delta energy per electron in ev -0.372238611249E-04
+chemical potential change -0.501133666210E-02
+ 
+************ iteration       16 ************
+ charge density self-consistency= 0.5236879E-05
+ dft: ETOT F =      -323.409528749403     -323.411486174916
+delta energy per electron in ev -0.302472441387E-04
+chemical potential change -0.449357641083E-02
+ 
+************ iteration       17 ************
+ charge density self-consistency= 0.4325716E-05
+ dft: ETOT F =      -323.409545011270     -323.411502441245
+delta energy per electron in ev -0.245831543702E-04
+chemical potential change -0.403146287409E-02
+ 
+************ iteration       18 ************
+ charge density self-consistency= 0.3569342E-05
+ dft: ETOT F =      -323.409558229840     -323.411515663810
+delta energy per electron in ev -0.199825857329E-04
+chemical potential change -0.361860866859E-02
+ 
+************ iteration       19 ************
+ charge density self-consistency= 0.2942562E-05
+ dft: ETOT F =      -323.409568975575     -323.411526413126
+delta energy per electron in ev -0.162443871860E-04
+chemical potential change -0.324943653101E-02
+ 
+************ iteration       20 ************
+ charge density self-consistency= 0.2423973E-05
+ dft: ETOT F =      -323.409577711342     -323.411535152106
+delta energy per electron in ev -0.132059087687E-04
+chemical potential change -0.291906213080E-02
+ 
+************ iteration       21 ************
+ charge density self-consistency= 0.1995473E-05
+ dft: ETOT F =      -323.409584812930     -323.411542256578
+delta energy per electron in ev -0.107355090613E-04
+chemical potential change -0.262319652081E-02
+ 
+************ iteration       22 ************
+ charge density self-consistency= 0.1641820E-05
+ dft: ETOT F =      -323.409590585578     -323.411548031818
+delta energy per electron in ev -0.872654425940E-05
+chemical potential change -0.235806442302E-02
+ 
+************ iteration       23 ************
+ charge density self-consistency= 0.1350230E-05
+ dft: ETOT F =      -323.409595277338     -323.411552725909
+delta energy per electron in ev -0.709256010454E-05
+chemical potential change -0.212033539132E-02
+ 
+************ iteration       24 ************
+ charge density self-consistency= 0.1110013E-05
+ dft: ETOT F =      -323.409599089861     -323.411556540528
+delta energy per electron in ev -0.576341229305E-05
+chemical potential change -0.190706552658E-02
+ 
+************ iteration       25 ************
+ charge density self-consistency= 0.9122590E-06
+ dft: ETOT F =      -323.409602187135     -323.411559639689
+delta energy per electron in ev -0.468216532996E-05
+chemical potential change -0.171564788291E-02
+ 
+************ iteration       26 ************
+ charge density self-consistency= 0.7495580E-06
+ dft: ETOT F =      -323.409604702546     -323.411562156800
+delta energy per electron in ev -0.380256127385E-05
+chemical potential change -0.154377009487E-02
+ 
+************ iteration       27 ************
+ charge density self-consistency= 0.6157624E-06
+ dft: ETOT F =      -323.409606744623     -323.411564200410
+delta energy per electron in ev -0.308701996202E-05
+chemical potential change -0.138937801390E-02
+ 
+************ iteration       28 ************
+ charge density self-consistency= 0.5057806E-06
+ dft: ETOT F =      -323.409608401681     -323.411565858849
+delta energy per electron in ev -0.250498364507E-05
+chemical potential change -0.125064438942E-02
+ 
+************ iteration       29 ************
+ charge density self-consistency= 0.4154032E-06
+ dft: ETOT F =      -323.409609745594     -323.411567204007
+delta energy per electron in ev -0.203160087516E-05
+chemical potential change -0.112594179629E-02
+ 
+************ iteration       30 ************
+ charge density self-consistency= 0.3411545E-06
+ dft: ETOT F =      -323.409610834863     -323.411568294398
+delta energy per electron in ev -0.164665323398E-05
+chemical potential change -0.101381915409E-02
+ 
+************ iteration       31 ************
+ charge density self-consistency= 0.2801679E-06
+ dft: ETOT F =      -323.409611717105     -323.411569177654
+delta energy per electron in ev -0.133369035615E-05
+chemical potential change -0.912981300078E-03
+ 
+************ iteration       32 ************
+ charge density self-consistency= 0.2300818E-06
+ dft: ETOT F =      -323.409612431080     -323.411569892543
+delta energy per electron in ev -0.107931919798E-05
+chemical potential change -0.822271165963E-03
+ 
+************ iteration       33 ************
+ charge density self-consistency= 0.1889520E-06
+ dft: ETOT F =      -323.409613008337     -323.411570470626
+delta energy per electron in ev -0.872642653459E-06
+chemical potential change -0.740654185341E-03
+ 
+************ iteration       34 ************
+ charge density self-consistency= 0.1551790E-06
+ dft: ETOT F =      -323.409613474553     -323.411570937587
+delta energy per electron in ev -0.704781179037E-06
+chemical potential change -0.667204619192E-03
+ 
+************ iteration       35 ************
+ charge density self-consistency= 0.1274479E-06
+ dft: ETOT F =      -323.409613850623     -323.411571314331
+delta energy per electron in ev -0.568507417136E-06
+chemical potential change -0.601093535671E-03
+ 
+************ iteration       36 ************
+ charge density self-consistency= 0.1046779E-06
+ dft: ETOT F =      -323.409614153552     -323.411571617868
+delta energy per electron in ev -0.457939252343E-06
+chemical potential change -0.541578220088E-03
+ 
+************ iteration       37 ************
+ charge density self-consistency= 0.8598122E-07
+ dft: ETOT F =      -323.409614397170     -323.411571862036
+delta energy per electron in ev -0.368279957543E-06
+chemical potential change -0.487992828955E-03
+ 
+************ iteration       38 ************
+ charge density self-consistency= 0.7062866E-07
+ dft: ETOT F =      -323.409614592730     -323.411572058092
+delta energy per electron in ev -0.295628201557E-06
+chemical potential change -0.439740125540E-03
+ 
+************ iteration       39 ************
+ charge density self-consistency= 0.5802151E-07
+ dft: ETOT F =      -323.409614749378     -323.411572215188
+delta energy per electron in ev -0.236805844395E-06
+chemical potential change -0.396284158755E-03
+ 
+************ iteration       40 ************
+ charge density self-consistency= 0.4766822E-07
+ dft: ETOT F =      -323.409614874550     -323.411572340766
+delta energy per electron in ev -0.189223026353E-06
+chemical potential change -0.357143770325E-03
+ 
+************ iteration       41 ************
+ charge density self-consistency= 0.3916530E-07
+ dft: ETOT F =      -323.409614974287     -323.411572440869
+delta energy per electron in ev -0.150772473484E-06
+chemical potential change -0.321886826191E-03
+ 
+************ iteration       42 ************
+ charge density self-consistency= 0.3218152E-07
+ dft: ETOT F =      -323.409615053494     -323.411572520408
+delta energy per electron in ev -0.119738754973E-06
+chemical potential change -0.290125084443E-03
+ 
+************ iteration       43 ************
+ charge density self-consistency= 0.2644504E-07
+ dft: ETOT F =      -323.409615116156     -323.411572583369
+delta energy per electron in ev -0.947264452366E-07
+chemical potential change -0.261509627183E-03
+ 
+************ iteration       44 ************
+ charge density self-consistency= 0.2173271E-07
+ dft: ETOT F =      -323.409615165501     -323.411572632985
+delta energy per electron in ev -0.745954182390E-07
+chemical potential change -0.235726785821E-03
+ 
+************ iteration       45 ************
+ charge density self-consistency= 0.1786137E-07
+ dft: ETOT F =      -323.409615204150     -323.411572671879
+delta energy per electron in ev -0.584258737793E-07
+chemical potential change -0.212494506442E-03
+ 
+************ iteration       46 ************
+ charge density self-consistency= 0.1468067E-07
+ dft: ETOT F =      -323.409615234224     -323.411572702173
+delta energy per electron in ev -0.454617092815E-07
+chemical potential change -0.191559102084E-03
+ 
+************ iteration       47 ************
+ charge density self-consistency= 0.1206718E-07
+ dft: ETOT F =      -323.409615257437     -323.411572725586
+delta energy per electron in ev -0.350917010132E-07
+chemical potential change -0.172692350723E-03
+ 
+************ iteration       48 ************
+ charge density self-consistency= 0.9919583E-08
+ dft: ETOT F =      -323.409615275180     -323.411572743510
+delta energy per electron in ev -0.268221781823E-07
+chemical potential change -0.155688898119E-03
+ 
+************ iteration       49 ************
+ charge density self-consistency= 0.8154688E-08
+ dft: ETOT F =      -323.409615288572     -323.411572757066
+delta energy per electron in ev -0.202452286481E-07
+chemical potential change -0.140363932777E-03
+ 
+************ iteration       50 ************
+ charge density self-consistency= 0.6704186E-08
+ dft: ETOT F =      -323.409615298518     -323.411572767160
+delta energy per electron in ev -0.150351757696E-07
+chemical potential change -0.126551104808E-03
+ 
+************ iteration       51 ************
+ charge density self-consistency= 0.5511984E-08
+ dft: ETOT F =      -323.409615305745     -323.411572774521
+delta energy per electron in ev -0.109255490290E-07
+chemical potential change -0.114100657779E-03
+ 
+************ iteration       52 ************
+ charge density self-consistency= 0.4532017E-08
+ dft: ETOT F =      -323.409615310839     -323.411572779735
+delta energy per electron in ev -0.769980353570E-08
+chemical potential change -0.102877756028E-03
+ 
+************ iteration       53 ************
+ charge density self-consistency= 0.3726449E-08
+ dft: ETOT F =      -323.409615314269     -323.411572783275
+delta energy per electron in ev -0.518539082148E-08
+chemical potential change -0.927609825325E-04
+ 
+************ iteration       54 ************
+ charge density self-consistency= 0.3064202E-08
+ dft: ETOT F =      -323.409615316410     -323.411572785515
+delta energy per electron in ev -0.323683052936E-08
+chemical potential change -0.836409913641E-04
+ 
+************ iteration       55 ************
+ charge density self-consistency= 0.2519744E-08
+ dft: ETOT F =      -323.409615317563     -323.411572786757
+delta energy per electron in ev -0.174327229874E-08
+chemical potential change -0.754192966734E-04
+ 
+************ iteration       56 ************
+ charge density self-consistency= 0.2072101E-08
+ dft: ETOT F =      -323.409615317967     -323.411572787242
+delta energy per electron in ev -0.610450357878E-09
+chemical potential change -0.680071864231E-04
+ 
+************ iteration       57 ************
+ charge density self-consistency= 0.1704038E-08
+ dft: ETOT F =      -323.409615317812     -323.411572787160
+delta energy per electron in ev  0.234848089538E-09
+chemical potential change -0.613247442938E-04
+ 
+************ iteration       58 ************
+ charge density self-consistency= 0.1401393E-08
+ dft: ETOT F =      -323.409615317245     -323.411572786660
+delta energy per electron in ev  0.856383483476E-09
+chemical potential change -0.552999730777E-04
+ 
+************ iteration       59 ************
+ charge density self-consistency= 0.1152529E-08
+ dft: ETOT F =      -323.409615316387     -323.411572785861
+delta energy per electron in ev  0.129755073254E-08
+chemical potential change -0.498680044670E-04
+ 
+************ iteration       60 ************
+ charge density self-consistency= 0.9478791E-09
+ dft: ETOT F =      -323.409615315328     -323.411572784857
+delta energy per electron in ev  0.160002613509E-08
+chemical potential change -0.449703885550E-04
+ 
+************ iteration       61 ************
+ charge density self-consistency= 0.7795832E-09
+ dft: ETOT F =      -323.409615314141     -323.411572783718
+delta energy per electron in ev  0.179551805009E-08
+chemical potential change -0.405544570583E-04
+ 
+************ iteration       62 ************
+ charge density self-consistency= 0.6411785E-09
+ dft: ETOT F =      -323.409615312879     -323.411572782501
+delta energy per electron in ev  0.190748550734E-08
+chemical potential change -0.365727470226E-04
+ 
+************ iteration       63 ************
+ charge density self-consistency= 0.5273526E-09
+ dft: ETOT F =      -323.409615311585     -323.411572781247
+delta energy per electron in ev  0.195569252463E-08
+chemical potential change -0.329824855223E-04
+ 
+************ iteration       64 ************
+ charge density self-consistency= 0.4337383E-09
+ dft: ETOT F =      -323.409615310291     -323.411572779989
+delta energy per electron in ev  0.195706741282E-08
+chemical potential change -0.297451229924E-04
+ 
+************ iteration       65 ************
+ charge density self-consistency= 0.3567450E-09
+ dft: ETOT F =      -323.409615309019     -323.411572778750
+delta energy per electron in ev  0.192252334696E-08
+chemical potential change -0.268259151486E-04
+ 
+************ iteration       66 ************
+ charge density self-consistency= 0.2934205E-09
+ dft: ETOT F =      -323.409615307786     -323.411572777547
+delta energy per electron in ev  0.186340315464E-08
+chemical potential change -0.241935466324E-04
+ 
+************ iteration       67 ************
+ charge density self-consistency= 0.2413372E-09
+ dft: ETOT F =      -323.409615306604     -323.411572776392
+delta energy per electron in ev  0.178658127684E-08
+chemical potential change -0.218197903794E-04
+ 
+************ iteration       68 ************
+ charge density self-consistency= 0.1984990E-09
+ dft: ETOT F =      -323.409615305481     -323.411572775293
+delta energy per electron in ev  0.169815877990E-08
+chemical potential change -0.196792028324E-04
+ 
+************ iteration       69 ************
+ charge density self-consistency= 0.1632646E-09
+ dft: ETOT F =      -323.409615304421     -323.411572774254
+delta energy per electron in ev  0.160260405045E-08
+chemical potential change -0.177488487774E-04
+ 
+************ iteration       70 ************
+ charge density self-consistency= 0.1342840E-09
+ dft: ETOT F =      -323.409615303426     -323.411572773279
+delta energy per electron in ev  0.150404175309E-08
+chemical potential change -0.160080524535E-04
+ 
+************ iteration       71 ************
+ charge density self-consistency= 0.1104471E-09
+ dft: ETOT F =      -323.409615302497     -323.411572772368
+delta energy per electron in ev  0.140462015060E-08
+chemical potential change -0.144381752983E-04
+ 
+************ iteration       72 ************
+ charge density self-consistency= 0.9084084E-10
+ dft: ETOT F =      -323.409615301633     -323.411572771521
+delta energy per electron in ev  0.130537040914E-08
+chemical potential change -0.130224150099E-04
+ 
+************ iteration       73 ************
+ charge density self-consistency= 0.7471442E-10
+ dft: ETOT F =      -323.409615300833     -323.411572770735
+delta energy per electron in ev  0.121007347123E-08
+chemical potential change -0.117456227568E-04
+ 
+************ iteration       74 ************
+ charge density self-consistency= 0.6145020E-10
+ dft: ETOT F =      -323.409615300094     -323.411572770009
+delta energy per electron in ev  0.111752630971E-08
+chemical potential change -0.105941413855E-04
+ 
+************ iteration       75 ************
+ charge density self-consistency= 0.5054022E-10
+ dft: ETOT F =      -323.409615299413     -323.411572769340
+delta energy per electron in ev  0.102953346533E-08
+chemical potential change -0.955565813415E-05
+ 
+************ iteration       76 ************
+ charge density self-consistency= 0.4156669E-10
+ dft: ETOT F =      -323.409615298786     -323.411572768724
+delta energy per electron in ev  0.947555756802E-09
+chemical potential change -0.861907147664E-05
+ 
+************ iteration       77 ************
+ charge density self-consistency= 0.3418594E-10
+ dft: ETOT F =      -323.409615298211     -323.411572768159
+delta energy per electron in ev  0.868757477216E-09
+chemical potential change -0.777437202689E-05
+ 
+************ iteration       78 ************
+ charge density self-consistency= 0.2811531E-10
+ dft: ETOT F =      -323.409615297684     -323.411572767641
+delta energy per electron in ev  0.796232125013E-09
+chemical potential change -0.701253531842E-05
+ 
+************ iteration       79 ************
+ charge density self-consistency= 0.2312231E-10
+ dft: ETOT F =      -323.409615297203     -323.411572767169
+delta energy per electron in ev  0.726972132270E-09
+chemical potential change -0.632542372523E-05
+ 
+************ iteration       80 ************
+ charge density self-consistency= 0.1901568E-10
+ dft: ETOT F =      -323.409615296764     -323.411572766736
+delta energy per electron in ev  0.664500649982E-09
+chemical potential change -0.570570062081E-05
+ 
+************ iteration       81 ************
+ charge density self-consistency= 0.1563812E-10
+ dft: ETOT F =      -323.409615296363     -323.411572766342
+delta energy per electron in ev  0.606325693298E-09
+chemical potential change -0.514674938088E-05
+ 
+************ iteration       82 ************
+ charge density self-consistency= 0.1286023E-10
+ dft: ETOT F =      -323.409615295997     -323.411572765982
+delta energy per electron in ev  0.552533192730E-09
+chemical potential change -0.464260509746E-05
+ 
+************ iteration       83 ************
+ charge density self-consistency= 0.1057558E-10
+ dft: ETOT F =      -323.409615295664     -323.411572765655
+delta energy per electron in ev  0.503037217767E-09
+chemical potential change -0.418788830221E-05
+ 
+************ iteration       84 ************
+ charge density self-consistency= 0.8696626E-11
+ dft: ETOT F =      -323.409615295361     -323.411572765357
+delta energy per electron in ev  0.458095559945E-09
+chemical potential change -0.377774784138E-05
+ 
+************ iteration       85 ************
+ charge density self-consistency= 0.7151348E-11
+ dft: ETOT F =      -323.409615295086     -323.411572765086
+delta energy per electron in ev  0.416161470045E-09
+chemical potential change -0.340781020269E-05
+ 
+************ iteration       86 ************
+ charge density self-consistency= 0.5880516E-11
+ dft: ETOT F =      -323.409615294836     -323.411572764840
+delta energy per electron in ev  0.378094253190E-09
+chemical potential change -0.307413055389E-05
+ 
+************ iteration       87 ************
+ charge density self-consistency= 0.4835408E-11
+ dft: ETOT F =      -323.409615294610     -323.411572764617
+delta energy per electron in ev  0.342261229649E-09
+chemical potential change -0.277315176317E-05
+ 
+************ iteration       88 ************
+ charge density self-consistency= 0.3975948E-11
+ dft: ETOT F =      -323.409615294403     -323.411572764413
+delta energy per electron in ev  0.312615202979E-09
+chemical potential change -0.250166639250E-05
+ 
+************ iteration       89 ************
+ charge density self-consistency= 0.3269173E-11
+ dft: ETOT F =      -323.409615294216     -323.411572764230
+delta energy per electron in ev  0.282023940675E-09
+chemical potential change -0.225678155959E-05
+ 
+************ iteration       90 ************
+ charge density self-consistency= 0.2687972E-11
+ dft: ETOT F =      -323.409615294047     -323.411572764063
+delta energy per electron in ev  0.255815134488E-09
+chemical potential change -0.203588848932E-05
+ 
+************ iteration       91 ************
+ charge density self-consistency= 0.2210044E-11
+ dft: ETOT F =      -323.409615293894     -323.411572763912
+delta energy per electron in ev  0.232012382639E-09
+chemical potential change -0.183663443507E-05
+ 
+************ iteration       92 ************
+ charge density self-consistency= 0.1817048E-11
+ dft: ETOT F =      -323.409615293754     -323.411572763775
+delta energy per electron in ev  0.210529754617E-09
+chemical potential change -0.165689793810E-05
+ 
+************ iteration       93 ************
+ charge density self-consistency= 0.1493898E-11
+ dft: ETOT F =      -323.409615293628     -323.411572763651
+delta energy per electron in ev  0.190336084276E-09
+chemical potential change -0.149476551887E-05
+ 
+************ iteration       94 ************
+ charge density self-consistency= 0.1228187E-11
+ dft: ETOT F =      -323.409615293514     -323.411572763539
+delta energy per electron in ev  0.172720329298E-09
+chemical potential change -0.134851122320E-05
+ 
+************ iteration       95 ************
+ charge density self-consistency= 0.1009710E-11
+ dft: ETOT F =      -323.409615293411     -323.411572763437
+delta energy per electron in ev  0.155963879441E-09
+chemical potential change -0.121657874062E-05
+ 
+************ iteration       96 ************
+ charge density self-consistency= 0.8300763E-12
+ dft: ETOT F =      -323.409615293317     -323.411572763345
+delta energy per electron in ev  0.141699414434E-09
+chemical potential change -0.109756463850E-05
+ 
+************ iteration       97 ************
+ charge density self-consistency= 0.6823827E-12
+ dft: ETOT F =      -323.409615293232     -323.411572763261
+delta energy per electron in ev  0.128380185060E-09
+chemical potential change -0.990202648011E-06
+ 
+************ iteration       98 ************
+ charge density self-consistency= 0.5609533E-12
+ dft: ETOT F =      -323.409615293156     -323.411572763186
+delta energy per electron in ev  0.114803164150E-09
+chemical potential change -0.893351155345E-06
+ 
+************ iteration       99 ************
+ charge density self-consistency= 0.4611201E-12
+ dft: ETOT F =      -323.409615293087     -323.411572763118
+delta energy per electron in ev  0.105178946797E-09
+chemical potential change -0.805980194881E-06
+ 
+************ iteration      100 ************
+ charge density self-consistency= 0.3790444E-12
+ dft: ETOT F =      -323.409615293024     -323.411572763056
+delta energy per electron in ev  0.950391463701E-10
+chemical potential change -0.727161277625E-06
+ 
+isort    1   rk/l    2.323602
+************ iteration      100 ************
+ charge density self-consistency= 0.3115693E-12
+ dft: ETOT F =      -323.409615292967     -323.411572763001
+delta energy per electron in ev -0.488900112158E+03
+chemical potential change -0.656056131299E-06
+ 
+************ iteration      101 ************
+ charge density self-consistency= 0.3080019E-01
+ qp : E(SG), E(PW), F =      -325.01452623     -324.07985109     -324.01482514
+delta energy per electron in ev -0.242615277581E+01
+chemical potential change  0.172433019554E+00
+ 
+************ iteration      102 ************
+ charge density self-consistency= 0.3562604E-04
+ qp : E(SG), E(PW), F =      -325.03257917     -324.10544891     -324.04179454
+delta energy per electron in ev -0.272907261499E-01
+chemical potential change  0.475674949441E-02
+ 
+************ iteration      103 ************
+ charge density self-consistency= 0.1415393E-05
+ qp : E(SG), E(PW), F =      -325.03275867     -324.11250947     -324.05008397
+delta energy per electron in ev -0.271351198955E-03
+chemical potential change  0.444517059996E-02
+ 
+************ iteration      104 ************
+ charge density self-consistency= 0.1019751E-05
+ qp : E(SG), E(PW), F =      -325.03360734     -324.11963540     -324.05831220
+delta energy per electron in ev -0.128294781895E-02
+chemical potential change  0.413778914214E-02
+ 
+************ iteration      105 ************
+ charge density self-consistency= 0.7784365E-06
+ qp : E(SG), E(PW), F =      -325.03375268     -324.98607006     -324.06517459
+delta energy per electron in ev -0.219705955545E-03
+chemical potential change  0.384428614779E-02
+ 

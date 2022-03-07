@@ -860,7 +860,7 @@ c$$$            gwc0_deriv(tau1,tau2,im)=gwc_omega_temp2(n_tau)
         slaterf=ff
         call cal_u_matrix(num_orb,slaterf,umatrix)
         
-        open(unit=111, file='umat.dat')
+        open(unit=111, file='vmat.dat')
         do iorb=1, num_orb
           do jorb=1, num_orb
             do korb=1, num_orb
@@ -873,6 +873,23 @@ c$$$            gwc0_deriv(tau1,tau2,im)=gwc_omega_temp2(n_tau)
           enddo
         enddo
         close(111)
+
+        slaterf=ff+(/dynamical_f0(0),0.0d0, 0.0d0,0.0d0/)
+        call cal_u_matrix(num_orb,slaterf,umatrix)
+        
+        open(unit=111, file='u0mat.dat')
+        do iorb=1, num_orb
+          do jorb=1, num_orb
+            do korb=1, num_orb
+              do lorb=1, num_orb
+                write(111, '(4i5, 2f12.6)') 
+     $            iorb, jorb, korb, lorb,
+     $            umatrix(iorb,jorb,korb,lorb)
+              enddo
+            enddo
+          enddo
+        enddo
+        close(111)        
 
         open(unit=111, file='wcmat0.dat')
         do iorb=1, num_orb

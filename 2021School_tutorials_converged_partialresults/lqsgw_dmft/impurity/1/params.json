@@ -1,0 +1,89 @@
+{
+    "basis": {
+        "orbitals": "s",
+        "transformation": [
+            [
+                1.0,
+                0.0
+            ],
+            [
+                0.0,
+                1.0
+            ]
+        ],
+        "type": "product"
+    },
+    "beta": 38.68174036839847,
+    "dyn": {
+        "functions": "dyn.json",
+        "matrix": [
+            [
+                "1"
+            ]
+        ],
+        "quantum numbers": [
+            [
+                1,
+                1
+            ]
+        ]
+    },
+    "green basis": "matsubara",
+    "hloc": {
+        "one body": [
+            [
+                0.0,
+                0.0
+            ],
+            [
+                0.0,
+                0.0
+            ]
+        ],
+        "two body": {
+            "F0": 6.72530730800653,
+            "approximation": "none",
+            "parametrisation": "slater-condon"
+        }
+    },
+    "hybridisation": {
+        "functions": "hyb.json",
+        "matrix": [
+            [
+                "1",
+                ""
+            ],
+            [
+                "",
+                "1"
+            ]
+        ]
+    },
+    "measurement time": 2,
+    "mu": -6.516314610549,
+    "occupation susceptibility direct": true,
+    "partition": {
+        "density matrix precise": true,
+        "green bulla": true,
+        "green matsubara cutoff": 20,
+        "observables": {
+            "S2": {}
+        },
+        "occupation susceptibility bulla": true,
+        "print density matrix": true,
+        "print eigenstates": true,
+        "probabilities": [
+            "N",
+            "energy",
+            "S2",
+            "Sz"
+        ],
+        "quantum number susceptibility": true,
+        "quantum numbers": {
+            "Sz": {}
+        },
+        "susceptibility cutoff": 50,
+        "susceptibility tail": 300
+    },
+    "thermalisation time": 1
+}

@@ -1,0 +1,37 @@
+{
+    "block states": [ 
+        [ 0 ], 
+        [ 1 ], 
+        [ 2 ], 
+        [ 3 ] ],
+    "eigen values": [ "AAAAAAAAAAA", "AAAAAAAAAAA", "AAAAAAAAAAA", "bBcf1br5aAE" ],
+    "filling": "AAAAAAAAAAAAAAAAAAA8/AAAAAAAAA/PAAAAAAAAAAE",
+    "interaction": [ {
+        "matrix": [ 1, 1, "AAAAAAAAAAA" ],
+        "target": 0
+    }, {
+        "matrix": [ 1, 1, "AAAAAAAAAAA" ],
+        "target": 1
+    }, {
+        "matrix": [ 1, 1, "AAAAAAAAAAA" ],
+        "target": 2
+    }, {
+        "matrix": [ 1, 1, "bBcf1br5aAE" ],
+        "target": 3
+    } ],
+    "one body": [ 2, 2, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" ],
+    "transformation": [ {
+        "matrix": [ 1, 1, "AAAAAAAAw/D" ],
+        "target": 0
+    }, {
+        "matrix": [ 1, 1, "AAAAAAAAw/D" ],
+        "target": 1
+    }, {
+        "matrix": [ 1, 1, "AAAAAAAAw/D" ],
+        "target": 2
+    }, {
+        "matrix": [ 1, 1, "AAAAAAAAw/D" ],
+        "target": 3
+    } ],
+    "two body": [ 6.725307308, 0, 0, 0, 0, 0, 6.725307308, 0, 0, 6.725307308, 0, 0, 0, 0, 0, 6.725307308 ]
+}

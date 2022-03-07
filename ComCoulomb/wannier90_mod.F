@@ -65,7 +65,8 @@
      $  cw_ind(:,:),      
      $  at_orb_ciw(:,:),
      $  at_orb_cw(:,:),      
-     $  nwpb(:)
+     $  nwpb(:),
+     $  corwan_ind_atom(:,:)
 
       
       double precision :: 

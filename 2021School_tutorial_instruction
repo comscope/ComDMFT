@@ -1,0 +1,23 @@
+1) run dft
+cd tutorial_input/dft
+sbatch llscript
+
+2) run lda+dmft
+cd tutorial_input/lda_dmft
+sbatch llscript
+
+3) lda+dmft band calculation
+cd tutorial_input/lda_dmft/band
+sbatch llscript
+
+4) run lqsgw
+cd tutorial_input/lqsgw
+sbatch llscript
+
+5) run lqsgw+dmft
+cd tutorial_input/lqsgw_dmft
+sbatch llscript
+
+6) lqsgw+dmft band calculation
+cd tutorial_input/lqsgw_dmft/band
+sbatch llscript

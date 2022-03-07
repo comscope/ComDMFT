@@ -233,8 +233,12 @@ c$$$        is_metal=1
               kpt_latt_fi(ii,irk)
      $          =dble(tempk(ii)-1.0d0)/dble(ndiv_fi(ii))
             enddo
-c$$$            write(179, *) kpt_latt_fi(:,irk)        
           enddo
+          open(unit=11, file='kpoints')
+          do irk=1, nqdiv_fi          
+            write(11, '(i5,2x,3(f20.12,2x))') irk, kpt_latt_fi(:,irk)
+          enddo
+          close(11)
         else
           open(unit=11, file='kpoints', status='old')
           read(11,*)
@@ -2446,6 +2450,8 @@ c$$$  write(179,*) 'here9'
         close(990)        
       endif        
 
+
+c$$$      !!!!!!!!!!!!!!!!!!! here
 c$$$      if (maswrk) then      
 c$$$        open(unit=990, file='h_qp_matrix.dat')
 c$$$      endif
@@ -2489,9 +2495,9 @@ c$$$      endif
 c$$$      if (maswrk) then
 c$$$        close(990)
 c$$$      endif
-      
-      
-      
+c$$$      
+c$$$      !!!!!!!!!!!!!!!here
+c$$$      
 
 
       deallocate(nbnd_in_win) !

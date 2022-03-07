@@ -1,0 +1,5 @@
+nelectron in one cell    0.402778    0.000000    0.500000
+ temperature   299.999999999593     
+ cal_h_qp run
+sig fit real part    1    1      1.501634      0.001777     -0.005320      0.000303
+sig fit imag part    1    1     -0.000504     -0.147560      0.039307     -0.004461

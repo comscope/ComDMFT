@@ -223,14 +223,19 @@ c$$$c$$$  write(3,'(i5, 10000(f20.12,2x))'), isort,
 c$$$c$$$  $      (v_mt_h(mt0+ir), ir=0, nrad(isort))
 c$$$c$$$  enddo
 c$$$c$$$  close(3)
-c$$$        endif      
-        
+c$$$  endif
+
+        allocate(band_ind_froz(3,nqdiv))
+        band_ind_froz=0
+        allocate(band_eig_froz(2,nqdiv))
+        band_eig_froz=0.0d0        
 
         call count_nbnd_in_froz_win        
 
         call wannier_orbital(ispin)        
 
         call read_wann_inip
+
 
         call reset_dis_froz_max
         
@@ -675,8 +680,9 @@ c$$$        endif
         deallocate(alimj_coeff)
         deallocate(alimj_xaxis)
         deallocate(alimj_zaxis)        
-
-
+        deallocate(band_ind_froz)
+        deallocate(band_eig_froz)        
+        
       enddo
 
 

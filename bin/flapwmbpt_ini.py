@@ -9,6 +9,8 @@ import itertools
 import numpy as np
 from math import ceil, floor, acos, sqrt
 import pymatgen as mg
+import pymatgen.symmetry.analyzer as pgsa
+
 # sys.path.insert(0, '/global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin/flapwmbpt_input')
 import flapwmbpt_input.crystalstructure as fm
 from flapwmbpt_input import atom_info
@@ -20,7 +22,7 @@ import json
 
 bohr=0.529177210903
 
-versionstr = '%(prog)s version 0.0\npymatgen version '+mg.__version__
+versionstr = '%(prog)s version 0.0' #\npymatgen version '+mg.__version__
 # In this script we convert all quantities to Rydberg atomic units
 # (rather than Hartree atomic units).
 #
@@ -55,8 +57,8 @@ def supercell(xtalstr_in, ini0):
     for ispecies in range(nspecies):
         orig_species=str_supercell.species[ispecies]        
         str_supercell.replace(ispecies,mg.Species(orig_species,oxidation_state=random()-0.5))
-    str_supercell=mg.symmetry.analyzer.SpacegroupAnalyzer(str_supercell).get_primitive_standard_structure()
-    sga_supercell=mg.symmetry.analyzer.SpacegroupAnalyzer(str_supercell)
+    str_supercell=pgsa.SpacegroupAnalyzer(str_supercell).get_primitive_standard_structure()
+    sga_supercell=pgsa.SpacegroupAnalyzer(str_supercell)
 
     xtalstr_supercell=fm.crystalstructure(str_supercell)
     # print(xtalstr_supercell.frac_coords)
@@ -505,8 +507,8 @@ def establish_r_grid(ini0):
         rr   = ini0["element_rad"][chg]
         rkmax_ratio=max(rkmax_ratio, rr*cutoff/ll)
 
-    if (rkmax_ratio > 2.4):
-        reducefac=2.4/rkmax_ratio
+    if (rkmax_ratio > ini0['rklmax']):
+        reducefac=ini0['rklmax']/rkmax_ratio
     else:
         reducefac=1.0
 
@@ -1395,6 +1397,7 @@ def read_comdmft_ini_fm():
     check_key_in_string('kmesh', fm_dict) #    
 
 
+    fm_dict['rklmax']=fm_dict.get('rklmax', 2.3) #    
     fm_dict['mt_orb_l']=fm_dict.get('mt_orb_l', 0) #
     fm_dict['mt_orb_n']=fm_dict.get('mt_orb_n', 0) #
     fm_dict['mt_pb_l']=fm_dict.get('mt_pb_l', 2) #
@@ -1731,7 +1734,7 @@ def main():
     ini=read_comdmft_ini_fm()
     tmpfile = any2utf8(ini['cif'])
     
-    str_in=mg.symmetry.analyzer.SpacegroupAnalyzer(mg.Structure.from_file(any2utf8(ini['cif']))).get_primitive_standard_structure()
+    str_in=pgsa.SpacegroupAnalyzer(pgsa.Structure.from_file(any2utf8(ini['cif']))).get_primitive_standard_structure()
     # print(str_in.lattice.matrix/bohr)
 
     
@@ -1741,7 +1744,7 @@ def main():
 
     xtalstr.str.to(fmt='json', filename='crystal_structure.json')
     xtalstr.str.to(fmt='xsf', filename='crystal_structure.xsf')
-    print(mg.symmetry.analyzer.SpacegroupAnalyzer(xtalstr.str).get_symmetry_dataset())
+    print(pgsa.SpacegroupAnalyzer(xtalstr.str).get_symmetry_dataset())
     # json.dump(mg.symmetry.analyzer.SpacegroupAnalyzer(mg.symmetry.analyzer.SpacegroupAnalyzer(xtalstr.str).get_conventional_standard_structure()).get_symmetry_dataset(),'xtal_str_conv.json')    
     
     # xtalstr.str.to(fmt="cif",filename="/tmp/"+os.path.basename(ini['cif']))

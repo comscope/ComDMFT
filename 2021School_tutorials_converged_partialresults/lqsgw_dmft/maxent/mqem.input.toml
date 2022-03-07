@@ -1,0 +1,10 @@
+inputFile = "gaux.dat"
+NumOrbit = 1
+inverse_temp =  38.68174036845095
+Egrid = 400
+EwinOuterRight = 152
+EwinOuterLeft = -152
+EwinInnerRight = 2
+EwinInnerLeft = -2
+blur = 0.01
+default_model="g_mat"

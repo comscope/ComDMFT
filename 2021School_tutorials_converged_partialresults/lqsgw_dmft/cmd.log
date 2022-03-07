@@ -1,0 +1,636 @@
+
+*********************************
+             ComDMFT
+*********************************
+
+do_wannier True
+do_coulomb True
+do_dc True
+here
+<class 'numpy.ndarray'>
+[[1]]
+here
+hdf5 False
+top_dir /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft
+coulomb_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft/coulomb
+wannier_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft/wannier
+dc_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft/dc
+impurity_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft/impurity
+lowh_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft/lowh
+iter_num_impurity 1
+max_iter_num_impurity 50
+
+
+
+
+
+
+*****   wannier  *****
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComWann
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+*****   Coulomb  *****
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComCoulomb
+comcoulomb done
+*****   prepare dc  *****
+[[1]]
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComDC
+dc.dat generation done
+zinv_m1.dat generation done
+initial_self_energy generation done
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 148.79430721513404
+second moment 204.27580219282703
+third moment -0.002487163963032098
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComDC
+
+
+*****   iter_num_impurity:  2   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 151.04604424115425
+second moment 204.91672631952918
+third moment -0.005152322036379628
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComDC
+
+
+*****   iter_num_impurity:  3   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 146.87304582610335
+second moment 207.30026934500384
+third moment -0.015353055263803548
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComDC
+
+
+*****   iter_num_impurity:  4   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 145.6938355490685
+second moment 193.21601222370032
+third moment 0.01816076773435792
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComDC
+
+
+*****   iter_num_impurity:  5   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+
+*********************************
+             ComDMFT
+*********************************
+
+delta 5
+do_wannier False
+do_coulomb False
+do_dc False
+here
+<class 'numpy.ndarray'>
+[[1]]
+here
+hdf5 False
+top_dir /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft
+coulomb_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft/coulomb
+wannier_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft/wannier
+dc_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft/dc
+impurity_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft/impurity
+lowh_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft/lowh
+iter_num_impurity 5
+max_iter_num_impurity 50
+
+
+
+
+
+
+*****   wannier  *****
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+*****   Coulomb  *****
+comcoulomb done
+*****   prepare dc  *****
+
+
+*****   iter_num_impurity:  5   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 146.12101453550358
+second moment 206.1108152509968
+third moment 0.03981199081580645
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComDC
+
+
+*****   iter_num_impurity:  6   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 146.40533383321193
+second moment 204.51318412802144
+third moment 0.010604968307697705
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComDC
+
+
+*****   iter_num_impurity:  7   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 146.0731676988032
+second moment 199.17276084124853
+third moment -0.01748787382907421
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComDC
+
+
+*****   iter_num_impurity:  8   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+
+*********************************
+             ComDMFT
+*********************************
+
+coulomb 1 
+do_wannier False
+do_coulomb False
+do_dc True
+here
+<class 'numpy.ndarray'>
+[[1]]
+here
+hdf5 False
+top_dir /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft2
+coulomb_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft2/coulomb
+wannier_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft2/wannier
+dc_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft2/dc
+impurity_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft2/impurity
+lowh_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft2/lowh
+iter_num_impurity 1
+max_iter_num_impurity 50
+
+
+
+
+
+
+*****   wannier  *****
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+*****   Coulomb  *****
+comcoulomb done
+*****   prepare dc  *****
+[[1]]
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComDC
+dc.dat generation done
+zinv_m1.dat generation done
+initial_self_energy generation done
+
+
+*****   iter_num_impurity:  1   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 147.840676070982
+second moment 190.23546027330545
+third moment -0.017116482226653396
+
+
+*****   iter_num_impurity:  2   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 147.39530752927365
+second moment 204.6504173974296
+third moment 0.03083370196596711
+
+
+*****   iter_num_impurity:  3   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 147.33189177406132
+second moment 196.03192884326876
+third moment -0.024826124829216933
+
+
+*****   iter_num_impurity:  4   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 147.47031562221338
+second moment 211.89371971359174
+third moment -0.02281024098595424
+
+
+*****   iter_num_impurity:  5   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 146.7023072990959
+second moment 202.93881395335055
+third moment -0.04583336488851736
+
+
+*****   iter_num_impurity:  6   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+
+*********************************
+             ComDMFT
+*********************************
+
+delta 6
+do_wannier False
+do_coulomb False
+do_dc False
+here
+<class 'numpy.ndarray'>
+[[1]]
+here
+hdf5 False
+top_dir /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft2
+coulomb_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft2/coulomb
+wannier_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft2/wannier
+dc_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft2/dc
+impurity_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft2/impurity
+lowh_directory /global/cscratch1/sd/sang/bnl_school_2021/lqsgw_dmft2/lowh
+iter_num_impurity 6
+max_iter_num_impurity 50
+
+
+
+
+
+
+*****   wannier  *****
+[{'atom': 1, 'l': 0, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 1}, {'atom': 1, 'l': 1, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 2}, {'atom': 1, 'l': 1, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 3}, {'atom': 1, 'l': 1, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 4}, {'atom': 1, 'l': 2, 'm': -2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 5}, {'atom': 1, 'l': 2, 'm': -1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 6}, {'atom': 1, 'l': 2, 'm': 0, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 7}, {'atom': 1, 'l': 2, 'm': 1, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 8}, {'atom': 1, 'l': 2, 'm': 2, 'xaxis': array([1., 0., 0.]), 'zaxis': array([0., 0., 1.]), 'ind': 9}]
+reading wannier.inip to get basis information
+*****   Coulomb  *****
+comcoulomb done
+*****   prepare dc  *****
+
+
+*****   iter_num_impurity:  6   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 146.83763863214574
+second moment 197.51251031362526
+third moment 0.041988585768946145
+
+
+*****   iter_num_impurity:  7   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 147.2290889060384
+second moment 193.92393683235522
+third moment 0.04819767912103045
+
+
+*****   iter_num_impurity:  8   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 146.9327219981131
+second moment 197.61428082777195
+third moment 0.08250117218834029
+
+
+*****   iter_num_impurity:  9   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 147.15867419608264
+second moment 189.3672701460942
+third moment 0.05411890709618831
+
+
+*****   iter_num_impurity:  10   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 147.50338944540778
+second moment 200.6134440798544
+third moment 0.02168082772331038
+
+
+*****   iter_num_impurity:  11   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH
+comlowh done
+projected_eig.dat generation done
+dc.dat generation done
+zinv_m1.dat generation done
+e_imp.dat generation done
+delta.dat generation done
+Causality in ./delta.dat is good
+hyb.json written
+1 0
+prepare_ctqmc:e_imp_done
+params.json written
+DynF0.json written
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//CTQMC params
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//EVALSIM params
+measure self-energy done
+histogram information for impurity_imp
+first moment 147.05129307560009
+second moment 203.00115351278743
+third moment 0.011808352909269034
+
+
+*****   iter_num_impurity:  12   *****
+check and preparation done for the calculation of delta
+srun -n 4 /global/homes/s/sang/usr/dmft_matdelab_sang_dev/bin//ComLowH

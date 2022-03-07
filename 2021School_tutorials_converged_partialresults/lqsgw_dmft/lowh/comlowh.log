@@ -1,0 +1,16 @@
+nelectron in one cell    0.402778    0.000000    0.500000
+ temperature   299.999999999593     
+ cal_g run
+hmat and rhomat from , bare projector, fine grid
+rhomat, iatom      1  icell      1
+    0.294866   -0.000000
+hmat, iatom      1  icell      1
+    4.667493    0.000000
+hmat and rhomat from , renormalized projector, fine grid
+rhomat, iatom      1  icell      1
+    0.294866   -0.000000
+hmat, iatom      1  icell      1
+    4.667493    0.000000
+ overlap_mat of new projector and old projector, fine_grid
+    1.000000    0.000000
+ search fermi energy

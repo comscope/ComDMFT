@@ -1,7 +1,7 @@
 include ../arch.mk
 #i&&&&&&&&&&&&&&&&&&&&&&&&&&&&        UNIX MPICH MPI       &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
-compfl = -debug -g -CB -check bounds -traceback -check uninit -fp-model precise
+#compfl = -debug -g -CB -check bounds -traceback -check uninit -fp-model precise
 comp = $(PF90) $(FPPFLAGS) -c $(compfl)
 link = $(PF90) $(compfl)
 LIB = $(LAPACK_LIB)

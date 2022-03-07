@@ -8,7 +8,7 @@ from numpy import pi
 from scipy import *
 import json
 from tabulate import tabulate
-from itertools import chain
+from itertools import chain, product
 import flapwmbpt_ini
 import prepare_realaxis
 
@@ -122,7 +122,11 @@ def read_comdmft_ini():
 
     control['doping']=control.get('doping', 0.0)
 
-    control['dc_mode']=control.get('dc_mode', 'dc_at_gw')    
+    control['dc_mode']=control.get('dc_mode', 'dc_at_gw')
+
+    control['dc_g']=control.get('dc_g', 'gloc')    
+
+    control['embed_mode']=control.get('embed_mode', 'hfc')        
     
     control['u_mode']=control.get('u_mode', 'bnse')
 
@@ -237,7 +241,9 @@ def read_comdmft_ini():
     wan_hmat['dis_win_max']=wan_hmat.get('dis_win_max', wan_hmat['froz_win_max']+40.0)
     control['proj_win_min']=control.get('proj_win_min', wan_hmat['dis_win_min'])
     control['proj_win_max']=control.get('proj_win_max', wan_hmat['dis_win_max'])
-
+    
+    wan_hmat['froz_win_max_fac']=wan_hmat.get('froz_win_max_fac', 0.7)
+    
     wan_hmat['num_iter']=wan_hmat.get('num_iter', 0)
     wan_hmat['dis_num_iter']=wan_hmat.get('dis_num_iter', 100)
 
@@ -248,7 +254,7 @@ def read_comdmft_ini():
 
 
     if (control['method']=='lqsgw+dmft'):
-        wan_hmat['rmode']=wan_hmat.get('rmode', 0)
+        wan_hmat['rmode']=wan_hmat.get('rmode', 2)
         wan_hmat['radfac']=wan_hmat.get('radfac', 1.0)        
     if (control['method']=='lda+dmft'):
         wan_hmat['rmode']=wan_hmat.get('rmode', 0)                
@@ -670,7 +676,9 @@ def create_comwann_ini(control, wan_hmat):
     f.write(str(wan_hmat['cut_froz'])+'\n')
     f.write(str(wan_hmat['cut_total'])+'\n')    
     f.write(str(wan_hmat['rmode'])+'\n')
-    f.write(str(wan_hmat['radfac'])+'\n')    
+    f.write(str(wan_hmat['radfac'])+'\n')
+    wan_hmat['froz_win_max_fac']=wan_hmat.get('froz_win_max_fac', 0.7)    
+    f.write(str(wan_hmat['froz_win_max_fac'])+'\n')        
 
     f.close()
 
@@ -892,7 +900,7 @@ def delta_postprocessing(control,imp):
     write_transformation_matrix(control,control['lowh_directory']+'/local_spectral_matrix_ef.dat')
     cal_projected_mean_field_diagonal(control,imp)
     cal_dc_diagonal(control)
-    cal_zinv_m1_diagonal(control)    
+    cal_zinv_m1_diagonal(control)
     cal_e_imp_diagonal(control)
     delta_causality=cal_hyb_diagonal(control,imp)
 
@@ -1060,10 +1068,13 @@ def run_impurity_solver(control,imp):
         os.chdir(control['impurity_directory']+'/'+key)
         solve_impurity_patrick(control)
         measure_impurity_patrick(control)
+        if  (control['embed_mode'] == 'fc'):                
+            impurity_hartree(control, key, value)
+            
         green[key], sigma_bare[key], sigma[key], sigma_to_delta[key]=impurity_postprocessing(control, imp, key)
 
+        
     os.chdir(control['impurity_directory'])
-
 
     green_table=[]
     sigma_table=[]
@@ -1101,6 +1112,21 @@ def run_impurity_solver(control,imp):
 
     shutil.copy('./sig.dat', control['top_dir'])
 
+
+
+    if  (control['embed_mode'] == 'fc'):                
+
+        hartree_table=[]
+        for ii in sorted(set(control['impurity_problem_equivalence'])):
+            dat=np.loadtxt(control['impurity_directory']+'/'+str(abs(ii))+'/hartree.dat')
+            hartree_table.append(dat)
+
+        hartree_header=control['sig_header'][1:]
+        hartree_header[0]='# '+hartree_header[0]        
+        with open('./hartree.dat', 'w') as outputfile:
+            outputfile.write(tabulate(hartree_table, headers=hartree_header, floatfmt=".12f", numalign="right",  tablefmt="plain"))
+    
+
     if (control['method']=='lqsgw+dmft'):
         iter_string='_'+str(control['iter_num_impurity'])
     elif (control['method']=='lda+dmft'):
@@ -1110,6 +1136,8 @@ def run_impurity_solver(control,imp):
     labeling_file('./sig_bare.dat',iter_string)
     labeling_file('./sig_smth.dat',iter_string)
     labeling_file('./sig.dat',iter_string)
+    if  (control['embed_mode'] == 'fc'):                    
+        labeling_file('./hartree.dat',iter_string)    
 
     os.chdir(control['top_dir'])
 
@@ -1257,9 +1285,14 @@ def cal_e_imp_diagonal(control):
     os.chdir(control['lowh_directory'])
     eig=np.loadtxt('projected_eig.dat')
     dc=np.loadtxt(control['dc_directory']+'/dc.dat')
+    if  (control['embed_mode'] == 'fc'):        
+        hartree=np.loadtxt(control['impurity_directory']+'/hartree.dat')    
 
     f=open('e_imp.dat', 'w')
-    f.write("  ".join(map(str, eig-dc))+'\n')
+    if  (control['embed_mode'] == 'hfc'):    
+        f.write("  ".join(map(str, eig-dc))+'\n')
+    elif (control['embed_mode'] == 'fc'):
+        f.write("  ".join(map(str, eig-dc-hartree))+'\n')    
     f.close()
 
     if (control['method']=='lqsgw+dmft'):
@@ -1636,6 +1669,51 @@ def read_function_from_jsonfile(jsonfile, dict_name):
         dat1[:,int(key)-1]=np.array(Sig_temp[key]["function"]['real'])+np.array(Sig_temp[key]["function"]['imag'])*1j
     return dat1
 
+def impurity_hartree(control, key, val):
+    # matout={}    
+    # for key, value in imp.items():
+    #     if (not (isinstance(imp[key], dict))):
+    #         continue
+    #     os.chdir(control['impurity_directory']+'/'+key)
+    nimp_orb=len(val['impurity_matrix'])
+    n_iio=np.amax(val['impurity_matrix'])
+    occ=json.load(open('params.obs.json'))['partition']["occupation"]
+    u0mat=np.reshape(np.loadtxt(control['dc_directory']+'/'+key+'/u0mat.dat'), [nimp_orb, nimp_orb, nimp_orb, nimp_orb, 6], order='F')[:,:,:,:,4]
+    vh=np.zeros((nimp_orb, nimp_orb), dtype='complex')
+        
+    if (val['para']):
+        tempmat=np.zeros(n_iio)
+        for key2, value2 in occ.items():
+            # print(key2, value2)
+            tempmat[int(key2)-1]=value2[0]
+        denmat=imp_from_array_to_mat(tempmat,val['impurity_matrix'])
+        for ii in product(np.arange(nimp_orb), repeat=4):
+            print(ii)
+            vh[ii[0],ii[1]]=vh[ii[0],ii[1]]+u0mat[ii[3], ii[2], ii[1], ii[0]]*denmat[ii[3], ii[2]]*2
+    else:
+        tempmat_up=np.zeros(n_iio)
+        tempmat_dn=np.zeros(n_iio)            
+        for key2, value2 in occ.items():
+            if (key2 <=n_iio):
+                tempmat_up[int(key2)-1]=value2[0]
+            else:
+                tempmat_dn[int(key2)-1-n_iio]=value2[0]                    
+        denmat_up=imp_from_array_to_mat(tempmat_up,val['impurity_matrix'])
+        denmat_dn=imp_from_array_to_mat(tempmat_dn,val['impurity_matrix'])            
+        for ii in product(np.arange(nimp_orb), repeat=4):
+            vh[ii[0],ii[1]]=vh[ii[0],ii[1]]+u0mat[ii[3], ii[2], ii[1], ii[0]]*(denmat_up[ii[3], ii[2]]+denmat_dn[ii[3], ii[2]])
+
+
+    h_vec=imp_from_mat_to_array(vh,val['impurity_matrix'])
+
+    h=open(control['impurity_directory']+'/'+key+'/hartree.dat', 'w')
+    for jj in range(len(h_vec)):
+        h.write(str(np.real(h_vec[jj]))+'   '+str(np.imag(h_vec[jj]))+'    ')
+    h.close()
+    
+    return None
+        
+    
 
 def impurity_postprocessing(control, imp, key):
 
@@ -1645,7 +1723,8 @@ def impurity_postprocessing(control, imp, key):
         iter_string='_'+str(control['iter_num_outer'])+'_'+str(control['iter_num_impurity'])
 
     labeling_file('./params.obs.json',iter_string)
-    labeling_file('./params.meas.json',iter_string)    
+    labeling_file('./params.meas.json',iter_string)
+
 
     histo_temp=json.load(open('params.obs.json'))['partition']["expansion histogram"]
 
@@ -1669,7 +1748,11 @@ def impurity_postprocessing(control, imp, key):
 
     green=read_function_from_jsonfile('./params.obs.json',"green")
     sigma_bare=read_function_from_jsonfile('./params.obs.json',"self-energy")
-
+    
+    if  (control['embed_mode'] == 'fc'):
+        dat=np.loadtxt('hartree.dat')[0::2]
+        sigma_bare=sigma_bare-dat
+    
     sigma_old=array_impurity_dynamic(control,imp,control['impurity_directory']+'/sig.dat')
     sigma=np.zeros(np.shape(sigma_bare), dtype='complex')
     sigma_to_delta=np.zeros(np.shape(sigma_bare), dtype='complex')
@@ -2806,8 +2889,16 @@ def prepare_dc(control,wan_hmat,imp):
 
             if (control['dc_mode'] == 'dc_at_gw'):                        
                 gloc_mat=read_impurity_mat_dynamic(control,control['lowh_directory']+'/g_loc_mat.dat')
-            elif (control['dc_mode'] == 'dc_scf'):            
-                gloc_mat=generate_mat_from_array_impurity_dynamic(control,imp, control['impurity_directory']+'/gimp.dat')            
+            elif (control['dc_mode'] == 'dc_scf'):
+                if (control['dc_g'] == 'gloc'):                
+                    gloc_mat=read_impurity_mat_dynamic(control,control['lowh_directory']+'/g_loc_mat.dat')                                
+                elif (control['dc_g'] == 'gimp'):
+                    if os.path.exists(control['impurity_directory']+'/gimp.dat'):
+                        gloc_mat=generate_mat_from_array_impurity_dynamic(control,imp, control['impurity_directory']+'/gimp.dat')
+                    else:
+                        gloc_mat=read_impurity_mat_dynamic(control,control['lowh_directory']+'/g_loc_mat.dat')
+
+                        
             trans_basis=read_impurity_mat_static(control,control['lowh_directory']+'/trans_basis.dat')
             print(trans_basis)
             for key, value in imp.items(): # for the ordered phase this part should be fixed
@@ -2907,7 +2998,11 @@ def run_dc(control,imp):
             g=open(control['dc_directory']+'/zinv_m1_mat.dat','w')
             for ii in sorted(set(control['impurity_problem_equivalence'])):
                 nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])
-                dc=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_mat.dat')[0,1:], (2,nimp_orb,nimp_orb), order='F')
+                if  (control['embed_mode'] == 'hfc'):
+                    dc=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_mat.dat')[0,1:], (2,nimp_orb,nimp_orb), order='F')
+                elif  (control['embed_mode'] == 'fc'):                    
+                    dc=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_gw_mat.dat')[0,1:], (2,nimp_orb,nimp_orb), order='F')
+                    
                 for jj in range(nimp_orb):
                     for kk in range(nimp_orb):
                         f.write(str(dc[0,jj,kk])+'     0.0     ')
@@ -2920,8 +3015,12 @@ def run_dc(control,imp):
             sig_dc={}
 
             for ii in sorted(set(control['impurity_problem_equivalence'])):
-                nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])                
-                tempdat=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_mat.dat')[:,1:], (control['n_omega'],2,nimp_orb,nimp_orb), order='F')
+                nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])
+                if  (control['embed_mode'] == 'hfc'):                
+                    tempdat=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_mat.dat')[:,1:], (control['n_omega'],2,nimp_orb,nimp_orb), order='F')
+                elif  (control['embed_mode'] == 'fc'):
+                    tempdat=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_gw_mat.dat')[:,1:], (control['n_omega'],2,nimp_orb,nimp_orb), order='F')
+                    
                 sig_dc[str(ii)]=tempdat[:,0,:,:]+tempdat[:,1,:,:]*1j
 
             sig_table=[]
@@ -2937,27 +3036,62 @@ def run_dc(control,imp):
             with open(control['top_dir']+'/sig_dc.dat', 'w') as outputfile:
                 outputfile.write(tabulate(sig_table, headers=control['sig_header'], floatfmt=".12f", numalign="right",  tablefmt="plain"))
 
-            sig_hf_dc={}
 
-            for ii in sorted(set(control['impurity_problem_equivalence'])):
-                nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])
-                # Generalize [:, 3:] -> [..., 3:] to add compatibility for the case when the hartree/exchange 
-                # data are 1D. This seems necessary for monoatomic s-orbital problems. For Li, we obtained
-                # hartree.dat: "    1    1    1    0.823343    0.000000"
-                tempdat=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/hartree.dat')[...,3:], (nimp_orb,nimp_orb,2), order='F')+np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/exchange.dat')[...,3:], (nimp_orb,nimp_orb,2), order='F')
-                # tempdat=reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/hartree.dat')[:,3:], (nimp_orb,nimp_orb,2), order='F')+reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/exchange.dat')[:,3:], (nimp_orb,nimp_orb,2), order='F')                
-                sig_hf_dc[str(ii)]=tempdat[:,:,0]+tempdat[:,:,1]*1j
+            if  (control['embed_mode'] == 'hfc'):                                                                
+                sig_hf_dc={}
 
-            sig_table=[]
-            hf_header=control['sig_header'][1:]
-            hf_header[0]='# '+hf_header[0]
-            for ii in sorted(set(control['impurity_problem_equivalence'])):
-                dc_vec=imp_from_mat_to_array(sig_hf_dc[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
-                sig_table.append(np.reshape(np.stack((np.real(dc_vec), np.imag(dc_vec)), 0), (len(dc_vec)*2), order='F').tolist())
+                for ii in sorted(set(control['impurity_problem_equivalence'])):
+                    nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])
+                    # Generalize [:, 3:] -> [..., 3:] to add compatibility for the case when the hartree/exchange 
+                    # data are 1D. This seems necessary for monoatomic s-orbital problems. For Li, we obtained
+                    # hartree.dat: "    1    1    1    0.823343    0.000000"
+                    tempdat=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/hartree.dat')[...,3:], (nimp_orb,nimp_orb,2), order='F')+np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/exchange.dat')[...,3:], (nimp_orb,nimp_orb,2), order='F')
+                    sig_hf_dc[str(ii)]=tempdat[:,:,0]+tempdat[:,:,1]*1j
 
-            with open(control['top_dir']+'/sig_dc_hf.dat', 'w') as outputfile:
-                outputfile.write(tabulate(sig_table, headers=hf_header, floatfmt=".12f", numalign="right",  tablefmt="plain"))
+                sig_table=[]
+                hf_header=control['sig_header'][1:]
+                hf_header[0]='# '+hf_header[0]
+                for ii in sorted(set(control['impurity_problem_equivalence'])):
+                    dc_vec=imp_from_mat_to_array(sig_hf_dc[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
+                    sig_table.append(np.reshape(np.stack((np.real(dc_vec), np.imag(dc_vec)), 0), (len(dc_vec)*2), order='F').tolist())
 
+                with open(control['top_dir']+'/sig_dc_hf.dat', 'w') as outputfile:
+                    outputfile.write(tabulate(sig_table, headers=hf_header, floatfmt=".12f", numalign="right",  tablefmt="plain"))
+
+
+            elif  (control['embed_mode'] == 'fc'):                                                                
+                sig_h_dc={}
+                sig_f_dc={}                
+
+                for ii in sorted(set(control['impurity_problem_equivalence'])):
+                    nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])
+                    # Generalize [:, 3:] -> [..., 3:] to add compatibility for the case when the hartree/exchange 
+                    # data are 1D. This seems necessary for monoatomic s-orbital problems. For Li, we obtained
+                    # hartree.dat: "    1    1    1    0.823343    0.000000"
+                    tempdat=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/hartree.dat')[...,3:], (nimp_orb,nimp_orb,2), order='F')
+                    sig_h_dc[str(ii)]=tempdat[:,:,0]+tempdat[:,:,1]*1j
+
+                    tempdat=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/exchange.dat')[...,3:], (nimp_orb,nimp_orb,2), order='F')
+                    sig_f_dc[str(ii)]=tempdat[:,:,0]+tempdat[:,:,1]*1j                    
+
+
+                hf_header=control['sig_header'][1:]
+                hf_header[0]='# '+hf_header[0]
+                sig_table=[]                
+                for ii in sorted(set(control['impurity_problem_equivalence'])):
+                    dc_vec=imp_from_mat_to_array(sig_h_dc[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
+                    sig_table.append(np.reshape(np.stack((np.real(dc_vec), np.imag(dc_vec)), 0), (len(dc_vec)*2), order='F').tolist())
+
+                with open(control['top_dir']+'/sig_dc_h.dat', 'w') as outputfile:
+                    outputfile.write(tabulate(sig_table, headers=hf_header, floatfmt=".12f", numalign="right",  tablefmt="plain"))
+
+                sig_table=[]                
+                for ii in sorted(set(control['impurity_problem_equivalence'])):
+                    dc_vec=imp_from_mat_to_array(sig_f_dc[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
+                    sig_table.append(np.reshape(np.stack((np.real(dc_vec), np.imag(dc_vec)), 0), (len(dc_vec)*2), order='F').tolist())
+
+                with open(control['top_dir']+'/sig_dc_f.dat', 'w') as outputfile:
+                    outputfile.write(tabulate(sig_table, headers=hf_header, floatfmt=".12f", numalign="right",  tablefmt="plain"))                                        
 
             labeling_file('./dc_mat.dat',iter_string)
             labeling_file('./zinv_m1_mat.dat',iter_string)
@@ -3479,8 +3613,9 @@ def postprocessing_comdmft():
     else:
         options['self_energy']=os.path.abspath(postprocessing_dict['comsuite_dir'])+'/sig.dat'
 
-    if (control['method']=='spectral') | (control['method']=='band'):    
-        shutil.copy(postprocessing_dict['kpoints'], './')        
+    if (control['method']=='spectral') | (control['method']=='band'):
+        if not os.path.exists('./kpoints'):
+            shutil.copy(postprocessing_dict['kpoints'], './')        
     if (control['method']=='dos'):        
         options['mode']=2        
     elif (control['method']=='spectral'):        
@@ -3599,8 +3734,6 @@ def lqsgw_dmft(control,wan_hmat,imp):
     if control['do_wannier']:
         write_conv_wan(control)
 
-
-
     print('*****   Coulomb  *****', file=control['h_log'],flush=True)
     if control['do_coulomb']:    
         check_coulomb_input(control)
@@ -3622,14 +3755,17 @@ def lqsgw_dmft(control,wan_hmat,imp):
 
         prepare_dc(control,wan_hmat,imp) 
         run_dc(control,imp)
-
+        if (control['embed_mode'] == 'fc'):            
+            shutil.copy(control['top_dir']+'/sig_dc_h.dat', control['impurity_directory']+'/hartree.dat')
+            shutil.copy(control['top_dir']+'/sig_dc_h.dat', control['impurity_directory']+'/hartree_0.dat')
+            
         cal_dc_diagonal(control)
         cal_zinv_m1_diagonal(control)
 
         generate_initial_self_energy(control,imp)
         write_conv_dc(control,imp)
 
-
+### from here
     while (control['iter_num_impurity'] <= control['max_iter_num_impurity']):
 
         print('\n', file=control['h_log'],flush=True)

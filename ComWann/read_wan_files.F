@@ -184,6 +184,12 @@ c     write(179,*)'bk-readini_end4'
         read(1)indxcgr_r4size
         write(993,*) 'indxcgr_r4size',indxcgr_r4size       
         read(1)cgr_size
+        cgr_size = 0
+        jcgr_size = 0
+        indxcgr_r1size = 0
+        indxcgr_r2size = 0
+        indxcgr_r3size = 0
+        indxcgr_r4size = 0
         write(993,*) 'cgr_size',cgr_size       
         read(1)complex_ro
         write(993,*) 'complex_ro',complex_ro

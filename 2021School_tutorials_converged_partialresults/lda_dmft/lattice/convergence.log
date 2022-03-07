@@ -1,0 +1,7 @@
+isort    1   rk/l    2.323602
+************ iteration        2 ************
+ charge density self-consistency= 0.5592722E-04
+ dft: ETOT F =      -323.411587121721     -323.413544635576
+delta energy per electron in ev -0.488903092983E+03
+chemical potential change  0.574371296219E-02
+ 

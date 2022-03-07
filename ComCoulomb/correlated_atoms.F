@@ -10,11 +10,11 @@
       integer :: iatom,isort,l1,i1,ii,i,m,lm,n,lm0,ndim,li,i2,ii2,
      $  jj,in,i3,lf,iatom_c,i0,kk,l,ind,ind_c,ie1,in1,inn1,inttmp,
      $  awan,iistart,iorb,ival,lival,iwan,jval,ll,mm,mudim,mval,
-     $  lval,is_bonding,cnt,iat,mind,m1
+     $  lval,is_bonding,cnt,iat,mind,m1,jatom
       integer, allocatable :: tempmap(:,:,:), tempind(:)
       integer, external :: find_ind
 
-!      write(100,*)'alimj',alimj,'at_bonding',at_bonding,'at_orb_ciw',
+!     write(100,*)'alimj',alimj,'at_bonding',at_bonding,'at_orb_ciw',
 !     $ at_orb_ciw,'ciw_ind',ciw_ind,'corr_iter',corr_iter,
 !     $ 'corr_iter_rel',corr_iter_rel,'iatom_ciw',iatom_ciw,'irel',irel,
 !     $ 'is',is,'lmb',lmb,'maxb',maxb,'mt2ciw',mt2ciw,'mt2ciw_rel_l',
@@ -24,17 +24,18 @@
 !     $ 'num_orb_cor',num_orb_cor,'num_orb_iter',num_orb_iter,
 !     $ 'num_orb_proj',num_orb_proj,'seed_name',seed_name,
 !     $ 'wan_correlated',wan_correlated,'wan_itinerant',wan_itinerant
-!
-!      call mpi_bcast(nproc_k,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
+!     
+!     call mpi_bcast(nproc_k,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
 
       write(seed_name,'(a)') 'wannier'      
       call read_wann_inip
 
 
 
-!      call mpi_bcast(nproc_k,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
+!     call mpi_bcast(nproc_k,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
 
 
+     
 
       allocate(natom_cor(natom))
       natom_cor=.false.
@@ -64,7 +65,7 @@
         allocate(mt2cw_rel_l(4*maxb+2,maxb+1,natom)) ! m, li, atom
         mt2cw_rel_l=0                
       endif
-        
+      
       allocate(corr_iter(0:maxb,natom)) ! l, atom
       corr_iter=0
 
@@ -80,6 +81,11 @@
         allocate(at_bonding_rel(nrel*maxb+1,natom)) ! m, li, atom
         at_bonding_rel=0        
       endif
+
+
+
+
+      
 
       do awan=1, num_orb_cor
         iwan=wan_correlated(awan)
@@ -115,9 +121,6 @@
         n_ciw_atom(iatom)=n_ciw_atom(iatom)+1
         n_cw_atom(iatom)=n_cw_atom(iatom)+1                
       enddo
-
-
-
 
 
 
@@ -351,12 +354,12 @@
       enddo            
 
 
-c$$$      allocate(is_ciw(natom))
-c$$$      is_ciw=0
-c$$$
-c$$$      do iat=1, natom_ciw
-c$$$        is_ciw(iatom_ciw(iat))=iat
-c$$$      enddo      
+c$$$  allocate(is_ciw(natom))
+c$$$  is_ciw=0
+c$$$  
+c$$$  do iat=1, natom_ciw
+c$$$  is_ciw(iatom_ciw(iat))=iat
+c$$$  enddo      
 
       n_ciw_max=maxval(n_ciw_atom)
       n_cw_max=maxval(n_cw_atom)      
@@ -396,7 +399,7 @@ c$$$      enddo
         tempind(iat)=tempind(iat)+1
         cw_ind(tempind(iat),iat)=iwan
       enddo
-        
+      
 
       deallocate(tempind)
 
@@ -433,11 +436,41 @@ c$$$      enddo
         iorb=find_ind(iwan, n_cw_max, cw_ind(1,iat))
         at_orb_cw(2,iwan)=iorb        
       enddo
+
+
+      allocate(corwan_ind_atom(num_orb_cor,natom_cw)) ! l, atom      
+
+      corwan_ind_atom=0
+
+      do iat=1, natom_cw
+        jatom= iatom_cw(iat)
+        ii=0
+        do awan=1, num_orb_cor
+          iwan=wan_correlated(awan)
+          do iorb=1, nalimj(iwan)
+            iatom=alimj(1,iorb,iwan)
+
+            if (iatom .eq. jatom) then
+              ii=ii+1              
+              corwan_ind_atom(ii, iat)=awan
+            endif
+          enddo
+        enddo
+      enddo
+        
+      
       
 
 
       if (maswrk) then
-        write(iun,*) 'for correlated and itinerate orbitals'        
+        write(iun,*) 'for correlated and itinerate orbitals'
+
+        write(iun, *) 'corwan_ind_atom'
+        do iat=1,natom_cw
+          iatom=iatom_cw(iat)          
+          write(iun, '(1000i5)') iatom, (corwan_ind_atom(ii, iat),
+     $      ii=1, n_cw_atom(iatom))
+        enddo
 
         if (irel .le.1) then
           
@@ -460,9 +493,9 @@ c$$$      enddo
           write(iun,*) 'corr_iter'
           do iatom=1, natom
             isort=is(iatom)            
-            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
-     $        ((corr_iter(ll,iatom), at_bonding(ll,iatom)),
-     $        ll=0, lmb(isort))
+!            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
+!     $        ((corr_iter(ll,iatom), at_bonding(ll,iatom)),
+!     $        ll=0, lmb(isort))
           enddo
         else
           write(iun,*) 'mt2allwan'
@@ -493,16 +526,16 @@ c$$$      enddo
           write(iun,*) 'corr_iter_rel'
           do iatom=1, natom
             isort=is(iatom)            
-            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
-     $        ((corr_iter_rel(li,iatom),at_bonding_rel(li,iatom)),
-     $        li=1, 2*lmb(isort)+1)
+!            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
+!     $        ((corr_iter_rel(li,iatom),at_bonding_rel(li,iatom)),
+!     $        li=1, 2*lmb(isort)+1)
           enddo
           write(iun,*) 'corr_iter'
           do iatom=1, natom
             isort=is(iatom)            
-            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
-     $        ((corr_iter(ll,iatom),at_bonding(ll,iatom)),
-     $        ll=0, lmb(isort))
+!            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
+!     $        ((corr_iter(ll,iatom),at_bonding(ll,iatom)),
+!     $        ll=0, lmb(isort))
           enddo
 
         endif
@@ -555,9 +588,9 @@ c$$$      enddo
           write(iun,*) 'corr'
           do iatom=1, natom
             isort=is(iatom)            
-            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
-     $        ((corr(ll,iatom), at_bonding(ll,iatom)),
-     $        ll=0, lmb(isort))
+!            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
+!     $        ((corr(ll,iatom), at_bonding(ll,iatom)),
+!     $        ll=0, lmb(isort))
           enddo          
         else
 
@@ -591,17 +624,17 @@ c$$$      enddo
           write(iun,*) 'corr_rel'
           do iatom=1, natom
             isort=is(iatom)            
-            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
-     $        ((corr_rel(li,iatom),at_bonding_rel(li,iatom)),
-     $        li=1, 2*lmb(isort)+1)
+!            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
+!     $        ((corr_rel(li,iatom),at_bonding_rel(li,iatom)),
+!     $        li=1, 2*lmb(isort)+1)
           enddo
           
           write(iun,*) 'corr'
           do iatom=1, natom
             isort=is(iatom)            
-            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
-     $        ((corr(ll,iatom),at_bonding(ll,iatom)),
-     $        ll=0, lmb(isort))
+!            write(iun,'(i4,4x,1000(2i4,2x))') iatom,
+!     $        ((corr(ll,iatom),at_bonding(ll,iatom)),
+!     $        ll=0, lmb(isort))
           enddo          
 
         endif
