@@ -20,7 +20,7 @@ import json
 
 bohr=0.529177210903
 
-versionstr = '%(prog)s version 0.0\npymatgen version '+mg.__version__
+# versionstr = '%(prog)s version 0.0\npymatgen version '+mg.__version__
 # In this script we convert all quantities to Rydberg atomic units
 # (rather than Hartree atomic units).
 #
@@ -1417,7 +1417,7 @@ def read_comdmft_ini_fm():
     else:
         fm_dict['iter_h_ext']='0000000' #
         fm_dict['magn_shift']=0.0 #
-    fm_dict['version']=fm_dict.get('version', versionstr)
+    # fm_dict['version']=fm_dict.get('version', versionstr)
     fm_dict['code']='comsuite'
     fm_dict['cell']=fm_dict.get('cell', 'primitive')
     fm_dict['band']=fm_dict.get('band', True)
