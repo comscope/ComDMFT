@@ -59,9 +59,9 @@ c     -----------------------------------------------------------------------
         k=n3_mpi_k(me3_k+1)+ind_k
         ak=dot_product(pnt(:,k),pnt(:,k))
         if(ak>1.d-12) then
-          u_rotated_fpb=0.0d0
+!          u_rotated_fpb=0.0d0
 c$$$          u_at_lpb_rax_k_nu=0.0d0
-          w_rotated_fpb=0.0d0
+!          w_rotated_fpb=0.0d0
 c$$$          w_at_lpb_rax_k_nu=0.0d0
           call ws_k_nu_solid_0(ind_k,key_u)
 c$$$          if (myrevision .eq. 1) then
@@ -105,9 +105,9 @@ c     --------------------------------------------------------------------
       call timel('**** w at q .eq. 0  start    *******')                  
       
       if(me3_k==0)  then
-        u_rotated_fpb=0.0d0
+!        u_rotated_fpb=0.0d0
 c$$$        u_at_lpb_rax_k_nu=0.0d0
-        w_rotated_fpb=0.0d0
+!        w_rotated_fpb=0.0d0
 c$$$        w_at_lpb_rax_k_nu=0.0d0
         call ws_k_nu_solid_0(1,key_u)
 c$$$        if (myrevision .eq. 1) then

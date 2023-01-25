@@ -10,7 +10,8 @@
       integer :: iorb1,iorb2,iorb3,iorb4,ik,ispin,jspin,
      $  tau1,tau2,tau3,tau4,ind_nu,i_nu,ind_k,k,i
 
-      complex*16, allocatable :: v_tmp(:,:),tempmat2(:,:,:,:,:,:)
+      complex*16, allocatable :: v_tmp(:,:),tempmat2(:,:,:,:,:,:),
+     $  u_loc_static(:,:,:,:,:,:),w_loc_static(:,:,:,:,:,:)
 C$$$      integer :: ind_nu,ind_k,iatom_c,iatom,isort,jatom_c,jatom,jsort,
 C$$$     $  isp,jsp,m1,m2,m3,m4,m12,m34,ii,jj,i_nu,ni,nj,kk,
 C$$$     $  aa,bb,cc,dd,ee,ff,aaindex,bbindex,mdim_i,mdim_j,mdim,
@@ -131,11 +132,46 @@ c$$$      call boson_rr_dens_tau(wc_k_den_tau,'wc',
 c$$$     $  rydberg)      
 
 
+      call boson_density(u_loc, 'u', rydberg)
+      call boson_density(w_loc, 'w', rydberg)      
+      call boson_tensor(v_loc,'v',rydberg)
 
+      allocate(u_loc_static(num_orb_proj,num_orb_proj,
+     $  num_orb_proj,num_orb_proj,
+     $  nspin,nspin))
+      u_loc_static=0.0d0
+      
+      do ind_nu=1,ndim3_nu
+        i_nu=me3_tau*ndim3_nu+ind_nu-1
+        if (i_nu .eq. 0) then
+          u_loc_static=u_loc(:,:,:,:,:,:,ind_nu)
+        endif
+      enddo
+          
+      call mpi_allreduce_dcmplx(u_loc_static,
+     $  num_orb_proj**4*nspin**2,mpi_sum,comm_k)              
+      
+      call boson_tensor(u_loc_static,'u_static',rydberg)
+
+      allocate(w_loc_static(num_orb_proj,num_orb_proj,
+     $  num_orb_proj,num_orb_proj,
+     $  nspin,nspin))      
+      w_loc_static=0.0d0
+      
+      do ind_nu=1,ndim3_nu
+        i_nu=me3_tau*ndim3_nu+ind_nu-1
+        if (i_nu .eq. 0) then
+          w_loc_static=w_loc(:,:,:,:,:,:,ind_nu)
+        endif
+      enddo
+          
+      call mpi_allreduce_dcmplx(w_loc_static,
+     $  num_orb_proj**4*nspin**2,mpi_sum,comm_k)              
+      
+      call boson_tensor(w_loc_static,'w_static',rydberg)            
 
       if(irel<=1) then
         call v_slater_l
-        call v_tensor_l
         call boson_slater_l(w_loc,'w',rydberg)
 c$$$        call boson_slater_l(epsinv_loc,'epsinv',1.0d0)
 c$$$        call boson_slater_l(eps_loc,'eps',1.0d0)
@@ -152,7 +188,7 @@ c$$$          call boson_slater_l(chi_high_loc,'chi_high',1.0d0/rydberg)
 
       elseif(irel.eq.2) then
         call v_slater_rel_l
-        call v_tensor_rel_l        
+c$$$        call v_tensor_rel_l        
         call boson_slater_rel_l(w_loc,'w',rydberg)
 c$$$        call boson_slater_rel_l(epsinv_loc,'epsinv',1.0d0)
 c$$$        call boson_slater_rel_l(eps_loc,'eps',1.0d0)

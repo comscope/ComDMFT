@@ -35,6 +35,7 @@ c$$$  mt_fac=0.999d0
         read(11,*) cut_total
         read(11,*) rmode
         read(11,*) mt_fac
+        read(11,*) dis_froz_max_fac
         write(993,*) 'dis_win_max=',dis_win_max
         write(993,*) 'dis_win_min=',dis_win_min
         write(993,*) 'dis_froz_max=',dis_froz_max
@@ -51,6 +52,7 @@ c$$$  cut_total=0.0d0
         write(993, *) 'cut_total=', cut_total
         write(993, *) 'rmode=', rmode
         write(993, *) 'mt_fac=', mt_fac
+        write(993, *) 'dis_froz_max_fac=', dis_froz_max_fac
       endif
       if(goparr) then
         call mpi_bcast(rstpath,1000,
@@ -78,7 +80,9 @@ c$$$  cut_total=0.0d0
         call mpi_bcast(rmode,1,mpi_integer,0,
      $    MPI_COMM_WORLD,mpierr)                                        
         call mpi_bcast(mt_fac,1,mpi_double_precision,0,
-     $    MPI_COMM_WORLD,mpierr)                                
+     $    MPI_COMM_WORLD,mpierr)
+        call mpi_bcast(dis_froz_max_fac,1,mpi_double_precision,0,
+     $    MPI_COMM_WORLD,mpierr)                                        
       endif
       if (.not. ((ubi_num .eq. 1) .or. (ubi_num .eq. 4))) then
         write(993,*) 'Please enter correct cal_mode either dft or qp'
@@ -174,8 +178,10 @@ c$$$  cut_total=0.0d0
           enddo
           close(1)
           write(992,'(a)') "end kpoint_path"                        
-          close(992)
+!          close(992)
         endif
+
+      close(992)
       endif
       end
       

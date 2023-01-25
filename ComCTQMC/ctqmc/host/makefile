@@ -7,7 +7,7 @@ all: CTQMC
 cpu: CTQMC
 
 CTQMC:  ctqmc.C $(HEADERS_IS)
-	$(CXX_MPI) $(CPPFLAGS) $(CXXFLAGS) -o $@  ctqmc.C $(LDFLAGS) $(LIBS)
+	$(CXX_MPI) $(CPPFLAGS) $(CXXFLAGS) -o $@  ctqmc.C $(LDFLAGS) $(LIBS) -lmpi_cxx -lstdc++
 	cp CTQMC ../../bin/.
 
 clean:

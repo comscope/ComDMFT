@@ -2,6 +2,7 @@
 import numpy as np
 import sys, subprocess,json,argparse, os,shutil
 from scipy import interpolate
+from scipy.ndimage import gaussian_filter1d
 
 def gaux_sig(omega,sig):
     amat=np.zeros((4,4), dtype=complex)
@@ -42,7 +43,8 @@ def main(option):
     # emax_inner=option['emax_inner']
     # egrid=option['egrid']
     blur=float(option['smearing'])
-    interpolation=option['interpolation']    
+    interpolation=option['interpolation']
+    gaussian_broadening=float(option['gaussian_broadening'])
 
     
     sigin=np.loadtxt(sigfile)
@@ -151,7 +153,8 @@ def main(option):
             
         os.remove('realFreq_Sw.dat_1_1')
         os.remove('Sw_SOLVER.full_fromRetardedSw.dat_0_0')        
-        os.remove('gaux.dat')        
+        os.remove('gaux.dat')
+        
         shutil.move('spectral_function_0_0.dat_model', 'gaux_spectra_model_'+str(iorb+1))
         shutil.move('spectral_function_0_0.dat', 'gaux_spectra_'+str(iorb+1))        
         shutil.move('information.out', 'info_'+str(iorb+1))
@@ -174,7 +177,12 @@ def main(option):
             x=sig_real_bare[:,0]
             y=sig_real_bare[:,ii+1]
             f = interpolate.interp1d(x, y, kind='cubic')
-            sig_real[:,ii+1]=f(xnew)
+            tempdat=f(xnew)
+            if (gaussian_broadening>0):
+                width=int(gaussian_broadening/(xnew[1]-xnew[0]))
+                sig_real[:,ii+1]=gaussian_filter1d(tempdat, width)
+            else:
+                sig_real[:,ii+1]=tempdat
         np.savetxt('sig_realaxis.dat', sig_real, header='  ')                    
     else:
         np.savetxt('sig_realaxis.dat', sig_real, header='  ')
@@ -191,6 +199,7 @@ if __name__ == '__main__':
     parser.add_argument('gaux_mode', action='store', nargs='?', default='g', help='The way to construct auxuliary green\'s function. sigc: \Sigma-\Sigma(omega=\inf), g: 1/(i\omega-Sigma).  default: g')
     parser.add_argument('default_model', action='store', nargs='?', default='g_mat', help='The way to construct auxuliary green\'s function. f:flat, g:gaussian, g_mat:matrix version of gaussian.  default: g_mat')
     parser.add_argument('smearing', action='store', nargs='?', default='0.01', help='smaring width.  default: 0.01')
+    parser.add_argument('gaussian_broadening', action='store', nargs='?', default='0.2', help='gaussian broadening width.  default: 0.2')    
     parser.add_argument('interpolation', action='store', nargs='?', default=True, help='smaring width.  default: True')    
     # parser.add_argument('emin_outer', action='store', nargs='?', default='-400', help='real frequency parameter to define the outer coarse energy grid.  default: -400')
     # parser.add_argument('emax_outer', action='store', nargs='?', default='400', help='real frequency parameter to define the outer coarse energy grid.  default: 400')

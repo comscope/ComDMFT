@@ -33,8 +33,8 @@
       i_len=len_trim(allfile)
 
 
-      do iat=1,natom_ciw
-        iatom=iatom_ciw(iat)
+      do iat=1,natom_cw
+        iatom=iatom_cw(iat)
         isort=is(iatom)
 
         if (iatom .lt. 10)then
@@ -47,7 +47,7 @@
         
         do l=0, lmb(isort)
           
-          if ((corr_iter(l,iatom) .eq. 2)
+          if ((corr(l,iatom) .eq. 2)
      $      .and.
      $      (at_bonding(l,iatom) .eq. 0)
      $      ) then
@@ -135,93 +135,93 @@ c$$$  uloc in real spherical harmonics
       end
 
 
-      subroutine v_tensor_rel_l      
-!     ff
-      use atom_mod
-      use manager_mod
-      use parallel_mod
-      use solid_mod
-      use units_mod
-      use wannier90_mod      
-      implicit none
-      include "mpif.h"
-      
-      integer :: isort,l,ij,kl,i_len,iatom_c,iatom,nf,ispin,jspin,lm1,
-     &  lm2,lm3,lm4,km1,km2,km3,km4,ll,ig,lm_min,ll0,llm,ii,jj,
-     &  iii,indx,icg1,icg2,jcg1,jcg2,icg,jjcg,lmi,lmj,
-     &  li,ndim,lf,ie,m4,m3,m2,m1,n_half,n,m12,m34,tmpind,
-     $  k1,k2,k3,k4,i1,i2,i3,i4,iistart,ind1,ind2,ind3,ind4,
-     $  li1,li2,li3,li4,mu1,mu2,mu3,mu4,mudim1,mudim2,mudim3,mudim4,iat
-      double precision :: c,cc
-
-
-      character(len=5) :: lchar,catom
-
-
-      if (nspin .ne. 1) then
-        call all_log('nspin should be 1 to use boson_slater_rel_1')
-        call ending
-      endif
-
-      i_len=len_trim(allfile)
-
-
-      do iat=1,natom_ciw
-        iatom=iatom_ciw(iat)
-        isort=is(iatom)
-
-        if (iatom .lt. 10)then
-          write(catom,'(i1)') iatom
-        elseif (iatom .lt. 10)then
-          write(catom,'(i2)') iatom
-        elseif (iatom .lt. 100)then
-          write(catom,'(i3)') iatom
-        endif
-        
-        do l=0, lmb(isort)
-          
-          if ((corr_iter(l,iatom) .eq. 2)
-     $      .and.
-     $      (at_bonding(l,iatom) .eq. 0)
-     $      ) then
-            
-            write(lchar,'(i1)') l            
-            
-            if(maswrk) then
-              open(3,file=allfile(1:i_len)
-     $          //'_v_tensor_'
-     $          //trim(adjustl(catom))
-     $          //'_'//trim(adjustl(lchar))//'.dat')
-              write(3,'(a)')
-     $          '# v_tensor'
-            endif            
-            
-            ind4=0
-
-            n=4*l+2
-            
-            do m4=1, n
-              km4=mt2ciw_rel_l(m4,l+1,iatom)
-              do m3=1, n
-                km3=mt2ciw_rel_l(m3,l+1,iatom)                  
-                do m2=1, n
-                  km2=mt2ciw_rel_l(m2,l+1,iatom)                    
-                  do m1=1, n
-                    if(maswrk) then                        
-                      write(3,'(4i5,2x,2(e22.15, 2x))')                    
-     $                  m1,m2,m3,m4,
-     $                  v_loc(km1,km2,km3,km4,
-     $                  1,1)
-                    endif
-                  enddo
-                enddo
-              enddo
-            enddo
-            if(maswrk) close(3)                        
-          endif
-        enddo
-      enddo  
-      end      
+c$$$      subroutine v_tensor_rel_l      
+c$$$!     ff
+c$$$      use atom_mod
+c$$$      use manager_mod
+c$$$      use parallel_mod
+c$$$      use solid_mod
+c$$$      use units_mod
+c$$$      use wannier90_mod      
+c$$$      implicit none
+c$$$      include "mpif.h"
+c$$$      
+c$$$      integer :: isort,l,ij,kl,i_len,iatom_c,iatom,nf,ispin,jspin,lm1,
+c$$$     &  lm2,lm3,lm4,km1,km2,km3,km4,ll,ig,lm_min,ll0,llm,ii,jj,
+c$$$     &  iii,indx,icg1,icg2,jcg1,jcg2,icg,jjcg,lmi,lmj,
+c$$$     &  li,ndim,lf,ie,m4,m3,m2,m1,n_half,n,m12,m34,tmpind,
+c$$$     $  k1,k2,k3,k4,i1,i2,i3,i4,iistart,ind1,ind2,ind3,ind4,
+c$$$     $  li1,li2,li3,li4,mu1,mu2,mu3,mu4,mudim1,mudim2,mudim3,mudim4,iat
+c$$$      double precision :: c,cc
+c$$$
+c$$$
+c$$$      character(len=5) :: lchar,catom
+c$$$
+c$$$
+c$$$      if (nspin .ne. 1) then
+c$$$        call all_log('nspin should be 1 to use boson_slater_rel_1')
+c$$$        call ending
+c$$$      endif
+c$$$
+c$$$      i_len=len_trim(allfile)
+c$$$
+c$$$
+c$$$      do iat=1,natom_ciw
+c$$$        iatom=iatom_ciw(iat)
+c$$$        isort=is(iatom)
+c$$$
+c$$$        if (iatom .lt. 10)then
+c$$$          write(catom,'(i1)') iatom
+c$$$        elseif (iatom .lt. 10)then
+c$$$          write(catom,'(i2)') iatom
+c$$$        elseif (iatom .lt. 100)then
+c$$$          write(catom,'(i3)') iatom
+c$$$        endif
+c$$$        
+c$$$        do l=0, lmb(isort)
+c$$$          
+c$$$          if ((corr_iter(l,iatom) .eq. 2)
+c$$$     $      .and.
+c$$$     $      (at_bonding(l,iatom) .eq. 0)
+c$$$     $      ) then
+c$$$            
+c$$$            write(lchar,'(i1)') l            
+c$$$            
+c$$$            if(maswrk) then
+c$$$              open(3,file=allfile(1:i_len)
+c$$$     $          //'_v_tensor_'
+c$$$     $          //trim(adjustl(catom))
+c$$$     $          //'_'//trim(adjustl(lchar))//'.dat')
+c$$$              write(3,'(a)')
+c$$$     $          '# v_tensor'
+c$$$            endif            
+c$$$            
+c$$$            ind4=0
+c$$$
+c$$$            n=4*l+2
+c$$$            
+c$$$            do m4=1, n
+c$$$              km4=mt2ciw_rel_l(m4,l+1,iatom)
+c$$$              do m3=1, n
+c$$$                km3=mt2ciw_rel_l(m3,l+1,iatom)                  
+c$$$                do m2=1, n
+c$$$                  km2=mt2ciw_rel_l(m2,l+1,iatom)                    
+c$$$                  do m1=1, n
+c$$$                    if(maswrk) then                        
+c$$$                      write(3,'(4i5,2x,2(e22.15, 2x))')                    
+c$$$     $                  m1,m2,m3,m4,
+c$$$     $                  v_loc(km1,km2,km3,km4,
+c$$$     $                  1,1)
+c$$$                    endif
+c$$$                  enddo
+c$$$                enddo
+c$$$              enddo
+c$$$            enddo
+c$$$            if(maswrk) close(3)                        
+c$$$          endif
+c$$$        enddo
+c$$$      enddo  
+c$$$      end      
 
       subroutine boson_slater_rel_l(uloc,tempchar,fac)
       
@@ -264,8 +264,8 @@ c$$$  uloc in real spherical harmonics
       i_len=len_trim(allfile)
 
 
-      do iat=1,natom_ciw
-        iatom=iatom_ciw(iat)
+      do iat=1,natom_cw
+        iatom=iatom_cw(iat)
         isort=is(iatom)
 
         if (iatom .lt. 10)then
@@ -278,7 +278,7 @@ c$$$  uloc in real spherical harmonics
         
         do l=0, lmb(isort)
           
-          if ((corr_iter(l,iatom) .eq. 2)
+          if ((corr(l,iatom) .eq. 2)
      $      .and.
      $      (at_bonding(l,iatom) .eq. 0)
      $      ) then
