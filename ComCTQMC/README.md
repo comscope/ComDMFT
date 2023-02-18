@@ -1,5 +1,5 @@
 # ComCTQMC
-ComCTQMC is a quantum impurity solver which uses the continuous time quantum Monte Carlo (CTQMC) algorithm where the action of the quantum impurty is expanded in terms of the hybridisation functions (CT-HYB). It is a stand-alone impurity solver and also embedded in dynamical mean field theory (DMFT) including ComSuite (github.com/comscopt/comsuite) and Portobello. 
+ComCTQMC is a quantum impurity solver which uses the continuous time quantum Monte Carlo (CTQMC) algorithm where the action of the quantum impurity is expanded in terms of the hybridisation functions (CT-HYB). It is a stand-alone impurity solver and also embedded in dynamical mean field theory (DMFT) including ComDMFT (github.com/comscope/ComDMFT) and Portobello. 
 
 ## Features
 
@@ -9,7 +9,7 @@ A GPU accelerated version is available for those with CUDA libraries and CUDA-ca
 
 ## The Team
 
-The project is developed by ComScope (https://www.bnl.gov/comscope/) with support from the DOE office of Basic Sciences. The main developers are Drs. Corey Melnick (cmelnick@bnl.gov) and Patrick Semon.
+The project is developed by ComScope (https://www.bnl.gov/comscope/) with support from the DOE office of Basic Sciences. The main developer is Dr. Corey Melnick (cmelnick@bnl.gov).
 
 ## Citing ComCTQMC
 
@@ -60,4 +60,4 @@ The general workflow required to use ComCTQMC is as follow:
 
 For a description of the input and output files, we refer the reader to the user guide UserGuide.pdf.
 
-Examples are available in ComCTQMC/examples
+Examples are available in ComCTQMC/examples.

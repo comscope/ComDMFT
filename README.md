@@ -1,5 +1,5 @@
 <!--use editor https://pandao.github.io/editor.md/en.html -->
-# 1. COMSUITE 
+# 1. ComDMFT 
 
 A computational materials physics code for simulating correlated quantum materials using Dynamic Mean Field Theory (DMFT) and its extension. It can calculate the electronic structure within three different mathods:
 
@@ -14,22 +14,22 @@ For the copyright and license information, please see Copyright.txt and license.
    -Minor differences from the 2021 Official Release, which was a few weeks earlier.  New tutorials are added.
 
 ## 2021. 2. 26, available on the 2021OfficialRelease branch
-   - Updated interface to Flapwmbpt. Now Comsuite requires single input file for FlapwMBPT, Comsuite, and its postprocess. 
-   - Now Comsuite provides an option to calculate quasiparticle bandstructures within LDA+DMFT as well as LQSGW+DMFT.
-   - Now Comsuite provides options to choose "s"- or "p"-type corrlated orbitals.
+   - Updated interface to Flapwmbpt. Now ComDMFT requires a single input file for FlapwMBPT, the DMFT calculation, and its postprocessing. 
+   - Now ComDMFT provides an option to calculate quasiparticle bandstructures within LDA+DMFT as well as LQSGW+DMFT.
+   - Now ComMDFT provides options to choose "s"- or "p"-type corrlated orbitals.
 
 ## 2020. 1. 6, available on the 2020OfficialRelease brance
-   - Now Comsuite can calculate antiferromagnetically ordered phase. Please go to tutorial directories (install_directory/tutorials/lda_dmft/NiO_afm and install_directory/tutorials/lqsgw_dmft/NiO_afm). Read pdf files to learn how to calculate the electronic structures of antiferromagnetically ordered NiO.  You have two choices of charge self-consistent LDA+DMFT and LQSGW+DMFT.
+   - Now ComDMFT can calculate antiferromagnetically ordered phase. Please go to tutorial directories (install_directory/tutorials/lda_dmft/NiO_afm and install_directory/tutorials/lqsgw_dmft/NiO_afm). Read pdf files to learn how to calculate the electronic structures of antiferromagnetically ordered NiO.  You have two choices of charge self-consistent LDA+DMFT and LQSGW+DMFT.
 
 ## 2019. 1. 4
    - The first version has been released!!!
    - Please go to tutorial directory(install_directory/tutorials) to learn how to calculate the electronic structures of NiO, MnO, and FeSe. You have three choices of charge self-consistent LDA+Gutzwiller, charge self-consistent LDA+DMFT, and LQSGW+DMFT.
    
 
-# 3. Comsuite Installation
+# 3. ComDMFT Installation
 
 ## Prerequisites
-Comsuite consists of programs, executables, and scripts, written in Fortran90, c (c++) and Python3. Before you start the installation, you must make sure that the following packages are installed in your system.
+ComDMFT consists of programs, executables, and scripts, written in Fortran90, c (c++) and Python3. Before you start the installation, you must make sure that the following packages are installed in your system.
   - Fortran, C, CXX compiler and blas/lapack library. The followings have been tested
     - ifort, icpc and mkl
   - MPI
@@ -40,9 +40,9 @@ Comsuite consists of programs, executables, and scripts, written in Fortran90, c
 ## Optional package
   - Data storage in Parallel HDF5 is also supported. Parallel HDF5 library (Check https://www.hdfgroup.org/HDF5/release/obtain5.html)
 
-## Download COMSUITE
+## Download ComDMFT
 
-     git clone https://github.com/comscope/comsuite.git
+     git clone https://github.com/comscope/ComDMFT.git
     
 The directory contains the following sub-directories:
 - bin -- executable binaries and scripts
@@ -56,11 +56,11 @@ The directory contains the following sub-directories:
 - gw -- FlapwMBPT code(https://www.bnl.gov/cmpmsd/flapwmbpt/)
 - wannier90-2.1 -- the most recent version of Wannier90.
 
-## Compile COMSUITE package.
+## Compile ComDMFT package.
 - First, define the installation directory in the shell. For example in bash shell, use the following command adds $COMSUITE_BIN to your system $PATH
 
       export COMSUITE_BIN=install_directory/bin
-- Then, the compilers, libraries, and flags should be defined in the arch.mk file. An example to install COMSUITE in Cori at NERSC is as follows.
+- Then, the compilers, libraries, and flags should be defined in the arch.mk file. An example to install ComDMFT on Cori at NERSC is as follows.
 
        ##### fortran
        F90 = ifort

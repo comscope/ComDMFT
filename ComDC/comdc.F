@@ -1286,8 +1286,6 @@ c$$$  wigner 3j symbol
 
 !     Copyright (C) 2002-2005 J. K. Dewhurst, S. Sharma and C. Ambrosch-Draxl.
 !     This file is modified to be suitable for complex variables by sangkook choi
-!     distributed under the terms of the GNU Lesser General Public
-!     License. See the file COPYING for license details.
       
 !     BOP
 !     !ROUTINE: fderiv_dcmplx
@@ -1387,8 +1385,7 @@ c$$$  end if
       
       
 !     Copyright (C) 2011 J. K. Dewhurst, S. Sharma and E. K. U. Gross.
-!     This file is distributed under the terms of the GNU Lesser General Public
-!     This file is modified to be suitable for complex variables by sangkook choi  !     License. See the file COPYING for license details.
+!     This file is modified to be suitable for complex variables by sangkook choi
       
 !     BOP
 !     !ROUTINE: spline_dcmplx
