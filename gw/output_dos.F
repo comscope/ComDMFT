@@ -9,6 +9,7 @@
       character*3 :: s2
       character*5 :: ss1
       character*6 :: sss
+
       integer :: iedos,ispin,i_len,isort,li,k,i,ind0,lf,l,ndim,ind_dos,
      &  ks,ie
       real*8 :: deltae,e0,consp(2),om0,fct,ds1,ds2
@@ -48,6 +49,7 @@ c     ---------------------------------------------------------------------
       pdos=0.d0
       dos_k=0.d0
       if(irel/=2.and.iprn/=0) porb=0.d0
+
       do ind_dos=1,nd_dos(me3_tau+1)
         iedos=nmpi_dos(me3_tau+1)+ind_dos-1
         om0=emindos+iedos*deltae
@@ -76,6 +78,7 @@ c     ------ K-resolved spectral function for SYM-K -------------------
           enddo
         enddo
       enddo
+
       if(nproc_tau/=1) then
         call dgop(dossp,nspin*(1+ndos),'  +',comm_pnk)
         call dgop(pdos,(nrel*maxb+1)*nsort*nspin*(1+ndos),'  +',
@@ -85,8 +88,10 @@ c     ------ K-resolved spectral function for SYM-K -------------------
      &    comm_pnk)
         call dgop(dos_k,nspin*n_sym*(1+ndos),'  +',comm_pnk)
       endif
+
       deallocate(nd_dos,nmpi_dos)
       if(ubi==' gw') deallocate(achain)
+
 c     --------- DOS, DOS_K, and PDOS  -------------
       if(maswrk) then
         i_len=len_trim(allfile)

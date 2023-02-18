@@ -134,6 +134,7 @@ files_mod.o \
 fint.o  \
 fit_zero.o  \
 flapw_1.o  \
+flapw_driver.o \
 f_om_nu_maz.o  \
 for_nu_interpolation.o  \
 for_omega_interpolation.o  \

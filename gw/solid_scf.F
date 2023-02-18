@@ -147,6 +147,7 @@ c     call write_gwl_bni
           call flush(cun)
         endif
       enddo                     !!! over iter
+
  1010 format(/'                iteration ',i3/)
  1020 format(1x,i4,' elements discovered for lattice')
       end

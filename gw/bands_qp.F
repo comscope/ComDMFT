@@ -9,20 +9,26 @@ c     x - current chemical potential
       integer :: ispin,k,ndim,j,ind_k,i,il
       complex*16, allocatable :: a(:,:),b(:,:),cc(:,:)
 c     ------------------------------------------------------------
+
       allocate(a(nbndf,nbndf),b(nbndf,nbndf))
       allocate(cc(nbndf,nbndf))
+
       e_qp=0.d0
       ev_qp=(0.d0,0.d0)
       z_qp=(0.d0,0.d0)
       qp_spectr_weight=0.d0
+
       do ispin=1,nspin
         do ind_k=1,ndim3_k(me3_k+1)
           k=n3_mpi_k(me3_k+1)+ind_k
           ndim=n_bnd(k,ispin)
+
+! obtain a=sig_c_0, b=z_ren=Z^{-1}
           call unpack_hermit(a,sig_c_0(1,1,ind_k,ispin),ndim,nbndf,
      &      nbndf,(0.d0,0.d0),(1.d0,0.d0))
           call unpack_hermit(b,z_ren(1,1,ind_k,ispin),ndim,nbndf,
      &      nbndf,(0.d0,0.d0),(1.d0,0.d0))
+
 c     Matrix b is inverse Z factor now - we diagonalize it to get Z^(1/2)
 c     ---------- Eigen pairs of Z^(-1) ----------------------------------
           do j=1,ndim
@@ -37,10 +43,14 @@ c     ---------- Eigen pairs of Z^(-1) ----------------------------------
      &        comm_tau_kk_pbr)
             call brdcst(msgdbl,cc,16*nbndf**2,0,comm_tau_kk_pbr)
           endif
+! e_qp now contains the eigenvalues of z_ren=Z^{-1} [this is temporary], and q_p contains its eigenvectors.
+
 c$$$          if(e_qp(1,k,ispin)<=0.d0) then
 c$$$            print *,'me : ',me,' problem in BANDS_QP'
 c$$$            print *,' k diag(1)',k,e_qp(1,k,ispin)
 c$$$          endif
+
+! This code checks whether e_qp contains any negative numbers, and if so kills the process.
           do i=1,ndim
             if (e_qp(i,k,ispin)<=0.d0) then
               print '(a, i5, a, i5, 3f20.12)',
@@ -51,8 +61,11 @@ c$$$  e_qp(i,k,ispin)=0.6d0
             endif
           enddo
 
+! This is some kind of fix to some problem.
           if(nbndf>ndim) e_qp(ndim+1:nbndf,k,ispin)=
      &      e_qp(ndim,k,ispin)+0.2d0
+
+! Calculate b=Z^{1/2}
           b=(0.d0,0.d0)
           do j=1,ndim
             do i=1,ndim
@@ -62,10 +75,14 @@ c$$$  e_qp(i,k,ispin)=0.6d0
               enddo
             enddo
           enddo
-c     ----- Now B = Z^(1/2) ------------------------------------------     
+c     ----- Now B = Z^(1/2) ------------------------------------------
+
+
           do j=1,ndim
             a(j,j)=a(j,j)+e_bnd(j,k,ispin)-x
           enddo
+! a = sig_c_0 + e_bnd - x
+
           call zgemm('n','n',ndim,ndim,ndim,(1.d0,0.d0),a,nbndf,b,
      &      nbndf,(0.d0,0.d0),cc,nbndf)
           call zgemm('n','n',ndim,ndim,ndim,(1.d0,0.d0),b,nbndf,cc,
@@ -75,16 +92,24 @@ c     ----- Now B = Z^(1/2) ------------------------------------------
               cc(i,j)=a(i,j)
             enddo
           enddo
+! cc is the quasiparticle Hamiltonian
+! cc = a = Z^{1/2} * (sig_c_0 + e_bnd - x) * Z^{1/2}
+
           if(me_tau_kk_pbr==0) call eig_val_solver(ndim,nbndf,cc,
      &      e_qp(1,k,ispin))
+! q_qp=cc and e_qp are now the eigenvectors and eigenvalues of the quasiparticle Hamiltonian Z^{1/2} * (sig_c_0 + e_bnd - x) * Z^{1/2}
+
           if(nproc_tau/=1) then
             call brdcst(msgdbl,e_qp(1,k,ispin),8*ndim,0,
      &        comm_tau_kk_pbr)
             call brdcst(msgdbl,cc,16*nbndf**2,0,comm_tau_kk_pbr)
           endif
+
           do j=1,ndim
             e_qp(j,k,ispin)=e_qp(j,k,ispin)+x
           enddo
+! e_qp += chem_pot
+
 c     --- We put renormalization Z = 1 here ------------------------	    
           q_qp(1:ndim,1:ndim,ind_k,ispin)=cc(1:ndim,1:ndim)
 c     ---------------------------------------------------------------	    
@@ -95,17 +120,25 @@ c     ---------------------------------------------------------------
      &      ev_bnd(1,1,ind_k,ispin),nbasmpw,
      &      q_qp(1,1,ind_k,ispin),nbndf,(0.d0,0.d0),
      &      ev_qp(1,1,ind_k,ispin),nbasmpw)
+! Update z_qp = z_bnd * q_qp, ev_qp = ev_bnd * q_qp
+
           do i=1,ndim
             qp_spectr_weight(i,ind_k,ispin)=
      &        sum(abs(q_qp(1:ndim,i,ind_k,ispin))**2)
           enddo
+! qp_spectr_weight = (element-wise) |q_qp|^2
+
         enddo                   ! over ind_k
       enddo                     !! over ispin
+
       if(nproc_k/=1) call dgop(e_qp,nbndf*npnt*nspin,'  +',comm_pnt)
+
       deallocate(a,b,cc)
+
 c$$$      do ispin=1,nspin
 c$$$        if(ubi==' qp') call output_eigen_states('__qp',3,ispin)
 c$$$        if(ubi==' gw') call output_eigen_states('__gw',3,ispin)
 c$$$        if(ubi=='gwg') call output_eigen_states('_gwg',3,ispin)
 c$$$      enddo
+
       end

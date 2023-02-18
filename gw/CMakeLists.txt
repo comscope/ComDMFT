@@ -146,6 +146,7 @@ set(rspflapw_SRCS atom_mod.F
                   fint.F
                   fit_zero.F
                   flapw_1.F
+                  flapw_driver.F
                   f_om_nu_maz.F
                   for_nu_interpolation.F
                   for_omega_interpolation.F

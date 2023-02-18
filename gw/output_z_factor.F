@@ -24,6 +24,7 @@
 	    open(3,file=allfile(1:i_len)//'_Z_factor_band_k_x.gwg')
 	  endif
 	endif
+
 	do ispin=1,nspin
 	  if(maswrk) write(3,*)' Ispin = ',ispin
 	  z_out=0.d0
@@ -32,8 +33,11 @@
 	    nb=n_bnd(k,ispin)
 	    call unpack_hermit(b,z_ren(1,1,ind_k,ispin),nb,n0,n0,
      &		                 (0.d0,0.d0),(1.d0,0.d0))
+
+! The zgetrf/zgetri pair inverts b.
           CALL zgetrf(nb,nb,b,n0,ipiv,INFO)
           call zgetri(nb,b,n0,ipiv,work,n0**2,info)
+
 	    do i=1,nb
 	      z_out(i,k)=real(b(i,i))
 	    enddo
@@ -42,6 +46,7 @@ c --------- Collect from all processes  ----------------------------------------
 	  if(nproc_k/=1) then
 	    call dgop(z_out,n0*npnt,'  +',comm_pnt)
 	  endif
+
 	  do i=1,n
           l1=m*(i-1)+1
           l2=min(m*i,npnt)

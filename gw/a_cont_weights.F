@@ -22,10 +22,12 @@
       allocate(g0(n0))
       allocate(a(n0,n0))
       allocate(g_om(n0,n0))
+
 	do ispin=1,nspin
 	  do ind_k=1,ndim3_k(me3_k+1)
 	    k=n3_mpi_k(me3_k+1)+ind_k
 	    n=n_bnd(k,ispin)
+
 c ------ Chain approximation ----------------------------------
 		  call pade_fermion_chain_out(n,n0,achain(0,1,1,ind_k,ispin),
      &		                          om0,a,n_cont_frac)
@@ -43,10 +45,13 @@ c ------ Chain approximation ----------------------------------
           CALL ZGETRS('n',n,n,a,n0,ipi,g_om,n0,info)
           do i=1,n
 	      weigd(i,k,ispin)=-imag(g_om(i,i))/pi*wgt(k)
-	    enddo 
+          enddo
+
         enddo
       enddo
 	deallocate(a,g_om,ipi,g0)
+
 	if(nproc_k/=1) call dgop(weigd,n0*npnt*nspin,'  +',comm_pnt)
 	weigd=weigd*2.d0/dfloat(nspin)/nrel
+
       end

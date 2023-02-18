@@ -28,10 +28,13 @@
 	allocate(sig_om(n0,n0,0:n_omega))
 	allocate(a(n0,n0))
       check_pade=0.d0
+
+
 	do ispin=1,nspin
 	  do ind_k=1,ndim3_k(me3_k+1)
 	    k=n3_mpi_k(me3_k+1)+ind_k
 	    n=n_bnd(k,ispin)
+
           sig_om=(0.d0,0.d0)
 	    do ind_omega=1,ndim3_omega
 	      i_omega=me3_tau*ndim3_omega+ind_omega-1
@@ -41,22 +44,29 @@
           enddo
 	    if(nproc_tau/=1) call dgop(sig_om,2*n0**2*(n_omega+1),'  +',
      &	                             comm_pnk)
+
 	    if(n_cont_frac<=n_omega_exa) then
+
 c --- Another variant of AC: Continued Fractions approximation ------
             call pade_fermion_chain(sig_om,n,n0,
      &                              achain(0,1,1,ind_k,ispin),
      &                              n_cont_frac)
-          else
+
+          else ! not(n_cont_frac<=n_omega_exa)
+
 	      allocate(s0(n,n,2,0:n_omega))
 	      allocate(s0_cheb(n,n,2,0:n_omega_asy-2))
 	      s0=0.d0
-	      do ind_omega=1,ndim3_omega
+
+	        do ind_omega=1,ndim3_omega
 	        i_omega=me3_tau*ndim3_omega+ind_omega-1
 		      s0(:,:,:,i_omega)=
      &		    sig_c_omega(1:n,1:n,:,ind_omega,ind_k,ispin)
             enddo
+
 	      if(nproc_tau/=1) call dgop(s0,2*n*n*(n_omega+1),'  +',
      &	                               comm_pnk)
+
 	      call dgemm('n','t',2*n*n,n_omega_asy-1,n_omega_asy-1,1.d0,
      &                 s0(1,1,1,n_omega_exa+1),2*n*n,cheb_omega(0,1),
      &                 n_omega_asy-1,0.d0,s0_cheb(1,1,1,0),2*n*n)
@@ -64,7 +74,9 @@ c --- Another variant of AC: Continued Fractions approximation ------
      &                            achain(0,1,1,ind_k,ispin),
      &                            n_cont_frac)
             deallocate(s0,s0_cheb)
-          endif
+
+          endif ! not(n_cont_frac<=n_omega_exa)
+
 c --- Here we check Chain approximation  -----------------------
           do ii=1,7
             l=nom_chk(ii)
@@ -79,9 +91,15 @@ c --- Here we check Chain approximation  -----------------------
               enddo
             enddo
           enddo
+! done with check
+
         enddo   !! over ind_k
       enddo   !! over ispin
+
+
 	if(nproc_k/=1) call dgop(check_pade,7,'max',comm_pnt)
+
+
       if(maswrk) then
         do ii=1,7
           l=nom_chk(ii)
@@ -90,5 +108,7 @@ c --- Here we check Chain approximation  -----------------------
      &       ' is ',check_pade(ii)
         enddo
       endif
+
 	deallocate(a,sig_om,nom_chk,check_pade)
+
       end
