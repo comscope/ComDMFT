@@ -5,7 +5,7 @@
 ! tmp0 is the diagonal elements of sig_c_omega, and is unchanged
 ! n is n_bnd(k,ispin)
 ! n0 is nbndf, the maximum value of n_bnd
-! The only matrix elements that are touched are between (1:n), not (1:nbndf)
+! The only matrix elements that are touched are between (1:n), not (1:n0)
       subroutine sigma_0_z_ren(n,n0,tmp,tmp0)
 
 	use atom_mod
