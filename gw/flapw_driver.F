@@ -37,7 +37,7 @@
       integer :: ind_omega,i_omega
       complex*16, allocatable :: sig_c_omega0(:,:,:),sig_c_diag(:,:)
 
-        if(ubi==' hf') then
+        if((ubi==' hf').or.(ubi=='dft')) then
            return
         end if
 
@@ -363,7 +363,7 @@
       integer, allocatable :: ipiv(:)
 
 
-      if(ubi==' hf') then
+      if((ubi==' hf').or.(ubi=='dft')) then
          return
       end if
 

@@ -3,6 +3,7 @@
       use manager_mod
       use parallel_mod
       use solid_mod
+      use flapw_driver
       implicit none
       integer, intent(inout) :: iexit1
 c     --- Numbers of Occupation ----------------------------------------
@@ -17,6 +18,8 @@ c     --- Bands plotting -----------------------------------------------
       if (bandplot) then
         if(iexit1==1) then
           if(ubi=='dft') call plot_bands_lapw   !! LAPW bands
+          call print_Sigma()
+          call print_qp_Z_Sigma()
         endif
       endif
       end
