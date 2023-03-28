@@ -14,7 +14,7 @@ For the copyright and license information, please see Copyright.txt and license.
    -Minor differences from the 2021 Official Release, which was a few weeks earlier.  New tutorials are added.
 
 ## 2021. 2. 26, available on the 2021OfficialRelease branch
-   - Updated interface to Flapwmbpt. Now ComDMFT requires a single input file for FlapwMBPT, the DMFT calculation, and its postprocessing. 
+   - Updated interface to the LQSGW code. Now ComDMFT requires a single input file for the LQSGW code, the DMFT calculation, and its postprocessing. 
    - Now ComDMFT provides an option to calculate quasiparticle bandstructures within LDA+DMFT as well as LQSGW+DMFT.
    - Now ComMDFT provides options to choose "s"- or "p"-type corrlated orbitals.
 
@@ -53,7 +53,7 @@ The directory contains the following sub-directories:
 - ComDC -- program to calculate double counted self-energy within local GW approximation
 - ComRISB -- program to perform Gutzwiller-rotationally invariant slave-boson calculations.
 - tutorials -- tutorials and inputfiles.
-- gw -- FlapwMBPT code(https://www.bnl.gov/cmpmsd/flapwmbpt/)
+- gw -- the LQSGW code
 - wannier90-2.1 -- the most recent version of Wannier90.
 
 ## Compile ComDMFT package.
