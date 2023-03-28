@@ -1,7 +1,7 @@
 GW
 ==
 
-GW is a program for performing GW calculations within the LAPW basis set.
+The LQSGW code is a program for performing GW calculations within the LAPW basis set.
 It supports non-relativistic, scalar relativistic and relativistic 
 calculations for solid state systems.
 
