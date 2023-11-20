@@ -28,12 +28,13 @@
 
       pi=datan2(1.0d0, 1.0d0)*4.0d0
       ai=dcmplx(0.0d0, 1.0d0)
+
       open(unit=iun, file='comlowh.log')
 
 c$$$      if (me .lt. 10) then
 c$$$        write(ch, '(a, i1, a)') "check_comlowh_", me, ".dat"
 c$$$      elseif (me .lt. 100) then
-c$$$        write(ch, '(a, i2, a)') "check_comlowh_", me, ".dat"
+c$$$        write(ch, '(a, i2, a)') "check_comlowh_", me, "13"
 c$$$      elseif (me .lt. 1000) then
 c$$$        write(ch, '(a, i3, a)') "check_comlowh_", me, ".dat"
 c$$$      elseif (me .lt. 10000) then
@@ -53,53 +54,77 @@ c$$$      write(179,*) 'here'
 !     1. read parameters
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-      if (maswrk) then
+! the next block reads in comlowh.ini
+      if (maswrk) then ! do this only on the root node
+
         open(unit=10, file='comlowh.ini', status='old')
+
         read(10,*) cal_mode
+! from Sang:  dos_qp and band are before analytic continuation, and dos and spectral are after analytic continuation.
+! band shows quasiparticle bands, and can plot the results by running: python ./band.py
+! spectral shows A(k,omega), and can plot the results of spectral by running:  python band_spectra.py
+
+! the only references to cal_mode=4,5 [no analytic continuation] are in the next if/else statement.
 !     cal_mode 1 => delta
-!     cal_mode 2 => delta real
-!     cal_mode 3 => delta real path
-!     cal_mode 4 => delta imag qp hamiltonian
-!     cal_mode 5 => delta imag path qp hamiltonian       
+!       This not postprocessing.
+
+!     'dos_qp' => cal_mode 4 => delta imag qp hamiltonian
+!       This postprocessing shows the DOS without doing analytic continuation.
+
+!     'band' => cal_mode 5 => delta imag path qp hamiltonian
+!       This postprocessing shows quasiparticle bands without doing analytic continuation.
+
+!     'dos' => cal_mode 2 => delta real
+!       This postprocessing shows the DOS after analytic continuation.
+
+
+!     'spectral' => cal_mode 3 => delta real path
+!       This postprocessing shows A(k,omega) .
+
         if (cal_mode .eq. 1) then
-          is_matsubara=1
+          is_matsubara=1 ! frequency(iomega) is imaginary
           is_kpath=0
-          is_recal_ef=1
-          is_qp=0
-        elseif (cal_mode .eq. 2) then
-          is_matsubara=0
-          is_kpath=0
-          is_recal_ef=0
-          is_qp=0
-        elseif (cal_mode .eq. 3) then
-          is_matsubara=0
-          is_kpath=1
-          is_recal_ef=0
-          is_qp=0
-        elseif (cal_mode .eq. 4) then
-          is_matsubara=1
+          is_recal_ef=1 !  if is_metal=0 then is_recal_ef will be set to zero.  if is_recal_ef=1 then we will recalculate the Fermi energy and save it in ef.dat.  Otherwise we will read in the Fermi energy from ef.dat.
+! Is ef.dat is set to zero by comdmft.py/prepare_initial_ef before the first call to ComLowH in self-consistent dft+dmft or qsgw+dmft.
+! If doing self-consistent dft+dmft or qsgw+dmft, AND if not(is_metal==0), ComLowH never reads in ef.dat; it only recomputes it and saves it out during each iteration.
+! If (is_metal==0), or if doing post-processing, ComLowH reads in ef.dat and uses its value.
+! ef.dat is not used by other parts of ComDMFT.
+          is_qp=0 ! use cal_g not cal_h_qp
+        elseif (cal_mode .eq. 2) then ! yes analytic continuation, DOS
+          is_matsubara=0 ! frequency(iomega) is real
           is_kpath=0
           is_recal_ef=0
-          is_qp=1
-        elseif (cal_mode .eq. 5) then
-          is_matsubara=1
-          is_kpath=1
+          is_qp=0 ! use cal_g not cal_h_qp
+        elseif (cal_mode .eq. 3) then ! yes analytic continuation, A(k,omega)
+          is_matsubara=0 ! frequency(iomega) is real
+          is_kpath=1 ! is_kpath means we are calculating either A((k,omega) [if cal_mode=3] or qp spectra [if cal_mode=5]
           is_recal_ef=0
-          is_qp=1
+          is_qp=0 ! use cal_g not cal_h_qp
+        elseif (cal_mode .eq. 4) then ! no analytic continuation, DOS
+          is_matsubara=1 ! frequency(iomega) is imaginary
+          is_kpath=0
+          is_recal_ef=0
+          is_qp=1 ! use cal_h_qp
+        elseif (cal_mode .eq. 5) then ! no analytic continuation, qp spectra
+          is_matsubara=1 ! frequency(iomega) is imaginary
+          is_kpath=1 ! is_kpath means we are calculating either A((k,omega) [if cal_mode=3] or qp spectra [if cal_mode=5]
+          is_recal_ef=0
+          is_qp=1 ! ! use cal_h_qp
         endif
         
         num_cell=1
 
 c$$$        read(10,*) num_cell
-        read(10,*) num_atom
+        read(10,*) num_atom ! len(control['impurity_wan'])
         allocate(num_orb(num_atom))
 
         num_orb=0
-        read(10,*) (num_orb(iatom), iatom=1, num_atom)
+        read(10,*) (num_orb(iatom), iatom=1, num_atom) ! nimp_orb, control['impurity_problem_equivalence']
         num_orb_max=maxval(num_orb)
 
         allocate(iac(num_atom,num_cell))
 
+# This reads in impurity equivalence data: a matrix, from control['impurity_problem_equivalence'].
         read(10,*)
      $    ((iac(iatom,icell),iatom=1,num_atom),icell=1,num_cell)
         
@@ -124,7 +149,7 @@ c$$$        read(10,*) num_cell
         allocate(norb_iac(n_iac_mat_i:n_iac_mat_f))
         norb_iac=0
         
-        do icell=1, num_cell
+        do icell=1, num_cell ! num_cell=1
           do iatom=1, num_atom
             norb_iac(iac(iatom,icell))=num_orb(iatom)
             ndeg_iac(iac(iatom,icell))
@@ -136,6 +161,7 @@ c$$$        read(10,*) num_cell
      $    n_iac_mat_i:n_iac_mat_f))
         ioac=0          
 
+# This reads in indices of the orbitals used for impurities, which came from control['impurity_wan'][iatom].
         do ii=n_iac_mat_i, n_iac_mat_f
           if ((is_magnetic .eq. 1) .and. (ii .eq. 0)) cycle
           do iorb=1, norb_iac(ii)
@@ -187,7 +213,7 @@ c$$$        read(10,*) num_cell
           enddo
         enddo
         
-        do icell=1, num_cell
+        do icell=1, num_cell ! num_cell=1
           do iatom=1, num_atom
             ii=iac(iatom,icell)              
             do iorb=1, num_orb(iatom)
@@ -209,20 +235,25 @@ c$$$        read(10,*) num_cell
 
         read(10,*) ((wan_correlated(iorb,iatom),
      $    iorb=1,num_orb(iatom)),iatom=1,num_atom)
-        read(10,*) ewin_min, ewin_max
-        read(10,*) n_omega
-        read(10,*) gamma_selfenergy
-        read(10,*) gamma_real
+        read(10,*) ewin_min, ewin_max ! control['proj_win_min'], control['proj_win_max']
+        read(10,*) n_omega ! control['n_omega']
+        read(10,*) gamma_selfenergy ! 0.0
+        read(10,*) gamma_real ! 0.0
         dc_shift=0.0d0
-        read(10,*) beta
-        read(10,*) delta_charge !! for one cell. system charge
-        read(10,*) is_metal
+        read(10,*) beta ! imp['beta']
+        read(10,*) delta_charge !! for one cell. system charge ! control['doping']
+        read(10,*) is_metal ! from is_recal_ef in python
 c$$$        is_metal=1
         is_recal_ef=is_recal_ef*is_metal
-        read(10,*) den_mode
-        read(10,*) is_spinorbit        
+        read(10,*) den_mode ! 'bnd'
+        read(10,*) is_spinorbit ! control['spin_orbit']
+
+        !  if (is_kpath .eq. 0), comlowh uses the ndiv_fi to set up kpt_latt_fi, and then writes it out to the kpoints file.
+        ! if not(is_kpath .eq. 0), then comlowh reads from the kpoints file into kpt_latt_fi
+        ! is_kpath means we are calculating either A((k,omega) [if cal_mode=3] or qp spectra [if cal_mode=5]
+        ! the comdmft.ini file can contain a kpoints section, which may be a list of kpoints or may instead be reference to a kpoints file.
         if (is_kpath .eq. 0) then
-          read(10,*) ndiv_fi
+          read(10,*) ndiv_fi ! wan_hmat['kgrid']
           nqdiv_fi=ndiv_fi(1)*ndiv_fi(2)*ndiv_fi(3)
           allocate(kpt_latt_fi(3, nqdiv_fi))
           kpt_latt_fi=0.0d0
@@ -252,8 +283,12 @@ c$$$        is_metal=1
             enddo
           endif
           close(11)
-        endif
-        close(10)                
+        endif ! Done setting up the kpoints file.
+
+        close(10)
+! this ends the block that reads in comlowh.ini
+
+
 c$$$  if (num_cell .ne. 1) then !! in angstorm
 c$$$  allocate(lpoint(3,num_cell))
 c$$$  lpoint=0.0d0
@@ -266,11 +301,24 @@ c$$$  enddo
 c$$$  endif
 #ifdef USE_HDF5
 #else
+
+        ! this is a file read
+        ! reads in wannier.dat
         call read_wann_dat
 #endif
 
-      endif
+      endif ! done reading in ini files, only on the root node
       
+
+
+
+
+!            # comlowh also writes to other files, some of which are for postprocessing
+!            # some of the files are:
+!            #   cal_mode=2: tdos.dat, pdos.dat, inquires about momentum_optics_wan.dat
+!            #   cal_mode=3: spectral.matrix, spectral.dat, spectral_orb.dat, wannier_band_non_interpolated.dat
+
+      ! This next block broadcasts ini file info from the root node to other nodes
       call mpi_bcast(cal_mode,1,mpi_integer,0,MPI_COMM_WORLD,mpierr) !
       call mpi_bcast(is_matsubara,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
       call mpi_bcast(is_kpath,1,mpi_integer,0,MPI_COMM_WORLD,mpierr)
@@ -351,6 +399,7 @@ c$$$  endif
      $  mpi_character,0,MPI_COMM_WORLD,mpierr)            
       call mpi_bcast(is_spinorbit,1,
      $  mpi_integer,0,MPI_COMM_WORLD,mpierr)
+      ! is_kpath means we are calculating either A((k,omega) [if cal_mode=3] or qp spectra [if cal_mode=5]
       if (is_kpath .eq. 0) then      
         call mpi_bcast(ndiv_fi,3,mpi_integer,0,MPI_COMM_WORLD,mpierr)
       endif
@@ -400,6 +449,9 @@ c$$$  endif
       call mpi_bcast(nelectron,1,
      $  mpi_double_precision,0,MPI_COMM_WORLD,mpierr)
 #endif
+! End of the block that broadcasts ini file info from the root node to other nodes.
+
+
       vol_ratio=1.0d0
 
       
@@ -411,14 +463,16 @@ c$$$        call mpi_bcast(lpoint,3*num_cell,
 c$$$     $    mpi_double_precision,0,MPI_COMM_WORLD,mpierr)
 c$$$      endif
 
-      num_proj=sum(num_orb)*num_cell
-      num_wancell=num_wann*num_cell
+      num_proj=sum(num_orb)*num_cell !  ! num_cell=1
+      num_wancell=num_wann*num_cell ! num_wancell = num_wann
       num_rest=num_bands-num_wann
 
       allocate(wan_cor_index(num_orb_max,num_atom,num_cell))
 
+! wan_cor_index = wan_correlated
+! for instance, for a single d-shell atom, wan_cor_index=wan_correlated might be [8,9,10,11,12], and its iatom and icell indices are constrained to 1.
       wan_cor_index=0
-      do icell=1, num_cell
+      do icell=1, num_cell !  ! num_cell=1
         do iatom=1, num_atom
           do iorb=1, num_orb(iatom)
             wan_cor_index(iorb,iatom,icell)
@@ -436,6 +490,29 @@ c$$$      write(179,*) 'here'
       sig=0.0d0
       dc=0.0d0
       
+
+
+! This reads sig.dat into sig.
+! Here is is the origin of sig.dat:
+! comdmft.py's run_impurity_solver runs CTQMC and EVALSIM, and then:
+! reads in ctqmc's output from params.obs.json and updates convergence.log
+! "self-energy" from params.obs.json is saved in sig_bare.dat
+! "self-energy" is smoothed using Gaussian broadening and stored in sigma.
+!    sigma is saved in  sig_smth.dat.
+! If any element of imag(sigma) is positive, then sig_causality is set
+!       to 0=False; otherwise it is 1=True.
+! If any element of imag(sigma) is positive, then sigma_to_delta = sigma_old [read in from sig.dat].
+!    If it is true then sigma_to_delta is a mix of sigma with sigma_old [ read in from sig.dat].
+! sigma_to_delta is saved in sig.dat.
+! In summary, sig.dat comes from params.obs.json, then gaussian smoothing, then a check for negative imaginary parts, then mixing.
+! ------------
+! On the initial self-consistent cycle of dft+dmft and lqsgw+dmft, things are different:
+! comdmft.py's generate_initial_self_energy creates sig.dat.
+! If ('initial_self_energy' in control,  comdmft.py copies that self_energy to sig.dat.
+!   Possibly it also copies information from initial_impurity_dir.
+! Otherwise, comdmft.py copies data from dc.dat to sig.dat.
+! ----------------
+! If doing lqsgw+dmft, then before doing the self-consistent cycle there is a comlowh+comdc run.  To prepare for this dc.dat is all zeros, and sig.dat contains all zero's and omega's.  This is set up by comdmft.py's prepare_seed_dc_sig_and_wannier_dat.
       if (maswrk) then
         open(unit=10, file='sig.dat', status='old')
         allocate(tempdble(2,n_i,1,1))
@@ -466,6 +543,10 @@ c$$$      write(179,*) 'here'
       temperature=frequency_dble(1)/pi/(8.6173303d-5)
       if (maswrk) write(iun, *) 'temperature', temperature
       
+! This reads dc.dat into dc .
+! This is the origin of dc.dat: If doing qsgw+dmft, then run_dc runs ComDC, and then takes data (dc[0,jj,kk]) from ComDC's sig_mat.dat and puts it dc_mat.dat.  Alternatively, if doing dft+dmft, then run_dc/cal_nominal_dc creates dc_mat.dat.  Alternatively, if ('dc_mat_to_read' in control), then run_dc only copies an old version of dc_mat.dat from somewhere and uses that. After ComLowH is run, delta_postprocessing/cal_dc_diagonal takes takes from dc_mat.dat and puts it in dc.dat.
+! when doing lqsgw+dmft, during the first call to comlowh + comdc (before the loop starts), dc.dat is all zeros.  This is set up by comdmft.py's prepare_seed_dc_sig_and_wannier_dat.
+! dc.dat is used both by ComLowH and by CTQMC.
       if (maswrk) then
         open(unit=10, file='dc.dat', status='old')
         allocate(tempdble(2,n_i,1,1))
@@ -483,6 +564,8 @@ c$$$      write(179,*) 'here'
         deallocate(tempdble)
         close(10)
 
+! This reads zinv_m1.dat into zinv_m1 .
+! This is the origin of zinv_m1.dat: run_dc runs ComDC, and then takes data from ComDC's sig_mat.dat and puts it zinv_m1_mat.  After ComLowH is run, delta_postprocessing/cal_zinv_m1_diagonal takes takes info from zinv_m1_mat.dat and puts it in zinv_m1.dat
         inquire(file="zinv_m1.dat", exist=zinv_m1_exist)
         if (zinv_m1_exist)
      $    allocate(zinv_m1(n_ioac,n_iac_mat_i:n_iac_mat_f))        
@@ -635,7 +718,9 @@ c$$$      write(179,*) 'v_matrix', sum(abs(v_matrix)**2, 1)
 !     5. parallelization setup
 !!!!!!!!!!!!!!!!!!!!!!p!!!!!!!!!!!!!!!!!!!!!!
 
-      if (cal_mode .eq. 1) then
+! ndim_kk_co and n_mpi_kk_co are a parallelization scheme:
+!   It divides the nqdiv k-points across nproc processors.
+      if (cal_mode .eq. 1) then ! doing a non-postprocessing run
         allocate(ndim_kk_co(nproc)) 
         ndim_kk_co=0            !
         allocate(n_mpi_kk_co(nproc)) !
@@ -645,6 +730,8 @@ c$$$      write(179,*) 'v_matrix', sum(abs(v_matrix)**2, 1)
       endif
 
         
+! ndim_kk_fi and n_mpi_kk_fi are a parallelization scheme:
+!   It divides the nqdiv_fi k-points across nproc processors.
       allocate(ndim_kk_fi(nproc)) 
       ndim_kk_fi=0              !
       allocate(n_mpi_kk_fi(nproc)) !
@@ -652,6 +739,8 @@ c$$$      write(179,*) 'v_matrix', sum(abs(v_matrix)**2, 1)
       call size_shift_par(nqdiv_fi,nproc,ndim_kk_fi,n_mpi_kk_fi)
       ndim_kk_fi_max=maxval(ndim_kk_fi)
 
+
+! This does comlowh's actual work.
       if (is_qp .eq. 0) then
         if (maswrk) then
           write(iun, *) 'cal_g run'
@@ -659,14 +748,17 @@ c$$$      write(179,*) 'v_matrix', sum(abs(v_matrix)**2, 1)
 c$$$        write(179, *) 'cal_g run'        
         call cal_g(nqdiv_fi,ndim_kk_fi,n_mpi_kk_fi,ndim_kk_fi_max,
      $    kpt_latt_fi)
-      else
+      else ! not (is_qp .eq. 0)
         if (maswrk) then
           write(iun, *) 'cal_h_qp run'
-        endif
+        endif ! not (is_qp .eq. 0)
 c$$$        write(179, *) 'cal_h_qp run'        
         call cal_h_qp(nqdiv_fi,ndim_kk_fi,n_mpi_kk_fi,ndim_kk_fi_max,
      $    kpt_latt_fi)
       endif
+
+
+! deallocate 
       deallocate(num_orb)
       deallocate(iac)      
       deallocate(ndeg_iac)
@@ -689,12 +781,13 @@ c$$$        write(179, *) 'cal_h_qp run'
       deallocate(sig)
       deallocate(dc)
       deallocate(frequency)      
-      if (cal_mode .eq. 1) then
+      if (cal_mode .eq. 1) then ! doing a non-postprocessing run
         deallocate(ndim_kk_co)
         deallocate(n_mpi_kk_co)
       endif
       deallocate(ndim_kk_fi)
       deallocate(n_mpi_kk_fi)
+
 c$$$      if (num_cell .ne. 1) then !! in angstorm
 c$$$        deallocate(lpoint)
 c$$$      endif
@@ -702,14 +795,20 @@ c$$$      if (is_kpath .eq. 1) then
 c$$$        deallocate(kpath)
 c$$$      endif      
 c$$$      close(179)
+
+
       if (maswrk) then
         close(iun)
       endif
+
       call mpi_finalize(mpierr)
-      end
+
+      end  ! Program comlowh
 
       
       subroutine cal_g(numk,ndim_k,n_mpi_k,ndim_k_max,kvec)
+! numk<=>nqdiv_fi,ndim_k<=>ndim_kk_fi,n_mpi_k<=>n_mpi_kk_fi, ndim_k_max<=>ndim_kk_fi_max,kvec<=>kpt_latt_fi
+! ndim_k and n_mpi_k are a parallelization scheme for numk k-points distributed over nproc processors.  kvec is a complete list of all numk k-points. ndim_k_max=maxval(ndim_k)
 
       use comlowh_mod
 
@@ -827,14 +926,28 @@ c$$$      endif
 !     2. h_k in fine grid
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       
+! The next bit does three things:
+! A. compute h_k_wan_co(q) = v_matrix(q)^\dagger *  eigenvalues(q) * v_matrix(q)
+! B. Fourier interpolate from the q grid to the k grid.
+! C. Distribute the Fourier-interpolated hamiltonian over nodes.
+!   The result is in h_k_wan_fi, which is a num_wann x num_wann matrix.
+! D. Diagonalize h_k_wan_fi.  The eigenvectors of h_k_wan_fi are in w_matrix_fi(distributed over nodes), and the eigenvalues are in eigenvalues_fi_all (the same on every node).
+! h_k_wan_fi is the wannier90 hamiltonian interpolated onto the fine (k) grid.
+! w_matrix_fi is the eigenvectors of the wannier90 hamiltonian interpolated onto the fine (k) grid.
+! eigenvalues_fi_all is the eigenvalues of the wannier90 hamiltonian interpolated onto the fine (k) grid.
+
+! num_wancell = num_wann
+
       allocate(h_k_wan_fi(num_wancell,num_wancell,ndim_k_max))
       h_k_wan_fi=0.0d0
+! h_k_wan_fi is distributed over nodes.
 
       do iwan=1, num_wann
         do jwan=1, num_wann
           
           h_k_wan_co=0.0d0
           
+          ! h_k_wan_co(q) = v_matrix(q)^\dagger *  eigenvalues(q) * v_matrix(q). This involves a sum over num_bands.
           do irk=1, nqdiv
             do ibnd=1, num_bands                
               h_k_wan_co(irk)=h_k_wan_co(irk)+
@@ -844,7 +957,8 @@ c$$$      endif
           enddo
           
 !     fourier transform to r space
-          
+        
+          ! h_r_wan(r) = nqdiv^{-1} \sum_q h_r_wan(q) exp(-i 2 pi r.q)
           h_r_wan=0.0d0          
           do i1=1, nrpts
             do j1=1, nqdiv
@@ -856,10 +970,11 @@ c$$$      endif
             enddo
           enddo
 
-          if (num_cell .eq. 1) then
+          if (num_cell .eq. 1) then !  num_cell=1
+
+! h_k_wan_fi(k) = \sum_r h_r_wan(r) exp(i 2 pi k.r)
             do ik=1, ndim_k(me1)
               irk=n_mpi_k(me1)+ik
-              
               do j1=1, nrpts
                 h_k_wan_fi(iwan,jwan,ik)
      $            =h_k_wan_fi(iwan,jwan,ik)
@@ -871,6 +986,7 @@ c$$$      endif
      $            )/dble(ndegen(j1))
               enddo
             enddo
+
 c$$$          else
 c$$$            do ik=1, ndim_k(me1)
 c$$$              irk=n_mpi_k(me1)+ik
@@ -905,17 +1021,21 @@ c$$$                  enddo
 c$$$                enddo
 c$$$              enddo    
 c$$$            enddo
-          endif
-        enddo
-      enddo      
-      
-      allocate(eigenvalues_fi(num_wancell,ndim_k_max)) !
+          endif !  (num_cell .eq. 1) then !  num_cell=1
+
+        enddo ! jwan=1, num_wann
+      enddo ! iwan=1, num_wann
+  
+
+      allocate(eigenvalues_fi(num_wancell,ndim_k_max)) ! num_wancell = num_wann
       eigenvalues_fi=0.0d0
-      allocate(eigenvalues_fi_all(num_wancell,numk))
+      allocate(eigenvalues_fi_all(num_wancell,numk)) ! eigenvalues_fi_all is the same on all nodes.
       eigenvalues_fi_all=0.0d0
       allocate(w_matrix_fi(num_wancell,num_wancell,ndim_k_max))
       w_matrix_fi=0.0d0
       
+
+! Calculate w_matrix_fi and eigenvalues_fi_all which are the eigenvectors and eigenvalues of h_k_wan_fi.
       w_matrix_fi=h_k_wan_fi
 
       eigenvalues_fi_all=0.0d0
@@ -942,21 +1062,34 @@ c$$$            enddo
       proj=0.0d0
       proj_renorm=0.0d0      
 
+
+! dmft_projector changes the indexing of the input w_matrix_fi, which is num_wann x num_wann x ndim_k_max.  The output matrix proj is num_orb_max x num_wann x num_atom x num_cell=1 x ndim_k_max.  The first index of w_matrix_fi is transformed into the first and third indices of proj.
+! dmft_projector also applies a projector P_c on the left side of w_matrix_fi; the input matrix w_matrix_fi varies over all wanniers, and the output matrix proj contains only correlated wanniers.
+! numk and kvec are not used.
+! proj is the eigenvectors of the wannier90 hamiltonian interpolated onto the fine (k) grid, but with the left index turned into the first and third index.
+! input: w_matrix_fi
+! output: proj = P_c w_matrix_fi
       call dmft_projector
      $  (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,
      $  w_matrix_fi,proj)
 
+
+      ! is_kpath means we are calculating A(k,omega)
       if (is_kpath .eq. 0) then
+
+! cal_hmat_rhomat_from_proj calculates and prints out a hamiltonian
+!   and a density matrix. It does not return anything to its caller.
         call cal_hmat_rhomat_from_proj
      $    (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,
      $    eigenvalues_fi,proj,
      $    ', bare projector, fine grid')
+
       endif
 
       allocate(nbnd_in_win(numk))
       allocate(bnd_in_win(num_wancell,numk))      
       
-
+! find_bnd_in_win creates bnd_in_win which says which bands are inside the energy window [ewin_min,ewin_max] for at least one k-point, and nbnd_in_win which is the count of bands inside the window.  Even though bnd_in_win and nbnd_in_win are indexed over k-points, they have the same value for all k-points.
       call find_bnd_in_win(eigenvalues_fi_all,numk,num_wancell,
      $  ewin_min,ewin_max,den_mode,is_spinorbit,nbnd_in_win,bnd_in_win)
 c$$$      if (maswrk) then
@@ -973,21 +1106,38 @@ c$$$          enddo
 c$$$        enddo
 c$$$      endif
       
-      call projector_renormalization_allk  
+! projector_renormalization_allk returns proj_renorm =  ( ( \sqrt{proj * P_E *  proj^\dagger})^{-1/2} ) * proj * P_E.  proj_renorm has the property that proj_renorm proj_renorm^\dagger = 1.
+! P_E is a projector which keeps only the sector defined by ind_bnd_k, which says which bands are inside an energy window.
+! input: proj(num_orb_max,num_wann,num_atom,num_cell,ndim_kk_co_max). Structurally this means proj(orb+atom,wann,k)
+!          proj = P_c w_matrix_fi
+! output: proj_renorm(num_orb_max,num_wann,num_atom,num_cell,ndim_kk_co_max) Structurally this means proj_renorm(orb+atom,wann,k)
+      call projector_renormalization_allk
      $  (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,    
      $  eigenvalues_fi,proj,nbnd_in_win,bnd_in_win,proj_renorm)
 
 
-      if (is_kpath .eq. 0) then      
+      ! is_kpath means we are calculating A((k,omega)
+      if (is_kpath .eq. 0) then
+
+! cal_hmat_rhomat_from_proj calculates and prints out a hamiltonian
+!   and a density matrix. It does not return anything to its caller.
         call cal_hmat_rhomat_from_proj
      $    (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,
      $    eigenvalues_fi,proj_renorm,
      $    ', renormalized projector, fine grid')
+
+! projector_compare does nothing unless (is_kpath .eq. 1), which is not true here.
+! projector_compare calculates proj_orig * proj_ren^\dagger and prints the result.
         call projector_compare
      $    (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,          
      $    proj,proj_renorm,'fine_grid')
+
       endif
 
+! proj is never used again after this point
+
+! trans_basis.dat is created by comdmft.py's generate_initial_transformation method, unless a user supplies another and sets the appropriate option in comdmft.py. It contains a unitary matrix for each impurity - for instance a d-shell impurity would have a 5x5 unitary matrix.  comdmft.py sets trans_basis equal to the identity, so it has no effect on the calculation.
+! In summary, trans_basis is equal to the identity and has no effect on the calculation.
       inquire(file="trans_basis.dat", exist=is_trans_basis)      
       
       if (is_trans_basis) then      
@@ -995,6 +1145,7 @@ c$$$      endif
      $    (num_orb_max,num_orb_max,n_iac_mat_i:n_iac_mat_f))
         trans_basis=0.0d0
         
+! read trans_basis.dat, if it exists, into trans_basis
         if (maswrk) then
           open(unit=305, file='trans_basis.dat')
           allocate(tempdble(2,num_orb_max))
@@ -1026,8 +1177,10 @@ c$$$  test if it is unitary
 
 
       if (is_trans_basis) then
-      
-        do icell=1, num_cell
+! In summary, trans_basis is equal to the identity and has no effect on the calculation.
+
+! If trans_basis.dat exists, use it to rearrange the indexing of proj_renorm.
+        do icell=1, num_cell !  ! num_cell=1
           do iatom=1, num_atom
             do ik=1, ndim_k(me1)
               irk=n_mpi_k(me1)+ik                          
@@ -1044,11 +1197,21 @@ c$$$  test if it is unitary
           enddo
         enddo
       endif
-      
+
+! Done using trans_basis.dat.
+
+! Done calculating proj_renorm; it will remain static after this.
+! ! proj_renorm is a renormalized version of the eigenvectors of the wannier90 hamiltonian interpolated onto the fine (k) grid, but with the left index turned into the first and third index, and projected onto the correlated wannier orbitals via P_c. Possibly the indices have been further rearranged by multiplying by trans_basis.dat. The renormalization guarantees that proj_renorm proj_renorm^\dagger = 1.
+
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !     5. projected green's function at each frequency
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+! First we allocate memory.
+       ! is_kpath means we are calculating A((k,omega)
       if (is_kpath .eq. 0) then
+
         allocate(gloc(num_orb_max,num_orb_max,
      $    n_omega,n_iac_mat_i:n_iac_mat_f))
         allocate(projected_g(num_orb_max,num_orb_max,
@@ -1061,18 +1224,26 @@ c$$$  test if it is unitary
         projected_g=0.0d0
         delta_mat=0.0d0
         e_projected_mat=0.0d0
-        if (cal_mode .eq. 1) then
+
+        if (cal_mode .eq. 1) then ! doing a non-postprocessing run
+
           allocate(g_lat_kw_diagonal_orb
      $      (num_wancell,ndim_k_max,n_omega))
           g_lat_kw_diagonal_orb=0.0d0
-        elseif (cal_mode .eq. 2) then
+
+        elseif (cal_mode .eq. 2) then ! calculating DOS after analytic continuation
+
           allocate(tdos(n_omega))
           allocate(pdos(n_omega, num_wancell))
           tdos=0.0d0
           pdos=0.0d0
-        endif
-      else
-        if (cal_mode .eq. 3) then
+
+        endif ! (cal_mode .eq. 2)
+
+      else ! not (is_kpath .eq. 0)
+
+        if (cal_mode .eq. 3) then ! calculating A(k,omega) after analytic continuation
+
           allocate(g_path_trace(numk,n_omega))
           allocate(g_path_orb(numk,n_omega,num_wancell))
           allocate(g_path(num_wancell,num_wancell,n_omega,ndim_k_max))
@@ -1080,20 +1251,33 @@ c$$$  test if it is unitary
           g_path_orb=0.0d0          
           g_path=0.0d0
         endif
-      endif
+
+      endif ! not (is_kpath .eq. 0)
       
       allocate(h_nonint(num_wancell,num_wancell,ndim_k_max))
       h_nonint=0.0d0
+! Done allocating memory.
 
+! The point of the next block is to calculate h_nonint, and it would be trivial if zinv_m1_exist were false, i.e. if zinv_m1.dat did not exist, which is the case when doing dft+dmft.
+! h_nonint = zinv_half * eigenvalues_fi * zinv_half
+! zinv_half = \sqrt(1 + \sum_atoms proj_renorm^\dagger * zinv_m1 * proj_renorm)
+! If zinv_m1.dat doesn't exist that means that zinv_m1 = 0 and h_nonint = eigenvalues_fi.
+! This is the origin of zinv_m1.dat: run_dc runs ComDC, and then takes data from ComDC's sig_mat.dat and puts it zinv_m1_mat.  After ComLowH is run, delta_postprocessing/cal_zinv_m1_diagonal takes info from zinv_m1_mat.dat and puts it in zinv_m1.dat
       do ik=1, ndim_k(me1)
+
         irk=n_mpi_k(me1)+ik
+
+
         if (zinv_m1_exist) then
+
+          ! zinv = 1
           zinv=0.0d0
           do iwancell=1, num_wancell
             zinv(iwancell,iwancell)=1.0d0
           enddo
           
-          do icell=1, num_cell
+           ! mat_loc_ackw = zinv_m1
+          do icell=1, num_cell !  ! num_cell=1
             do iatom=1, num_atom
               ii=iac(iatom,icell)
               mat_loc_ackw=0.0d0
@@ -1108,6 +1292,7 @@ c$$$  test if it is unitary
                 enddo
               enddo
               
+! tempmat1 = zinv_m1 * proj_renorm
               tempmat1=0.0d0
               call zgemm('n','n',num_orb(iatom),num_wancell,
      $          num_orb(iatom),(1.d0,0.d0),
@@ -1116,19 +1301,24 @@ c$$$  test if it is unitary
      $          (0.d0,0.d0),
      $          tempmat1,num_orb_max)
               
+
+! zinv = 1 + \sum_atoms proj_renorm^\dagger * zinv_m1 * proj_renorm
               call zgemm('c','n',num_wancell,num_wancell,
      $          num_orb(iatom),(1.d0,0.d0),
      $          proj_renorm(1,1,iatom,icell,ik),num_orb_max,
      $          tempmat1,num_orb_max,(1.d0,0.d0),
      $          zinv,num_wancell)
               
-            enddo
-          enddo
+            enddo !  iatom=1, num_atom
+          enddo ! icell=1, num_cell !  ! num_cell=1
           
           call hermitianeigen_cmplxdouble
      $      (num_wancell,diag,zinv)
+! zinv now contains the eigenvectors of zinv, and diag contains the eigenvalues of zinv.
+
+! zinv_half = \sqrt(zinv)
           zinv_half=0.0d0
-          do iwancell=1, num_wancell
+          do iwancell=1, num_wancell ! num_wancell = num_wann
             do jwancell=1, num_wancell
               do kwancell=1, num_wancell                              
                 zinv_half(iwancell,jwancell)
@@ -1139,6 +1329,7 @@ c$$$  test if it is unitary
             enddo
           enddo
           
+! h_nonint = zinv_half * eigenvalues_fi * zinv_half
           do iwancell=1, num_wancell
             do jwancell=1, num_wancell
               do kwancell=1, num_wancell                              
@@ -1150,13 +1341,46 @@ c$$$  test if it is unitary
               enddo
             enddo
           enddo
-        else
+
+        else ! not (zinv_m1_exist)
+
           do iwancell=1, num_wancell
             h_nonint(iwancell,iwancell,ik)=eigenvalues_fi(iwancell,ik)
           enddo
-        endif
-      enddo
-      
+
+        endif ! not (zinv_m1_exist)
+
+      enddo ! ik=1, ndim_k(me1)
+      ! Done obtaining h_nonint, possibly with the help of zinv_m1.dat. Done with zinv_m1.
+
+! This next block calculates g_lat_inv.
+! g_lat_inv = frequency(iomega) - h_nonint - \sum_atoms proj_renorm^\dagger (sig(iomega) - dc - I * gamma_selfenergy) proj_renorm
+! ----------------------
+! This is the origin of dc.dat: If doing qsgw+dmft, then run_dc runs ComDC, and then takes data (dc[0,jj,kk]) from ComDC's sig_mat.dat and puts it dc_mat.dat.  Alternatively, if doing dft+dmft, then run_dc/cal_nominal_dc creates dc_mat.dat.  Alternatively, if ('dc_mat_to_read' in control), then run_dc only copies an old version of dc_mat.dat from somewhere and uses that. After ComLowH is run, delta_postprocessing/cal_dc_diagonal takes takes from dc_mat.dat and puts it in dc.dat.
+! when doing lqsgw+dmft, during the first call to comlowh + comdc (before the loop starts), dc.dat is all zeros.  This is set up by comdmft.py's prepare_seed_dc_sig_and_wannier_dat.
+! dc.dat is used both by ComLowH and by CTQMC.
+! -----------------------
+! Here is is the origin of sig = sig.dat:
+! comdmft.py's run_impurity_solver runs CTQMC and EVALSIM, and then:
+! reads in ctqmc's output from params.obs.json and updates convergence.log
+! "self-energy" from params.obs.json is saved in sig_bare.dat
+! "self-energy" is smoothed using Gaussian broadening and stored in sigma.
+!    sigma is saved in  sig_smth.dat.
+! If any element of imag(sigma) is positive, then sig_causality is set
+!       to 0=False; otherwise it is 1=True.
+! If any element of imag(sigma) is positive, then sigma_to_delta = sigma_old [read in from sig.dat].
+!    If it is true then sigma_to_delta is a mix of sigma with sigma_old [ read in from sig.dat].
+! sigma_to_delta is saved in sig.dat.
+! In summary, sig.dat comes from params.obs.json, then gaussian smoothing, then a check for negative imaginary parts, then mixing.
+! ------------
+! On the initial self-consistent cycle of dft+dmft and lqsgw+dmft, things are different:
+! comdmft.py's generate_initial_self_energy creates sig.dat.
+! If ('initial_self_energy' in control,  comdmft.py copies that self_energy to sig.dat.
+!   Possibly it also copies information from initial_impurity_dir.
+! Otherwise, comdmft.py copies data from dc.dat to sig.dat.
+! ----------------
+! If doing lqsgw+dmft, then before doing the self-consistent cycle there is a comlowh+comdc run.  To prepare for this dc.dat is all zeros, and sig.dat contains all zero's and omega's.  This is set up by comdmft.py's prepare_seed_dc_sig_and_wannier_dat.
+! -------------
 
       allocate(g_lat_inv(num_wancell,num_wancell,ndim_k_max,n_omega))
       inv_numk=1.0d0/dble(numk)
@@ -1166,21 +1390,26 @@ c$$$  test if it is unitary
         
         do ik=1, ndim_k(me1)
           irk=n_mpi_k(me1)+ik
+
           do ibnd=1, num_wancell
             g_lat_inv(ibnd,ibnd,ik,iomega)=frequency(iomega)
-          enddo          
+          enddo
+
           g_lat_inv(:,:,ik,iomega)=
      $      g_lat_inv(:,:,ik,iomega)-h_nonint(:,:,ik)
         
 !     embeding self-energy term:E(Sigma-DC)
           
-          do icell=1, num_cell
+          do icell=1, num_cell !  ! num_cell=1
             do iatom=1, num_atom
               ii=iac(iatom,icell)
+
               mat_loc_ackw=0.0d0
+
               do iorb=1, num_orb(iatom)
                 do jorb=1, num_orb(iatom)
                   iio=ioac(iorb,jorb,ii)
+
                   if (iio .ne. 0) then
                     mat_loc_ackw(iorb,jorb)
      $                =mat_loc_ackw(iorb,jorb)
@@ -1193,8 +1422,9 @@ c$$$  test if it is unitary
      $                =mat_loc_ackw(iorb,jorb)                    
      $                -dcmplx(0.0d0, gamma_selfenergy) ! add broadening
                   endif
-                enddo
-              enddo
+
+                enddo ! jorb=1, num_orb(iatom)
+              enddo ! iorb=1, num_orb(iatom)
               
               tempmat1=0.0d0
               call zgemm('n','n',num_orb(iatom),num_wancell,
@@ -1204,49 +1434,74 @@ c$$$  test if it is unitary
      $          (0.d0,0.d0),
      $          tempmat1,num_orb_max)
               
+
               call zgemm('c','n',num_wancell,num_wancell,
      $          num_orb(iatom),(-1.d0,0.d0),
      $          proj_renorm(1,1,iatom,icell,ik),num_orb_max,
      $          tempmat1,num_orb_max,(1.d0,0.d0),
      $          g_lat_inv(1,1,ik,iomega),num_wancell)
               
-            enddo
-          enddo
+            enddo !  iatom=1, num_atom
+          enddo !  icell=1, num_cell !  ! num_cell=1
           
-!     g
-        enddo
-      enddo
+        enddo !  do ik=1, ndim_k(me1)
+      enddo ! do iomega=1,n_omega
       
+! Either calculate the Fermi energy = ef or read it in from ef.dat, depending on is_recal_ef.
+! ef.dat is set to zero by comdmft.py/prepare_initial_ef before the first call to ComLowH in self-consistent dft+dmft or qsgw+dmft.
+! If doing self-consistent dft+dmft or qsgw+dmft, AND if not(is_metal==0), ComLowH never reads in ef.dat; it only recomputes it and saves it out during each iteration.
+! If (is_metal==0), or if doing post-processing, ComLowH reads in ef.dat and uses its value.
+! ef.dat is not used by other parts of ComDMFT.
 c$$$  endif      
       if (is_recal_ef  .eq. 1) then
+
+! todo. search_fermi_energy_brent calculates the new value of the Fermi level ef.
         call search_fermi_energy_brent
      $    (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,0)
+
 c$$$        write(179,*) 'Ef=', ef
+
+! This is a file write.
         if (maswrk) then
           open(unit=10, file='ef.dat')
           write(10,'(f19.12)') ef            
           close(10)
-        endif          
-      else
+        endif
+
+      else ! not (is_recal_ef  .eq. 1)
+
+! This is a file read.
         if (maswrk) then
           open(unit=10, file='ef.dat', status='old')
           read(10,*) ef
           close(10)
         endif
+
         call mpi_bcast(ef,1,mpi_double_precision,0,
      $    MPI_COMM_WORLD,mpierr)
-      endif
+
+      endif ! not (is_recal_ef  .eq. 1)
 
 
 c$$$  write(179,*) 'e_projected', e_projected
+       ! is_kpath means we are calculating A((k,omega)
       if (is_kpath .eq. 0) then
 
+! This calculates and writes e_projected_mat.dat
+! e_projected_mat is also used to calculate delta_mat.
+! e_projected_mat(atom) = Nk^{-1} (ndeg_iac(atom))^{-1} \sum_k proj_renorm(atom) * h_nonint * proj_renorm(atom)^\dagger - ef
+! e_projected_mat.dat is used by CTQMC after the following transformations:
+! e_projected_mat.dat        ->projected_eig.dat->e_imp.dat->e_imp->e_imp_key->CTQMC
+
         do ik=1, ndim_k(me1)
-          do icell=1, num_cell
+          do icell=1, num_cell !  ! num_cell=1
             do iatom=1, num_atom
               ii=iac(iatom,icell)
+
+! ndeg_iac = num_orb(atom) + 1
               fac=1.0d0/dble(numk)/dble(ndeg_iac(ii))              
               tempmat1=0.0d0
+
               call zgemm('n','n',num_orb(iatom),num_wancell,
      $          num_wancell,(1.d0,0.d0),
      $          proj_renorm(1,1,iatom,icell,ik),num_orb_max,
@@ -1259,9 +1514,10 @@ c$$$  write(179,*) 'e_projected', e_projected
      $          tempmat1,num_orb_max,proj_renorm(1,1,iatom,icell,ik),
      $          num_orb_max,(1.0d0,0.0d0),
      $          e_projected_mat(1,1,ii),num_orb_max)
-            enddo
-          enddo
-        enddo
+
+            enddo ! iatom=1, num_atom
+          enddo ! icell=1, num_cell !  ! num_cell=1
+        enddo !  ik=1, ndim_k(me1)
         
         call mpi_allreduce_dcmplx(e_projected_mat,
      $    n_iac_mat*num_orb_max**2,mpi_sum,mpi_comm_world)
@@ -1285,17 +1541,20 @@ c$$$  write(179,*) 'e_projected', e_projected
             enddo
           enddo
           close(305)
-        endif
-      endif
+        endif ! maswrk
 
-      if (cal_mode .eq. 1) then      
+      endif ! (is_kpath .eq. 0)
+
+      if (cal_mode .eq. 1) then  ! doing a non-postprocessing run
         g_lat_kw_diagonal_orb=0.0d0
       endif
+
 
       do iomega=1,n_omega
         
         do ik=1, ndim_k(me1)
           irk=n_mpi_k(me1)+ik
+
           g_lat_kw=0.0d0
           g_lat_inv_temp=g_lat_inv(:,:,ik,iomega)
           
@@ -1303,16 +1562,22 @@ c$$$  write(179,*) 'e_projected', e_projected
             g_lat_inv_temp(ibnd,ibnd)
      $        =g_lat_inv_temp(ibnd,ibnd)+ef
           enddo
+
+! g_lat_kw = (g_lat_inv + ef)^{-1}
           call dcmplx_matinv(g_lat_inv_temp, g_lat_kw,
      $      num_wancell,num_wancell)
+
+          ! is_kpath means we are calculating A((k,omega)
           if (is_kpath .eq. 0) then
 
-            do icell=1, num_cell
+! projected_g(atom,omega) = Nk^{-1} \sum_k proj_renorm * g_lat_kw * proj_renorm^\dagger
+            do icell=1, num_cell !  ! num_cell=1
               do iatom=1, num_atom
                 
                 tempmat1=0.0d0
                 tempmat2=0.0d0
                 
+
                 call zgemm('n','n',num_orb(iatom),num_wancell,
      $            num_wancell,(1.d0,0.d0),
      $            proj_renorm(1,1,iatom,icell,ik),num_orb_max,
@@ -1333,9 +1598,12 @@ c$$$  write(179,*) 'e_projected', e_projected
      $                /dble(numk)
                   enddo
                 enddo
-              enddo
-            enddo
-            if (cal_mode .eq. 1) then
+
+              enddo !  iatom=1, num_atom
+            enddo !  icell=1, num_cell !  ! num_cell=1
+
+! g_lat_kw_diagonal_orb(k,omega) = diag (w_matrix_fi * g_lat_kw * w_matrix_fi^\dagger)
+            if (cal_mode .eq. 1) then ! doing a non-postprocessing run
               do iwancell=1, num_wancell
                 do jwancell=1, num_wancell
                   do kwancell=1, num_wancell
@@ -1347,12 +1615,16 @@ c$$$  write(179,*) 'e_projected', e_projected
                   enddo
                 enddo
               enddo
-            elseif (cal_mode .eq. 2) then
-              do iwancell=1, num_wancell
+
+            elseif (cal_mode .eq. 2) then ! calculating DOS after analytic continuation
+
+! tdos(iomega) = - Nk^{-1} pi^{-1} \sum_k Tr(imag(g_lat_kw))
+              do iwancell=1, num_wancell ! num_wancell = num_wann
                 tdos(iomega)=tdos(iomega)
      $            -dimag(g_lat_kw(iwancell,iwancell))
      $            /pi/dble(numk)
                 
+! pdos(iomega) = -Nk^{-1} pi^{-1} \sum_k imag(w_matrix_fi * g_lat_kw * w_matrix_fi^\dagger)
                 do jwancell=1, num_wancell
                   do kwancell=1, num_wancell
                     pdos(iomega,iwancell)=pdos(iomega,iwancell)
@@ -1362,9 +1634,15 @@ c$$$  write(179,*) 'e_projected', e_projected
      $                /pi/dble(numk)
                   enddo
                 enddo
-              enddo
-            endif
-          elseif (cal_mode .eq. 3) then
+
+              enddo !  num_wancell = num_wann
+
+            endif ! (cal_mode .eq. 2)
+
+! g_path_orb(k,omega) = I * (2 pi)^{-1} diag(w_matrix_fi * (g_lat_kw - g_lat_kw^\dagger) w_matrix_fi^\dagger)
+! g_path_trace(k,omega) = I * (2 pi)^{-1} trace(w_matrix_fi * (g_lat_kw - g_lat_kw^\dagger) w_matrix_fi^\dagger)
+! The following elseif line refers to the  if(is_kpath .eq. 0)  statement; it executes if not(is_kpath .eq. 0).
+          elseif (cal_mode .eq. 3) then ! calculating A(k,omega) after analytic continuation
             
             tempmat11=(g_lat_kw-transpose(dconjg(g_lat_kw)))*ai/2.0d0/pi
             call zgemm('n','n',num_wancell,num_wancell,
@@ -1389,20 +1667,32 @@ c$$$  write(179,*) 'e_projected', e_projected
      $          =g_path_orb(irk,iomega,iwancell)
      $          +g_path(iwancell,iwancell,iomega,ik)
             enddo
+
+! The following endif line refers to the  if(is_kpath .eq. 0)  statement; it executes if not(is_kpath .eq. 0).
           endif
-        enddo
-      enddo
+
+        enddo !  ik=1, ndim_k(me1)
+      enddo ! iomega=1,n_omega
       
 
+      ! is_kpath means we are calculating A((k,omega)
       if (is_kpath .eq. 0) then
+
         
         call mpi_allreduce_dcmplx(projected_g,
-     $    n_omega*num_orb_max**2*num_atom*num_cell,
+     $    n_omega*num_orb_max**2*num_atom*num_cell, !  ! num_cell=1
      $    mpi_sum,mpi_comm_world)
 
+! calculate and write out g_loc_mat.dat
+! gloc = projected_g / ndeg_iac
+! # g_loc_mat.dat is converted to g_loc.dat and used by ComDC.
+# It is not used if (control['dc_mode'] == 'dc_scf' not 'dc_at_gw') and (control['dc_g'] == 'gimp' not 'gloc').
+# In this case CTQMC's gimp.dat is used instead.
+
+! This copies projected_g into gloc, and divides by ndeg_iac.
         gloc=0.0d0
         do iomega=1, n_omega
-          do icell=1,num_cell
+          do icell=1,num_cell !  ! num_cell=1
             do iatom=1, num_atom
               do iorb=1, num_orb(iatom)
                 do jorb=1, num_orb(iatom)
@@ -1470,43 +1760,83 @@ c$$$          close(305)
           enddo
           close(305)
           
-        endif
+        endif ! maswrk
 
+! calculate and write out delta_mat.dat
+! delta_mat(omega) = \sum_atoms (frequency(iomega) - e_projected_mat - (projected_g)^{-1} + dc - sig(omega))/ndeg(atom)
+! delta_mat.dat is used by CTQMC.
+! -------------
+! This is the origin of dc.dat: If doing qsgw+dmft, then run_dc runs ComDC, and then takes data (dc[0,jj,kk]) from ComDC's sig_mat.dat and puts it dc_mat.dat.  Alternatively, if doing dft+dmft, then run_dc/cal_nominal_dc creates dc_mat.dat.  Alternatively, if ('dc_mat_to_read' in control), then run_dc only copies an old version of dc_mat.dat from somewhere and uses that. After ComLowH is run, delta_postprocessing/cal_dc_diagonal takes takes from dc_mat.dat and puts it in dc.dat.
+! when doing lqsgw+dmft, during the first call to comlowh + comdc (before the loop starts), dc.dat is all zeros.  This is set up by comdmft.py's prepare_seed_dc_sig_and_wannier_dat.
+! dc.dat is used both by ComLowH and by CTQMC.
+! ------------
+! Here is is the origin of sig=sig.dat:
+! comdmft.py's run_impurity_solver runs CTQMC and EVALSIM, and then:
+! reads in ctqmc's output from params.obs.json and updates convergence.log
+! "self-energy" from params.obs.json is saved in sig_bare.dat
+! "self-energy" is smoothed using Gaussian broadening and stored in sigma.
+!    sigma is saved in  sig_smth.dat.
+! If any element of imag(sigma) is positive, then sig_causality is set
+!       to 0=False; otherwise it is 1=True.
+! If any element of imag(sigma) is positive, then sigma_to_delta = sigma_old [read in from sig.dat].
+!    If it is true then sigma_to_delta is a mix of sigma with sigma_old [ read in from sig.dat].
+! sigma_to_delta is saved in sig.dat.
+! In summary, sig.dat comes from params.obs.json, then gaussian smoothing, then a check for negative imaginary parts, then mixing.
+! ------------
+! On the initial self-consistent cycle of dft+dmft and lqsgw+dmft, things are different:
+! comdmft.py's generate_initial_self_energy creates sig.dat.
+! If ('initial_self_energy' in control,  comdmft.py copies that self_energy to sig.dat.
+!   Possibly it also copies information from initial_impurity_dir.
+! Otherwise, comdmft.py copies data from dc.dat to sig.dat.
+! ----------------
+! If doing lqsgw+dmft, then before doing the self-consistent cycle there is a comlowh+comdc run.  To prepare for this dc.dat is all zeros, and sig.dat contains all zero's and omega's.  This is set up by comdmft.py's prepare_seed_dc_sig_and_wannier_dat.
+! -------------
         do iomega=1, n_omega
           
-          do icell=1, num_cell
+          do icell=1, num_cell ! num_cell=1
             do iatom=1, num_atom
 
+! tempmat2 = (projected_g)^{-1}
               tempmat2=0.0d0
               call dcmplx_matinv
      $          (projected_g(1,1,iatom,icell,iomega),
      $          tempmat2, num_orb(iatom), num_orb_max)
+
               ii=iac(iatom,icell)
               if ((is_magnetic .eq. 1) .and. (ii .eq. 0)) cycle                            
               
               do iorb=1, norb_iac(ii)
                 do jorb=1, norb_iac(ii)
                   iio=ioac(iorb,jorb,ii)
+
                   if (iorb .eq. jorb) then
                     deltaij=1.0d0
                   else
                     deltaij=0.0d0
                   endif
+
+! delta_mat(omega) += \sum_atoms (frequency(iomega) - e_projected_mat - (projected_g)^{-1} + dc - sig(omega))/ndeg(atom)
+
                   delta_mat(iorb,jorb,iomega,ii)
      $              =delta_mat(iorb,jorb,iomega,ii)
      $              +(frequency(iomega)*deltaij
      $              -e_projected_mat(iorb,jorb,ii)
      $              -tempmat2(iorb,jorb))/ndeg_iac(ii)
-                  if (iio .eq. 0) cycle                  
+
+                  if (iio .eq. 0) cycle
+
                   delta_mat(iorb,jorb,iomega,ii)
      $              =delta_mat(iorb,jorb,iomega,ii)
      $              +(dc(iio,ii)-sig(iio,ii,iomega))/ndeg_iac(ii)
-                enddo
-              enddo
-            enddo
-          enddo
-        enddo
+
+                enddo ! jorb=1, norb_iac(ii)
+              enddo ! iorb=1, norb_iac(ii)
+
+            enddo ! iatom=1, num_atom
+          enddo ! icell=1, num_cell ! num_cell=1
+        enddo ! iomega=1, n_omega
         
+
         if (maswrk) then
           open(unit=305, file='delta_mat.dat')
           do iomega=1, n_omega
@@ -1523,12 +1853,17 @@ c$$$          close(305)
               enddo
             enddo
             write(305,*)
-          enddo
+          enddo ! iomega=1, n_omega
           close(305)
-        endif
-        if (cal_mode .eq. 1) then
+        endif ! maswrk
 
+
+        if (cal_mode .eq. 1) then ! doing a non-postprocessing run
+
+! fermi_level_spectral_function_local calculates and prints out local_spectral_matrix_ef.dat and n_loc.dat, which are never used by ComDMFT.
           call fermi_level_spectral_function_local
+
+! ! fermi_level_spectral_function_ksum computes and prints out  spectral_matrix_ef.dat
           call fermi_level_spectral_function_ksum
      $      (numk, ndim_k, n_mpi_k, ndim_k_max, g_lat_kw_diagonal_orb)
           
@@ -1560,8 +1895,26 @@ c$$$          close(305)
           allocate(n_matrix(num_bands,num_bands,nqdiv))
           n_matrix=0.0d0
           
+! cal_mat_eig_co calculates h_nonint_co, and eigenvalues_co, and eigenvalues_co_all, and w_matrix_co. It would be trivial if zinv_m1_exist were false, i.e. if zinv_m1.dat did not exist, which is the case when doing dft+dmft.
+! h_nonint_co is used only in cal_n_matrix, and w_matrix_co is used by write_den_matrix.
+! eigenvalues_co=eigenvalues_co_all and w_matrix_co are the eigenvalues and eigenvectors of v_matrix^\dagger * eigenvalues * v_matrix
+! h_nonint_co = zinv_half * eigenvalues_co * zinv_half
+! zinv_half = \sqrt(1 + \sum_atoms proj_renorm_co^\dagger * zinv_m1 * proj_renorm_co)
+! If zinv_m1.dat doesn't exist that means that zinv_m1 = 0 and h_nonint_co = eigenvalues_co.
+! output: h_nonint_co
+! output: eigenvalues_co, eigenvalues_co_all
+! output: w_matrix_co
+! input: v_matrix
+! input: eigenvalues
+! input: zinv_m1
+! input: proj_renorm_co
           call cal_mat_eig_co
-          
+   
+! dmft_projector changes the indexing of the input w_matrix_co(num_wann,num_wann,k) to proj_co(orb+atom,num_wann,k).
+! dmft_projector also applies a projector P_c on the left side of w_matrix_co; the input matrix w_matrix_co varies over all wanniers, and the output matrix proj_co contains only correlated wanniers.
+! numk and kvec are not used.
+! input: w_matrix_co
+! output: proj_co = P_c w_matrix_co
           call dmft_projector
      $      (nqdiv,ndim_kk_co,n_mpi_kk_co,ndim_kk_co_max,kpt_latt,
      $      w_matrix_co,proj_co)
@@ -1569,6 +1922,10 @@ c$$$          close(305)
           allocate(nbnd_in_win_co(nqdiv))
           allocate(bnd_in_win_co(num_wancell,nqdiv))
 
+! bnd_in_win_co says which bands are inside the energy window [ewin_min,ewin_max] for at least one q-point, and nbnd_in_win_co which the count of bands inside the window.
+! In summary, bnd_in_win_co defines a projection operator P_E.
+! The difference about the _co variables is that they are defined on nqdiv q-points, not numk k-points.
+! den_mode = 'bnd'
           if (den_mode .eq. 'erg') then
             call find_bnd_in_win(eigenvalues_co_all,nqdiv,num_wancell,
      $        ewin_min,ewin_max,den_mode,is_spinorbit,
@@ -1582,18 +1939,28 @@ c$$$          close(305)
             enddo
           endif
           
+! projector_renormalization_allk returns proj_renorm_co =  ( ( \sqrt{proj_co * P_E *  proj_co^\dagger})^{-1/2} ) * proj_co * P_E.  proj_renorm_co has the property that proj_renorm_co proj_renorm_co^\dagger = 1.
+! P_E is a projector which keeps only the sector defined by ind_bnd_k, which says which bands are inside an energy window.
+! input: proj_co(num_orb_max,num_wann,num_atom,num_cell,ndim_kk_co_max). Structurally this means proj_co(orb+atom,wann,k)
+!        proj_co = P_c w_matrix_co
+! output: proj_renorm_co(num_orb_max,num_wann,num_atom,num_cell,ndim_kk_co_max) Structurally this means proj_renorm_co(orb+atom,wann,k)
           call projector_renormalization_allk
      $      (nqdiv,ndim_kk_co,n_mpi_kk_co,ndim_kk_co_max,kpt_latt,
      $      eigenvalues_co,proj_co,nbnd_in_win_co,bnd_in_win_co,
      $      proj_renorm_co)
           
+! projector_compare does nothing unless (is_kpath .eq. 1), which is not true because cal_mode=1.
+! projector_compare calculates proj_orig * proj_ren^\dagger and prints the result.
           call projector_compare
      $      (nqdiv,ndim_kk_co,n_mpi_kk_co,ndim_kk_co_max,kpt_latt,
      $      proj_co,proj_renorm_co,'coarse_grid')
 
+! no further use of proj_co after this
 
-          if (is_trans_basis) then      
-            do icell=1, num_cell
+          if (is_trans_basis) then
+! In summary, trans_basis is equal to the identity and has no effect on the calculation.
+
+            do icell=1, num_cell ! num_cell=1
               do iatom=1, num_atom
                 do ik=1, ndim_kk_co(me1)
                   irk=n_mpi_kk_co(me1)+ik                          
@@ -1611,8 +1978,41 @@ c$$$          close(305)
             enddo
           endif
 
+! cal_vw_matrix_co calculates vw_matrix_co and to_orig_bnd, which are used only by write_den_matrix. It also calculates eigenvalues_co_rest, which is used only by cal_n_matrix.
           call cal_vw_matrix_co
+
+! cal_n_matrix calculates the n_matrix:
+! It calculates g_lat_inv_co(omega) = frequency(iomega) - h_nonint_co(:,:,ik) + \sum_{atom} proj_renorm_co(k)^\dagger * (sig(omega) - dc - I * gamma_selfenergy) * proj_renorm_co(k)
+! proj_renorm_co is a renormalized version of proj_co = P_c w_matrix_co
+! Next it calculates gmat = (ef + g_lat_inv_co(:,:,n_omega))^{-1}
+! Next it uses gmat   to calculate g2mat and g3mat, which will help with the tail at large momenta.
+! Next, it loops over omega, and in this loop it recalculates gmat = (ef + g_lat_inv_co(:,:,omega))^{-1}, and then uses gmat, g2mat, g3mat to add a contribution to n_matrix.
+! All of this logic has updated only the P_wann sector of n_matrix. Next we update the P_rest sector of of n_matrix, by adding   fermi(beta(eigenvalues_co_rest(k) -ef)), where eigenvalues_co_rest is a diagonal matrix and is defined only in the P_rest sector.
+! Last it repeats the above in a loop over k, so n_matrix is summed over k.
+! ---------------
+! output: n_matrix(num_bands,num_bands,nqdiv)
+! local: g_lat_inv_co(num_wann,num_wann,n_omega)
+! input: h_nonint_co(num_wann,num_wann,ndim_kk_co_max)
+! input: proj_renorm_co(num_orb_max,num_wann,num_atom,num_cell,ndim_kk_co_max)
+! proj_renorm_co is a renormalized version of proj_co = P_c w_matrix_co
+! input: eigenvalues_co_rest(num_rest,nqdiv)
           call cal_n_matrix
+
+! no further use of proj_renorm_co
+
+! write_den_matrix writes out wannier_den_matrix.dat, which is used by rspflapw.
+! wannier_den_matrix.dat can be in either binary or hdf5 format.
+! It writes:
+!       - "temperature"
+!       - "nqdiv" - the number of q-points
+!       - "n_dmft_bnd" from nbnd_in_win_co [called 'num_band_in' when saved from comrisb, and read in by rspflapw as 'n_dmft_bnd'] - should be the number of bands
+!       - "n_dmft_wan" from nbnd_in_win_co - the number of wanniers
+!       - "include_band_new"
+!               include_band_new comes from nbnd_in_win_co, bnd_in_win_co, to_orig_bnd, and include_bands.
+!       - "vw_matrix_new"
+!               vwmatrix_new is a subsector of vw_matrix_co, with the sector specified by nbnd_in_win_co, to_orig_bnd, bnd_in_win_co. vwmatrix_new is renormalized so that it satisfies vwmatrix_new^\dagger vwmatrix_new = 1.
+!       - 'n_matrix_new' - the density matrix
+!                n_matrix_new equal is a subsector of n_matrix, with the sector specified by nbnd_in_win_co, bnd_in_win_co.
           call write_den_matrix
 
 
@@ -1629,7 +2029,9 @@ c$$$          close(305)
           deallocate(w_matrix_co)
           deallocate(proj_co)
           deallocate(proj_renorm_co)
-        elseif (cal_mode .eq. 2) then
+
+
+        elseif (cal_mode .eq. 2) then ! calculating DOS after analytic continuation
           call mpi_allreduce_dble(tdos,
      $      n_omega,mpi_sum,mpi_comm_world)
           call mpi_allreduce_dble(pdos,
@@ -1654,6 +2056,7 @@ c$$$  if (num_cell .eq. 1) then
           inquire(file="momentum_optics_wan.dat", exist=file_exist)
           if (file_exist) then
             if (maswrk) call read_wann_inip
+! This is the only place where the inip file is read by comlowh, and the only place where it is used.
             call mpi_bcast(num_alimj,1,
      $        mpi_integer,0,MPI_COMM_WORLD,mpierr)!
             if (.not. maswrk) allocate(nalimj(num_wann))
@@ -1691,13 +2094,15 @@ c$$$            write(179,*) alimj_zaxis
             deallocate(alimj_coeff)
             deallocate(alimj_xaxis)
             deallocate(alimj_zaxis)
-            endif
+            endif ! (file_exist)
 c$$$  endif
-          endif
+          endif !  (cal_mode .eq. 2)
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !     5. impurity level
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      elseif (cal_mode .eq. 3) then
+
+! This elseif(cal_mode .eq. 3) continues a long-ago if (is_kpath .eq. 0) which covers cal_mode=1,2
+      elseif (cal_mode .eq. 3) then ! calculating A(k,omega) after analytic continuation
         call mpi_allreduce_dcmplx(g_path_trace,
      $    n_omega*numk,mpi_sum,mpi_comm_world)
         call mpi_allreduce_dcmplx(g_path_orb,
@@ -1720,9 +2125,9 @@ c$$$  endif
             if (.not.mpiflag)
      $        call mpi_abort(mpi_comm_world,mpierr)
           enddo
-        else
+        else ! maswrk
           do irk=1, numk
-            call find_proc_ind(ndim_k, n_mpi_k, nproc,irk,
+             find_proc_ind(ndim_k, n_mpi_k, nproc,irk,
      $        proc_num,indout)
             if (proc_num .eq. 0)then
               write(990) g_path(:,:,:,indout)
@@ -1755,7 +2160,7 @@ c$$$  endif
               enddo
             endif
           enddo
-        endif
+        endif ! maswrk
 
         call mpi_barrier(mpi_comm_world,mpierr)
         if (maswrk) then
@@ -1795,8 +2200,8 @@ c$$$  endif
             enddo
           enddo
           close(990)
-        endif
-      endif
+        endif ! maswrk
+      endif ! (cal_mode .eq. 3)
 
 
       deallocate(nbnd_in_win)
@@ -1814,24 +2219,26 @@ c$$$  endif
         deallocate(trans_basis)
       endif
       
+      ! is_kpath means we are calculating A((k,omega)
       if (is_kpath .eq. 0) then
         deallocate(gloc)
         deallocate(projected_g)
         deallocate(delta_mat)
         deallocate(e_projected_mat)
-        if (cal_mode .eq. 2) then
+        if (cal_mode .eq. 2) then ! calclating DOS after analytic continuation
           deallocate(tdos)
           deallocate(pdos)
         endif
-      elseif (cal_mode .eq. 3) then
+      elseif (cal_mode .eq. 3) then ! calculating A(k,omega) after analytic continuation
         deallocate(g_path_trace)
         deallocate(g_path_orb)
         deallocate(g_path)
       endif
+
       end
 
 
-
+! cal_h_qp never writes out wannier_den_matrix. It also pays no attention to cal_mode.
       subroutine cal_h_qp(numk,ndim_k,n_mpi_k,ndim_k_max,kvec)
 
       use comlowh_mod
@@ -1928,7 +2335,7 @@ c$$$      write(179,*) 'here1'
             enddo
           enddo
 
-          if (num_cell .eq. 1) then
+          if (num_cell .eq. 1) then ! num_cell=1
             do ik=1, ndim_k(me1)
               irk=n_mpi_k(me1)+ik
               
@@ -1997,6 +2404,7 @@ c$$$      write(179,*) 'here2'
       
       w_matrix_fi=h_k_wan_fi
 
+! this is a file read
       eigenvalues_fi_all=0.0d0
       if (maswrk) then
         open(unit=10, file='ef.dat', status='old')
@@ -2005,7 +2413,7 @@ c$$$      write(179,*) 'here2'
       endif
 
       
-      call mpi_bcast(ef,1,mpi_double_precision,0,
+       mpi_bcast(ef,1,mpi_double_precision,0,
      $  MPI_COMM_WORLD,mpierr)
 
       do ik=1, ndim_k(me1)
@@ -2042,15 +2450,23 @@ c$$$  write(179,*) 'here3'
       proj=0.0d0
       proj_renorm=0.0d0      
 
+! dmft_projector changes the indexing of the input w_matrix_fi, which is num_wann x num_wann x ndim_k_max.  The output matrix proj is num_orb_max x num_wann x num_atom x num_cell=1 x ndim_k_max.  The first index of umat is transformed into the first and third indices of the output matrix.
+! dmft_projector also applies a projector P_c on the left side of w_matrix_fi; the input matrix w_matrix_fi varies over all wanniers, and the output matrix proj contains only correlated wanniers.
+! numk and kvec are not used.
       call dmft_projector
      $  (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,
      $  w_matrix_fi,proj)
 
+      ! is_kpath means we are calculating qp spectra
       if (is_kpath .eq. 0) then
+
+! cal_hmat_rhomat_from_proj calculates and prints out a hamiltonian
+!   and a density matrix. It does not return anything to its caller.
         call cal_hmat_rhomat_from_proj
      $    (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,
      $    eigenvalues_fi,proj,
      $    ', bare projector, fine grid')
+
       endif
 
 c$$$      write(179,*) 'here4'
@@ -2058,7 +2474,7 @@ c$$$      write(179,*) 'here4'
       allocate(nbnd_in_win(numk))
       allocate(bnd_in_win(num_wancell,numk))      
       
-
+! find_bnd_in_win creates bnd_in_win which says which bands are inside the energy window [ewin_min,ewin_max] for at least one k-point, and nbnd_in_win which is the count of bands inside the window.  Even though bnd_in_win and nbnd_in_win are indexed over k-points, they have the same value for all k-points.
       call find_bnd_in_win(eigenvalues_fi_all,numk,num_wancell,
      $  ewin_min,ewin_max,den_mode,is_spinorbit,nbnd_in_win,bnd_in_win)
 c$$$      if (maswrk) then
@@ -2075,30 +2491,43 @@ c$$$          enddo
 c$$$        enddo
 c$$$      endif
       
-      call projector_renormalization_allk  
+! projector_renormalization_allk returns proj_out =  ( ( \sqrt{proj_in * P_E *  proj_in^\dagger})^{-1/2} ) * proj_in * P_E.  proj_out has the property that proj_out proj_out^\dagger = 1.
+! P_E is a projector which keeps only the sector defined by ind_bnd_k, which says which bands are inside a an energy window.
+! input: proj_in(num_orb_max,num_wann,num_atom,num_cell,ndim_kk_co_max). Structurally this means proj_in(orb+atom,wann,k)
+! output: proj_out(num_orb_max,num_wann,num_atom,num_cell,ndim_kk_co_max) Structurally this means proj_out(orb+atom,wann,k)
+      call projector_renormalization_allk
      $  (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,    
      $  eigenvalues_fi,proj,nbnd_in_win,bnd_in_win,proj_renorm)
 
+      ! is_kpath means we are calculating qp spectra
+      if (is_kpath .eq. 0) then
 
-      if (is_kpath .eq. 0) then      
+! cal_hmat_rhomat_from_proj calculates and prints out a hamiltonian
+!   and a density matrix. It does not return anything to its caller.
         call cal_hmat_rhomat_from_proj
      $    (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,
      $    eigenvalues_fi,proj_renorm,
      $    ', renormalized projector, fine grid')
+
+! projector_compare does nothing unless (is_kpath .eq. 1), which is not true here.
+! projector_compare calculates proj_orig * proj_ren^\dagger and prints the result.
         call projector_compare
      $    (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,          
      $    proj,proj_renorm,'fine_grid')
+
       endif
 c$$$      write(179,*) 'here5'
       
 
-      inquire(file="trans_basis.dat", exist=is_trans_basis)      
+      inquire(file="trans_basis.dat", exist=is_trans_basis)
+! In summary, trans_basis is equal to the identity and has no effect on the calculation.
+
       
       if (is_trans_basis) then      
         allocate(trans_basis
      $    (num_orb_max,num_orb_max,n_iac_mat_i:n_iac_mat_f))
         trans_basis=0.0d0
-        
+
         if (maswrk) then
           open(unit=305, file='trans_basis.dat')
           allocate(tempdble(2,num_orb_max))
@@ -2130,6 +2559,8 @@ c$$$  test if it is unitary
 
 
       if (is_trans_basis) then
+! In summary, trans_basis is equal to the identity and has no effect on the calculation.
+
       
         do icell=1, num_cell
           do iatom=1, num_atom
@@ -2154,6 +2585,26 @@ c$$$      write(179,*) 'here6'
 
 c$$$  self_energy
 
+! Here is is the origin of sig=sig.dat:
+! comdmft.py's run_impurity_solver runs CTQMC and EVALSIM, and then:
+! reads in ctqmc's output from params.obs.json and updates convergence.log
+! "self-energy" from params.obs.json is saved in sig_bare.dat
+! "self-energy" is smoothed using Gaussian broadening and stored in sigma.
+!    sigma is saved in  sig_smth.dat.
+! If any element of imag(sigma) is positive, then sig_causality is set
+!       to 0=False; otherwise it is 1=True.
+! If any element of imag(sigma) is positive, then sigma_to_delta = sigma_old [read in from sig.dat].
+!    If it is true then sigma_to_delta is a mix of sigma with sigma_old [ read in from sig.dat].
+! sigma_to_delta is saved in sig.dat.
+! In summary, sig.dat comes from params.obs.json, then gaussian smoothing, then a check for negative imaginary parts, then mixing.
+! ------------
+! On the initial self-consistent cycle of dft+dmft and lqsgw+dmft, things are different:
+! comdmft.py's generate_initial_self_energy creates sig.dat.
+! If ('initial_self_energy' in control,  comdmft.py copies that self_energy to sig.dat.
+!   Possibly it also copies information from initial_impurity_dir.
+! Otherwise, comdmft.py copies data from dc.dat to sig.dat.
+! ----------------
+! If doing lqsgw+dmft, then before doing the self-consistent cycle there is a comlowh+comdc run.  To prepare for this dc.dat is all zeros, and sig.dat contains all zero's and omega's.  This is set up by comdmft.py's prepare_seed_dc_sig_and_wannier_dat.
       zinv_m1_imp=0.0d0
       sig0=0.0d0
       do ii=n_iac_mat_i, n_iac_mat_f
@@ -2194,7 +2645,7 @@ c$$$  self_energy
             zinv(iwancell,iwancell)=1.0d0
           enddo
           
-          do icell=1, num_cell
+          do icell=1, num_cell ! num_cell=1
             do iatom=1, num_atom
               ii=iac(iatom,icell)
               mat_loc_ackw=0.0d0
@@ -2268,6 +2719,9 @@ c$$$  self_energy
 c$$$      write(179,*) 'here7'
         
       
+! This is the origin of dc.dat: If doing qsgw+dmft, then run_dc runs ComDC, and then takes data (dc[0,jj,kk]) from ComDC's sig_mat.dat and puts it dc_mat.dat.  Alternatively, if doing dft+dmft, then run_dc/cal_nominal_dc creates dc_mat.dat.  Alternatively, if ('dc_mat_to_read' in control), then run_dc only copies an old version of dc_mat.dat from somewhere and uses that. After ComLowH is run, delta_postprocessing/cal_dc_diagonal takes takes from dc_mat.dat and puts it in dc.dat.
+! when doing lqsgw+dmft, during the first call to comlowh + comdc (before the loop starts), dc.dat is all zeros.  This is set up by comdmft.py's prepare_seed_dc_sig_and_wannier_dat.
+! dc.dat is used both by ComLowH and by CTQMC.
       eigenvalues_qp_fi_all=0.0d0     
 
       do ik=1, ndim_k(me1)
@@ -2275,7 +2729,7 @@ c$$$      write(179,*) 'here7'
         
 !     embeding self-energy term:E(Sigma-DC)
         
-        do icell=1, num_cell
+        do icell=1, num_cell ! num_cell=1
           do iatom=1, num_atom
             ii=iac(iatom,icell)
             mat_loc_ackw=0.0d0
@@ -2314,7 +2768,7 @@ c$$$      write(179,*) 'here7'
           zinv_imp(iwancell,iwancell)=1.0d0
         enddo
         
-        do icell=1, num_cell
+        do icell=1, num_cell ! num_cell=1
           do iatom=1, num_atom
             ii=iac(iatom,icell)
             mat_loc_ackw=0.0d0
@@ -2409,7 +2863,7 @@ c$$$      write(179,*) 'here8'
      $  numk*num_wancell,mpi_sum,mpi_comm_world)
 c$$$  write(179,*) 'here9'
       call mpi_allreduce_dble(eigenvalues_qp_orb,
-     $  numk*num_wancell,mpi_sum,mpi_comm_world)            
+     $  numk*num_wancell,mpi_sum,mpi_comm_world)
       
       
       if (maswrk) then
@@ -2962,8 +3416,8 @@ c$$$      call flush(179)
       stop      
       END                                                               
 
-
-
+! this is a file read
+! reads in wannier.dat
       subroutine read_wann_dat
       use comlowh_mod
 
@@ -3017,6 +3471,7 @@ c$$$      call flush(179)
      $  delta_charge, nelectron      
       end
       
+! this is a file read
       subroutine read_wann_inip
       
       use comlowh_mod
@@ -3132,10 +3587,15 @@ c$$$      deallocate(tempdble1)
       end
 
 
-
+! dmft_projector changes the indexing of the input matrix umat, which is num_wann x num_wann x ndim_k_max.  The output matrix proj_out is num_orb_max x num_wann x num_atom x num_cell=1 x ndim_k_max.  The first index of umat is transformed into the first and third indices of the output matrix.
+! dmft_projector also applies a projector P_c on the left side of umat; the input matrix umat varies over all wanniers, and the output matrix proj_out contains only correlated wanniers.
+! The mapping is done with the aid of wan_cor_index, which maps (iorb,iatom,icell) to an index over wanniers.
+! numk and kvec are not used.
+! w_matrix_fi <=> umat, proj<=>proj_out
       subroutine dmft_projector
      $  (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,umat,proj_out)
-      
+
+
       use comlowh_mod
 
       implicit none
@@ -3154,15 +3614,21 @@ c$$$      deallocate(tempdble1)
      $  iatom, isort,icell,
      $  atom_count,iorb,jorb,ik,irk,iband, ii,jj, k1,k2,k3,kk
       
+
+! wan_cor_index maps (iorb,iatom,icell) to an index over wanniers.
+! wan_cor_index = wan_correlated
+! for instance, for a single d-shell atom, wan_cor_index=wan_correlated might be [8,9,10,11,12], and its iatom and icell indices are constrained to 1.
+
 !     calculate projector in a fine grid
       proj_out=0.0d0
 
-      do icell=1, num_cell
+      do icell=1, num_cell ! num_cell = 1
         do iatom=1, num_atom
           do iorb=1, num_orb(iatom)
+! num_orb(iatom) is the number of correlated wanniers on this atom.
             do ik=1, ndim_k(me1)
               irk=n_mpi_k(me1)+ik
-              do iband=1, num_wancell
+              do iband=1, num_wancell ! num_wancell = num_wann
                 proj_out(iorb,iband,iatom,icell,ik)
      $            =proj_out(iorb,iband,iatom,icell,ik)
      $            +umat(
@@ -3176,7 +3642,10 @@ c$$$      deallocate(tempdble1)
       
       end
 
-
+! projector_renormalization_allk returns proj_out =  ( ( \sqrt{proj_in * P_E *  proj_in^\dagger})^{-1/2} ) * proj_in * P_E.  proj_out has the property that proj_out proj_out^\dagger = 1.
+! P_E is a projector which keeps only the sector defined by ind_bnd_k, which says which bands are inside a an energy window.
+! input: proj_in(num_orb_max,num_wann,num_atom,num_cell,ndim_kk_co_max). Structurally this means proj_in(orb+atom,wann,k)
+! output: proj_out(num_orb_max,num_wann,num_atom,num_cell,ndim_kk_co_max) Structurally this means proj_out(orb+atom,wann,k)
       subroutine projector_renormalization_allk
      $  (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,eigval,proj_in,nbnd_k,
      $  ind_bnd_k,proj_out)
@@ -3198,12 +3667,14 @@ c$$$      deallocate(tempdble1)
 
       proj_out=0.0d0
 
+! This maps from proj_in(orb+atom,wann,k) to  proj_k(num_proj=sum(num_orb),wann) * P_E.  P_E is a projector which keeps only the sector defined by ind_bnd_k, which says which bands are inside a an energy window.
       do ik=1, ndim_k(me1)
+
         irk=n_mpi_k(me1)+ik
         proj_k=0.0d0
         proj_k_temp=0.0d0
         do ibnd=1, nbnd_k(irk)
-          do icell=1, num_cell
+          do icell=1, num_cell ! num_cell=1
             do iatom=1, num_atom
               do iorb=1, num_orb(iatom)
                 ind_temp=iorb+sum(num_orb(1:(iatom-1)))
@@ -3215,9 +3686,13 @@ c$$$      deallocate(tempdble1)
             enddo
           enddo
         enddo
+
+! projector_renormalization returns proj_k_temp =  ( ( \sqrt{proj_k proj_k^\dagger})^{-1/2} ) * proj_k.  proj_k_temp has the property that proj_k_temp proj_k_temp^\dagger = 1.
         call projector_renormalization_dagger
      $    (num_proj,num_wancell,proj_k,proj_k_temp)
-        do icell=1, num_cell
+
+! This maps from proj_k(num_proj=sum(num_orb),wann) to proj_out(orb+atom,wann,k).
+        do icell=1, num_cell ! num_cell = 1
           do iatom=1, num_atom
             do iorb=1, num_orb(iatom)
               ind_temp=iorb+sum(num_orb(1:(iatom-1)))
@@ -3232,7 +3707,7 @@ c$$$      deallocate(tempdble1)
       enddo
       end
 
-
+! projector_renormalization returns proj_out = proj_in * ( \sqrt{proj_in^\dagger proj_in})^{-1/2}.  proj_out has the property that proj_out^\dagger proj_out = 1.
       subroutine projector_renormalization
      $  (dim1,dim2,proj_in,proj_out)
 !     symmetric orthonormalization
@@ -3255,26 +3730,36 @@ c$$$      deallocate(tempdble1)
       diag=0.0d0
       tempmat=0.0d0
       
+        ! overlapmat = proj_in^\dagger proj_in
       call zgemm('c','n',dim2,dim2,dim1,(1.d0,0.d0),proj_in,dim1,
      $  proj_in,dim1,(0.d0,0.d0),overlapmat,dim2)
       
+        ! diag and overlapmat are the eigenvalues and eigenvectors of overlapmat.
+        ! overlapmat diag overlapmat^\dagger = old overlapmat (or h.c. I'm not sure)
       call hermitianeigen_cmplxdouble
      $  (dim2,diag,overlapmat)
+
+        ! tempmat = overlapmat/\sqrt{diag}
 c     ------ Here we get T = O^(-1/2) -----------------------------------
       do iorb=1,dim2
         tempmat(:,iorb)=overlapmat(:,iorb)/sqrt(diag(iorb))
       enddo
 
+        ! overlap_mhalf = overlapmat diag^{-1/2} overlapmat^\dagger
+        ! overlap_mhalf = 1/\sqrt{proj_in^\dagger proj_in} (or h.c. I'm not sure)
       call zgemm('n','c',dim2,dim2,dim2,
      $  (1.d0,0.d0),tempmat,dim2,overlapmat,dim2,
      $  (0.d0,0.d0),overlap_mhalf,dim2)
+
+        ! proj_out = proj_in / \sqrt{proj_in^\dagger proj_in}
 c$$$  --------- Orthonormalized projector ----------------------
       call zgemm('n','n',dim1,dim2,dim2,(1.d0,0.d0),
      $  proj_in,dim1,overlap_mhalf,dim2,(0.d0,0.d0),
      $  proj_out,dim1)
+
       end
 
-
+! projector_renormalization returns proj_out =  ( ( \sqrt{proj_in proj_in^\dagger})^{-1/2} ) * proj_in.  proj_out has the property that proj_out proj_out^\dagger = 1.
       subroutine projector_renormalization_dagger
      $  (dim1,dim2,proj_in,proj_out)
 !     symmetric orthonormalization
@@ -3297,7 +3782,8 @@ c$$$  --------- Orthonormalized projector ----------------------
       end
       
 
-
+! projector_compare does nothing unless (is_kpath .eq. 1)
+! projector_compare calculates proj_orig * proj_ren^\dagger and prints the result.
       subroutine projector_compare
      $  (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,proj_orig,proj_ren,
      $  textmessage)
@@ -3721,6 +4207,7 @@ c$$$  write(*,*) 'maxcnt', ii
       
       end
 
+! is_orthonormal_dcmplx calculates mata^\dagger matb and checks that it is equal to one.
       subroutine is_orthonormal_dcmplx(mata,lda,matb,ldb,matsize1,
      $  matsize2,matsize3,is_identity, string)
 
@@ -3819,7 +4306,19 @@ c$$$            call flush(179)
       enddo
       end                                
 
-
+! cal_mat_eig_co calculates h_nonint_co, and eigenvalues_co, and eigenvalues_co_all, and w_matrix_co. It would be trivial if zinv_m1_exist were false, i.e. if zinv_m1.dat did not exist, which is the case when doing dft+dmft.
+! h_nonint_co is used only in cal_n_matrix, and w_matrix_co is used by write_den_matrix.
+! eigenvalues_co=eigenvalues_co_all and w_matrix_co are the eigenvalues and eigenvectors of v_matrix^\dagger * eigenvalues * v_matrix
+! h_nonint_co = zinv_half * eigenvalues_co * zinv_half
+! zinv_half = \sqrt(1 + \sum_atoms proj_renorm_co^\dagger * zinv_m1 * proj_renorm_co)
+! If zinv_m1.dat doesn't exist that means that zinv_m1 = 0 and h_nonint_co = eigenvalues_co.
+! output: h_nonint_co
+! output: eigenvalues_co, eigenvalues_co_all
+! output: w_matrix_co
+! input: v_matrix
+! input: eigenvalues
+! input: zinv_m1
+! input: proj_renorm_co
       subroutine cal_mat_eig_co
       use comlowh_mod      
       implicit none
@@ -3838,6 +4337,7 @@ c$$$            call flush(179)
       do ik=1, ndim_kk_co(me1)
         irk=n_mpi_kk_co(me1)+ik
 
+! h_k_wan_co = v_matrix^\dagger * eigenvalues * v_matrix
         h_k_wan_co=0.0d0
         do iwan=1, num_wann
           do jwan=1, num_wann
@@ -3850,8 +4350,11 @@ c$$$            call flush(179)
             enddo
           enddo
         enddo
+
+! eigenvalues_co_all=eigenvalues_co and h_k_wan_co are the eigenvalues and eigenvectors of v_matrix^\dagger * eigenvalues * v_matrix
         call hermitianeigen_cmplxdouble(num_wann,
      $    eigenvalues_co(1,ik),h_k_wan_co)
+
         eigenvalues_co_all(:,irk)=eigenvalues_co(:,ik)        
         w_matrix_co(:,:,ik)=h_k_wan_co
 
@@ -3860,8 +4363,10 @@ c$$$            call flush(179)
       call mpi_allreduce_dble(eigenvalues_co_all,
      $  nqdiv*num_wancell,mpi_sum,mpi_comm_world)                    
 
+
       do ik=1, ndim_kk_co(me1)
         irk=n_mpi_kk_co(me1)+ik
+
         if (zinv_m1_exist) then
           zinv=0.0d0
           do iwancell=1, num_wancell
@@ -3935,7 +4440,10 @@ c$$$            call flush(179)
       end
       
 
-
+! cal_hmat_rhomat_from_proj calculates and prints out a hamiltonian
+!   and a density matrix. It does not return anything to its caller.
+!  H = Nk^{-1} \sum_k P (E - mu) P^\dagger , rho = Nk^{-1} \sum_k P fermi(\beta(E - mu)) P^\dagger
+! Nk is the number of k points, P = proj_in, E = eigval, mu is the Fermi level, fermi is the fermi distribution, beta is the inverse temperature.
       subroutine cal_hmat_rhomat_from_proj
      $  (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,eigval,
      $  proj_in,textmessage)
@@ -4515,6 +5023,7 @@ c$$$  call flush(179)
       call mpi_barrier(mpi_comm_world,mpierr)      
       end
 
+! fermi_level_spectral_function_local calculates and prints out local_spectral_matrix_ef.dat and n_loc.dat, which are never used by ComDMFT.
       subroutine fermi_level_spectral_function_local
       use comlowh_mod
       
@@ -4609,6 +5118,7 @@ c$$$  call flush(179)
         enddo
       enddo
       if (maswrk) then
+! local_spectral_matrix_ef.dat is never used by ComDMFT.
         open(305, file='local_spectral_matrix_ef.dat')
         do ii=n_iac_mat_i, n_iac_mat_f
           if ((is_magnetic .eq. 1) .and. (ii .eq. 0)) cycle
@@ -4619,6 +5129,7 @@ c$$$  call flush(179)
           enddo
         enddo
         close(305)
+! n_loc.dat is never used by ComDMFT.
         open(305, file='n_loc.dat')
         do ii=n_iac_mat_i, n_iac_mat_f
           if ((is_magnetic .eq. 1) .and. (ii .eq. 0)) cycle
@@ -4709,7 +5220,7 @@ c$$$  call flush(179)
       end
 
 
-
+! fermi_level_spectral_function_ksum computes and prints out  spectral_matrix_ef.dat
       subroutine fermi_level_spectral_function_ksum
      $  (numk, ndim_k, n_mpi_k,ndim_k_max, g_lat_kw_diagonal)
       
@@ -4840,6 +5351,19 @@ c$$$     $    divisionarray
       endif
       end
 
+! cal_n_matrix calculates the n_matrix:
+! It calculates g_lat_inv_co(omega) = frequency(iomega) - h_nonint_co(:,:,ik) + \sum_{atom} proj_renorm_co(k)^\dagger * (sig(omega) - dc - I * gamma_selfenergy) * proj_renorm_co(k)
+! Next it calculates gmat = (ef + g_lat_inv_co(:,:,n_omega))^{-1}
+! Next it uses gmat   to calculate g2mat and g3mat, which will help with the tail at large momenta.
+! Next, it loops over omega, and in this loop it recalculates gmat = (ef + g_lat_inv_co(:,:,omega))^{-1}, and then uses gmat, g2mat, g3mat to add a contribution to n_matrix.
+! All of this logic has updated only the P_wann sector of n_matrix. Next we update the P_rest sector of of n_matrix, by adding   fermi(beta(eigenvalues_co_rest(k) -ef)), where eigenvalues_co_rest is a diagonal matrix and is defined only in the P_rest sector.
+! Last it repeats the above in a loop over k, so n_matrix is summed over k.
+! ---------------
+! output: n_matrix(num_bands,num_bands,nqdiv)
+! local: g_lat_inv_co(num_wann,num_wann,n_omega)
+! input: h_nonint_co(num_wann,num_wann,ndim_kk_co_max)
+! input: proj_renorm_co(num_orb_max,num_wann,num_atom,num_cell,ndim_kk_co_max)
+! input: eigenvalues_co_rest(num_rest,nqdiv)
       subroutine cal_n_matrix
       
       use comlowh_mod
@@ -4865,11 +5389,13 @@ c$$$     $    divisionarray
      $  exterp_g3(num_wann,num_wann)
 
 
+      ! one_matrix_f = 1
       one_matrix_f=0.0d0
       do ibnd=1, num_wann
         one_matrix_f(ibnd,ibnd)=1.0d0
       enddo
 
+      ! decide nspin based on the value of iac.
       nspin=1
       do icell=1, num_cell
         do iatom=1, num_atom
@@ -4881,12 +5407,16 @@ c$$$     $    divisionarray
 
       n_matrix=0.0d0
 
+       
       do ik=1, ndim_kk_co(me1)
         irk=n_mpi_kk_co(me1)+ik
 
         do ispin=1, nspin
           
-          g_lat_inv_co=0.0d0        
+          g_lat_inv_co=0.0d0
+
+! g_lat_inv_co(omega) = frequency(iomega) - h_nonint_co(:,:,ik) + \sum_{atom} proj_renorm_co^\dagger * (sig(omega) - dc - I * gamma_selfenergy) * proj_renorm_co
+!     embedding self-energy term: E(Sigma-DC)
           do iomega=1,n_omega
             
             do ibnd=1, num_wancell
@@ -4896,7 +5426,6 @@ c$$$     $    divisionarray
             g_lat_inv_co(:,:,iomega)=
      $        g_lat_inv_co(:,:,iomega)-h_nonint_co(:,:,ik)          
             
-!     embeding self-energy term:E(Sigma-DC)
             
             do icell=1, num_cell
               do iatom=1, num_atom
@@ -4906,9 +5435,13 @@ c$$$     $    divisionarray
                 else
                   ii=-iac(iatom,icell)
                 endif
+
+! g_lat_inv_co(omega) = \sum_{atom} proj_renorm_co^\dagger * (sig(omega) - dc - I * gamma_selfenergy) * proj_renorm_co
+                ! mat_loc_ackw = sig(omega) - dc - I * gamma_selfenergy
                 mat_loc_ackw=0.0d0
                 do iorb=1, num_orb(iatom)
                   do jorb=1, num_orb(iatom)
+
                     iio=ioac(iorb,jorb,ii)
                     if (iio .ne. 0) then
                       mat_loc_ackw(iorb,jorb)
@@ -4921,10 +5454,12 @@ c$$$     $    divisionarray
                       mat_loc_ackw(iorb,jorb)
      $                  =mat_loc_ackw(iorb,jorb)                    
      $                  -dcmplx(0.0d0, gamma_selfenergy) ! add broadening
-                    endif
-                  enddo
-                enddo
+                    endif ! (iorb .eq. jorb)
+
+                  enddo ! jorb=1, num_orb(iatom)
+                enddo ! iorb=1, num_orb(iatom)
                 
+                ! g_lat_inv_co+=proj_renorm_co^\dagger * mat_loc_ackw * proj_renorm_co
                 tempmat1=0.0d0
                 call zgemm('n','n',num_orb(iatom),num_wancell,
      $            num_orb(iatom),(1.d0,0.d0),
@@ -4938,12 +5473,17 @@ c$$$     $    divisionarray
      $            proj_renorm_co(1,1,iatom,icell,ik),num_orb_max,
      $            tempmat1,num_orb_max,(1.d0,0.d0),
      $            g_lat_inv_co(1,1,iomega),num_wancell)
-              enddo
-            enddo
-          enddo
+
+              enddo ! iatom=1, num_atom
+            enddo ! icell=1, num_cell
+          enddo !  iomega=1,n_omega
           
 c$$$  nimp=0.0d0        
           
+! Calculate the n_matrix:
+! Use  gmat = (ef + g_lat_inv_co(:,:,n_omega))^{-1}  to calculate g2mat and g3mat, which will help with the tail at large momenta.
+! Then use  gmat = (ef + g_lat_inv_co(:,:,iomega))^{-1} and g2mat, g3mat to calculate n_matrix.
+! Finally add in n_matrix += \sum_{rest bands} 1/(1+exp(beta(eigenvalues_co_rest-ef))
           gmat=0.0d0        
           g_lat_inv_co_temp=g_lat_inv_co(:,:,n_omega)        
           
@@ -4951,12 +5491,18 @@ c$$$  nimp=0.0d0
             g_lat_inv_co_temp(ibnd,ibnd)
      $        =g_lat_inv_co_temp(ibnd,ibnd)+ef
           enddo
+
 c$$$  write(179,*), iomega, ik, irk
+
+        ! gmat = (ef + g_lat_inv_co(:,:,n_omega)) ^{-1}
           call dcmplx_matinv(g_lat_inv_co_temp, gmat,
      $      num_wann,num_wann)
           
+       ! g2mat = 0.5 * (gmat + gmat^\dagger) * frequency^2
           g2mat=(gmat+transpose(dconjg(gmat)))
      $      /2.0d0*frequency(n_omega)**2
+
+       ! g3mat ?=? 0.5 * ((gmat - gmat^\dagger) -2/frequency) * frequency^3
           g3mat=(gmat-transpose(dconjg(gmat))
      $      -one_matrix_f*2.0/frequency(n_omega))
      $      /2.0d0*frequency(n_omega)**3
@@ -4974,9 +5520,12 @@ c$$$  write(179,*), iomega, ik, irk
      $          =g_lat_inv_co_temp(ibnd,ibnd)+ef
             enddo
 c$$$  write(179,*), iomega, ik, irk
+
+! gmat = (ef + g_lat_inv_co(:,:,iomega))^{-1}
             call dcmplx_matinv(g_lat_inv_co_temp, gmat,
      $        num_wann,num_wann)
             
+! n_matrix = - beta^{-1} * ..... f(one_matrix_f, gmat, g2mat, g3mat)
             do ibnd=1,num_wann
               do jbnd=1,num_wann
                 n_matrix(ibnd,jbnd,irk)
@@ -5031,7 +5580,10 @@ c$$$  write(179,*), iomega, ik, irk
      $            )/nspin              
               enddo
             enddo
-          enddo
+          enddo ! iomega=1, n_omega
+
+! Now the loop over omega is done, but we have one more contribution to add to n_matrix, based on g2mat.
+! n_matrix -= (-0.5 + 0.25 * g2mat * beta)/nspin
           do ibnd=1,num_wann
             do jbnd=1,num_wann
 !     asymptotic interval
@@ -5049,9 +5601,10 @@ c$$$  write(179,*), iomega, ik, irk
      $          *(
      $          +g2mat(ibnd,jbnd)*beta/4.0d0
      $          )/nspin            
-            enddo
-          enddo
-        enddo
+            enddo ! jbnd=1,num_wann
+          enddo !  ibnd=1,num_wann
+
+        enddo ! ispin=1, nspin
 
 c$$$        write(179,'(a, 2i5)')'g2mat',ik,irk
 c$$$        do ibnd=1, num_wann
@@ -5072,7 +5625,9 @@ c$$$        write(179,'(a, 2i5)')'exterp_g3',ik,irk
 c$$$        do ibnd=1, num_wann
 c$$$          write(179,'(10000(2f12.6,2x))')
 c$$$     $      (exterp_g3(ibnd,jbnd), jbnd=1, num_wann)
-c$$$        enddo        
+c$$$        enddo
+
+! throw an error and crash if exterp_g3 is too big.
         if (maxval(cdabs(exterp_g3)) .gt. 1.0d-4) then
 c$$$          write(179,'(2(f12.6, 2i5))') maxval(cdabs(exterp_g2)),
 c$$$     $      maxloc(cdabs(exterp_g2)),
@@ -5087,13 +5642,15 @@ c$$$          write(179,*) 'higher order correction to the g is necessary'
           call ending
         endif
 
-        do ibnd=1, num_rest
+! n_matrix +=  fermi(beta(eigenvalues_co_rest-ef)), where eigenvalues_co_rest is a diagonal matrix and non-zero only in the P_rest sector.
+        do ibnd=1, num_rest ! num_rest=num_bands-num_wann
           n_matrix(ibnd+num_wann,ibnd+num_wann,irk)
      $     =n_matrix(ibnd+num_wann,ibnd+num_wann,irk)
      $      +1.0d0
      $      /(dexp(beta*(eigenvalues_co_rest(ibnd,irk)-ef))+1.0d0)
         enddo
-      enddo
+
+      enddo ! over momentum
 
 
       call mpi_allreduce_dcmplx(n_matrix,
@@ -5102,8 +5659,22 @@ c$$$          write(179,*) 'higher order correction to the g is necessary'
 
       end      
 
-
-      subroutine cal_vw_matrix_co
+! cal_vw_matrix_co calculates vw_matrix_co and to_orig_bnd, which are used only by write_den_matrix. It also calculates eigenvalues_co_rest, which is used only by cal_n_matrix.
+! vw_matrix_temp = [v_matrix * w_matrix_co, one_m_p] = [v_matrix * w_matrix_co, eigenvectors[1 - v_matrix^\dagger * v_matrix]]
+! vw_matrix_co = v_matrix * w_matrix_co + vw_matrix_temp * eigenvectors[P_rest [vw_matrix_temp^\dagger * eigenvalues * vw_matrix_temp] P_rest]
+! P_rest projects out the num_rest=num_bands-num_wann sector
+! to_orig_bnd is determined by finding the maximum element within specific vectors in vw_matrix_co.
+! eigenvalues_co_rest is the eigenvalues  of P_rest [vw_matrix_temp^\dagger * eigenvalues * vw_matrix_temp] P_rest.
+! input: v_matrix
+! input: eigenvalues
+! input: w_matrix_co
+! ----------------
+! output: eigenvalues_co_rest = eigenvalues[ P_r [vw_matrix_temp^\dagger * eigenvalues * vw_matrix_temp] P_r ]
+! output: vw_matrix_co = v_matrix(q)  P_w w_matrix_co(q) P_w + eigenvectors[1 - v_matrix^\dagger P_w v_matrix] P_r * eigenvectors [ P_r vw_matrix_temp^\dagger * eigenvalues * vw_matrix_temp P_r ]
+! output: to_orig_bnd.  jbnd=to_orig_bnd(ibnd,k) is an integer specifying which vector in vw_matrix_co(:,jbnd,k) matches most strongly to the basis element (band) specified by ibnd.
+! vw_matrix_temp = v_matrix(q)  P_w w_matrix_co(q) P_w + eigenvectors[1 - v_matrix^\dagger P_w v_matrix] P_r
+! v_matrix is from wannier.dat, and w_matrix_co is calculated by h_nonint_co.
+      h cal_vw_matrix_co
 
       use comlowh_mod
 
@@ -5113,6 +5684,7 @@ c$$$          write(179,*) 'higher order correction to the g is necessary'
       integer :: ik,irk,tempind(1),bndind_rest(num_rest),ii,
      $  ibnd,jbnd,kbnd,tempvec_int(num_bands),
      $  tempint(1)
+! num_rest=num_bands-num_wann
 
       double precision :: tempvec_dble(num_bands)
       complex*16 :: vw_matrix_temp(num_bands,num_bands),
@@ -5120,20 +5692,27 @@ c$$$          write(179,*) 'higher order correction to the g is necessary'
      $  one_m_p(num_bands,num_bands)
       
       do ik=1,ndim_kk_co(me1)
+
         vw_matrix_temp=0.0d0
         irk=n_mpi_kk_co(me1)+ik
         
+! vw_matrix_co(q) = v_matrix(q)  P_w w_matrix_co(q) P_w
+! P_w projects the wannier subspace out of the bands.
+! v_matrix is from wannier.dat, and w_matrix_co is calculated by h_nonint_co.
+! vw_matrix_co is num_bands x num_bands, v_matrix is  num_bands x  num_wann, and w_matrix_co is num_wann x num_wann
         call zgemm('n','n',num_bands,num_wann,
      $    num_wann,(1.d0,0.d0),
      $    v_matrix(1,1,irk),num_bands,
      $    w_matrix_co(1,1,ik),num_wann,(0.d0,0.d0),
      $    vw_matrix_co(1,1,irk),num_bands)
                 
+! one_m_p = 1
         one_m_p=0.0d0
         do ibnd=1, num_bands
           one_m_p(ibnd,ibnd)=1.0d0
         enddo
 
+! one_mp = 1 - v_matrix P_w v_matrix^\dagger
         ! projection operator to the wannier space
         call zgemm('n','c',num_bands,num_bands,
      $    num_wann,(-1.d0,0.d0),
@@ -5141,6 +5720,9 @@ c$$$          write(179,*) 'higher order correction to the g is necessary'
      $    v_matrix(1,1,irk),num_bands,(1.d0,0.d0),
      $    one_m_p,num_bands)
 
+! tempvec_dble and one_m_p are the eigenvalues and eigenvectors of 1 - v_matrix P_w v_matrix^\dagger
+! one_m_p = eigenvectors[1 - v_matrix P_w v_matrix^\dagger]
+! tempvec_dble = eigenvalues[1 - v_matrix P_w v_matrix^\dagger]
         call hermitianeigen_cmplxdouble
      $    (num_bands,tempvec_dble,one_m_p)
 c$$$        write(179,'(a, i5, 10000f12.6)')
@@ -5148,21 +5730,28 @@ c$$$     $    'one_m_p eigenvalues', irk, tempvec_dble(1:num_wann)
 c$$$        write(179,'(a, i5, 10000f12.6)')
 c$$$     $    'one_m_p eigenvalues', irk,
 c$$$     $    tempvec_dble((num_wann+1):num_bands)
-        vw_matrix_temp=vw_matrix_co(:,:,irk)                  
-        do ibnd=1, num_rest
+
+
+        vw_matrix_temp=vw_matrix_co(:,:,irk)
+! vw_matrix_temp = v_matrix(q)  P_w w_matrix_co(q) P_w
+
+        do ibnd=1, num_rest ! num_rest=num_bands-num_wann
           vw_matrix_temp(:,ibnd+num_wann)=one_m_p(:,ibnd+num_wann)
         enddo
+! vw_matrix_temp = v_matrix(q)  P_w w_matrix_co(q) P_w + eigenvectors[1 - v_matrix^\dagger P_w v_matrix] P_r
+! P_r = 1 - P_w
 
-!     orthonormalization check
+! is_orthonormal_dcmplx calculates vw_matrix_temp^\dagger vw_matrix_temp and checks that it is equal to one. If it is not, terminate execution.
         call is_orthonormal_dcmplx
      $    (vw_matrix_temp,num_bands,
      $    vw_matrix_temp,num_bands,
      $    num_bands,num_bands,num_bands,1,
      $    'basis_after_orthonormal_basis_construction')
         
+! hmat_rest = P_r [vw_matrix_temp^\dagger * eigenvalues * vw_matrix_temp] P_r, where P_r = 1 - P_w projects out the num_rest=num_bands-num_wann sector
 !     disentangle the rest bands
         hmat_rest=0.0d0
-        do ibnd=1, num_rest
+        do ibnd=1, num_rest ! num_rest=num_bands-num_wann
           do jbnd=1, num_rest
             do kbnd=1, num_bands
               hmat_rest(ibnd,jbnd)=hmat_rest(ibnd,jbnd)
@@ -5175,26 +5764,36 @@ c$$$     $    tempvec_dble((num_wann+1):num_bands)
           enddo
         enddo
         
+! eigenvalues_co_rest = eigenvalues[ P_r [vw_matrix_temp^\dagger * eigenvalues * vw_matrix_temp] P_r ]
+! hmat_rest = eigenvectors[ P_r [vw_matrix_temp^\dagger * eigenvalues * vw_matrix_temp] P_r ]
         call hermitianeigen_cmplxdouble(num_rest,
      $    eigenvalues_co_rest(:,irk),hmat_rest)
         
+
+! vw_matrix_co = v_matrix(q)  P_w w_matrix_co(q) P_w + vw_matrix_temp * hmat_rest
+! vw_matrix_co = v_matrix(q)  P_w w_matrix_co(q) P_w + eigenvectors[1 - v_matrix^\dagger P_w v_matrix] P_r * eigenvectors [ P_r vw_matrix_temp^\dagger * eigenvalues * vw_matrix_temp P_r ]
+! vw_matrix_temp = v_matrix(q)  P_w w_matrix_co(q) P_w + eigenvectors[1 - v_matrix^\dagger P_w v_matrix] P_r
+! hmat_rest = eigenvectors [ P_r vw_matrix_temp^\dagger * eigenvalues * vw_matrix_temp P_r ]
         call zgemm('n','n',num_bands,num_rest,num_rest,
      $    (1.d0,0.d0),vw_matrix_temp(1,num_wann+1),num_bands,
      &    hmat_rest,num_rest,(1.d0,0.d0),
      $    vw_matrix_co(1,num_wann+1,irk),num_bands)
         
+! check that vw_matrix_co^\dagger vw_matrix_co = 1, and if not terminate execution.
         call is_orthonormal_dcmplx
      $    (vw_matrix_co(1,1,irk),num_bands,
      $    vw_matrix_co(1,1,irk),num_bands,
      $    num_bands,num_bands,num_bands,1,
      $    'final vw_matrix')
-      enddo
+
+      enddo ! ik=1,ndim_kk_co(me1)
 
       call mpi_allreduce_dcmplx(vw_matrix_co,
      $  num_bands**2*nqdiv,mpi_sum,mpi_comm_world)
       call mpi_allreduce_dble(eigenvalues_co_rest,
      $  num_rest*nqdiv,mpi_sum,mpi_comm_world)
 
+! check again that vw_matrix_co is unitary, and if not terminate execution.
       if (maswrk) then
         do irk=1, nqdiv
           call is_orthonormal_dcmplx
@@ -5205,6 +5804,9 @@ c$$$     $    tempvec_dble((num_wann+1):num_bands)
         enddo
       endif
 
+! The whole point of this next block is to calculate to_orig_bnd, which is used ONLY in write_den_matrix.
+! jbnd=to_orig_bnd(ibnd,k) is an integer specifying which vector in vw_matrix_co(:,jbnd,k) matches most strongly to the basis element (band) specified by ibnd.
+! this looks at the vector vw_matrix_co(:,ibnd,k).  Based on the which element of this vector has the largest magnitude, it sets to_orig_bnd(ibnd,k) equal the indexof that element.
       to_orig_bnd=0
       
       do irk=1, nqdiv
@@ -5212,19 +5814,23 @@ c$$$     $    tempvec_dble((num_wann+1):num_bands)
         
         do ibnd=1, num_bands
           tempvec_dble=0.0d0
+
           do jbnd=1, num_bands
+
             tempvec_dble(jbnd)
      $        =cdabs(vw_matrix_co(jbnd,ibnd,irk))
             if (tempvec_int(jbnd) .eq. 1) then
               tempvec_dble(jbnd)=0.0d0
             endif
-          enddo
+          enddo ! jbnd=1, num_bands
           
           tempint=maxloc(tempvec_dble)
           to_orig_bnd(ibnd,irk)=tempint(1)
           tempvec_int(tempint(1))=1
-        enddo
-      enddo
+
+        enddo ! ibnd=1, num_bands
+
+      enddo !  irk=1, nqdiv
 
 c$$$      if (maswrk) then
 c$$$        do irk=1, nqdiv      
@@ -5284,7 +5890,15 @@ c$$$      endif
 
       subroutine find_bnd_in_win(eigenval,nk,nbnd,emin,emax,
      $  den_mode,is_spinorbit,nbnd_k,ind_bnd_k)
-
+! find_bnd_in_win creates ind_bnd_k which says which bands are inside the energy window [emin,emax] for at least one k-point, and nbnd_k which is the count of bands inside the window.  Even though ind_bnd_k and nbnd_k are indexed over k-points, they have the same value for all k-points.
+! eigenval <=> eigenvalues_fi_all
+! nk <=> numk
+! nbnd <=> num_wancell = num_wann
+! emin <=> ewin_min
+! emax <=> ewin_max
+! den_mode = 'bnd'
+! output: nbnd_k <=> nbnd_in_win
+! output: ind_bnd_k <=> bnd_in_win
       implicit none
       include 'mpif.h'
       integer, intent(in) :: nk, nbnd, is_spinorbit
@@ -5296,6 +5910,7 @@ c$$$      endif
 
       integer :: irk,ibnd,ik(1),ibnd_min,ibnd_max
       
+! If emin < eigenval(ibnd,irk) < emax then we mark this band as being inside the window [in ind_bnd_k], and we increment the count of bands inside the window [nbnd_k]. These are temporary values; the final values of ind_bnd_k and nbnd_k will be decided at the end.
       nbnd_k=0
       ind_bnd_k=0
       do irk=1, nk
@@ -5307,12 +5922,17 @@ c$$$      endif
           endif
         enddo
       enddo
+
+! den_mode='bnd'
       if (den_mode.eq. 'bnd') then
+
+! ik is the index of k-point which has the most bands inside the window.
         ik=maxloc(nbnd_k)
         ibnd_min=ind_bnd_k(1,ik(1))
         ibnd_max=ind_bnd_k(nbnd_k(ik(1)),ik(1))
 c$$$        write(179,*) 'start', ik(1),ibnd_min,ibnd_max
 
+! This loop discovers minimum and  maximum band indices which are inside the window for at least one k-point: ibnd_min, ibnd_max.
         do irk=1, nk
           do ibnd=1, ibnd_min-1
             if (dabs(eigenval(ibnd,irk)-eigenval(ibnd_min,irk))
@@ -5329,7 +5949,9 @@ c$$$     $          eigenval(ibnd,irk),eigenval(ibnd_max,irk)
               ibnd_max=ibnd              
             endif
           enddo
-        enddo
+        enddo ! irk=1, nk
+
+! Adjust ibnd_min, ibnd_max for spin orbit.
         if (is_spinorbit==1) then
           if (mod(ibnd_min,2)==0) then
             ibnd_min=ibnd_min-1
@@ -5347,11 +5969,25 @@ c$$$     $          eigenval(ibnd,irk),eigenval(ibnd_max,irk)
             ind_bnd_k(ibnd-ibnd_min+1,irk)=ibnd
           enddo
         enddo
-      endif
-      end
+
+      endif ! (den_mode.eq. 'bnd')
+
+      end ! subroutine find_bnd_in_win
       
 
-
+! write_den_matrix writes out wannier_den_matrix.dat, which is used in rspflapw.
+! wannier_den_matrix.dat can be in either binary or hdf5 format.
+! It writes:
+!       - "temperature"
+!       - "nqdiv" - the number of k-points
+!       - "n_dmft_bnd" from nbnd_in_win_co [called 'num_band_in' when saved from comrisb, and read in by rspflapw as 'n_dmft_bnd'] - should be the number of bands
+!       - "n_dmft_wan" from nbnd_in_win_co - the number of wanniers
+!       - "include_band_new"
+!               include_band_new comes from nbnd_in_win_co, bnd_in_win_co, to_orig_bnd, and include_bands.
+!       - "vw_matrix_new"
+!               vwmatrix_new is a subsector of vw_matrix_co, with the sector specified by nbnd_in_win_co, to_orig_bnd, bnd_in_win_co. vwmatrix_new is renormalized so that it satisfies vwmatrix_new^\dagger vwmatrix_new = 1.
+!       - 'n_matrix_new' - the density matrix
+!                n_matrix_new equal is a subsector of n_matrix, with the sector specified by nbnd_in_win_co, bnd_in_win_co.
       subroutine write_den_matrix
 
       use comlowh_mod
@@ -5381,6 +6017,9 @@ c$$$     $          eigenval(ibnd,irk),eigenval(ibnd_max,irk)
       complex*16, allocatable :: n_matrix_new(:,:,:),
      $  vw_matrix_new(:,:,:),proj_in(:,:),proj_out(:,:)
 
+!  nbnd_in_win_co=nbnd_in_win(1), bnd_in_win_co=bnd_in_win(:,1)
+
+      ! This decides include_band_new, based on nbnd_in_win_co, bnd_in_win_co, to_orig_bnd, and include_bands. include_band_new will be saved to wannier_den_matrix.dat
       nbnd_in_win_co_max=maxval(nbnd_in_win_co)
       allocate(include_band_new(nbnd_in_win_co_max,nqdiv))
       include_band_new=0
@@ -5389,6 +6028,7 @@ c$$$     $          eigenval(ibnd,irk),eigenval(ibnd_max,irk)
           jbnd=bnd_in_win_co(ibnd,irk)
           kbnd=to_orig_bnd(jbnd,irk)
           include_band_new(ibnd,irk)=include_bands(kbnd)
+! include_bands is from wannier.dat
         enddo
       enddo      
       
@@ -5408,6 +6048,8 @@ c$$$     $          eigenval(ibnd,irk),eigenval(ibnd_max,irk)
         allocate(proj_out(nbnd_in_win_co(irk),nbnd_in_win_co(irk)))
         proj_out=0.0d0          
 
+        ! This sets proj_in equal to a subsector of vw_matrix_co, with the sector specified by nbnd_in_win_co, to_orig_bnd, bnd_in_win_co.
+% proj_in = U_{tob} P_E  v_{wmc}(q,i,j) P_E
         do ibnd=1, nbnd_in_win_co(irk)
           kbnd=bnd_in_win_co(ibnd,irk)
           abnd=to_orig_bnd(kbnd,irk)            
@@ -5420,9 +6062,12 @@ c$$$     $          eigenval(ibnd,irk),eigenval(ibnd_max,irk)
           enddo
         enddo
         
+% v_{wmn} = proj_in (proj_in proj_in^\dagger)^{-1}
+       ! projector_renormalization returns proj_out = proj_in / \sqrt{proj_in^\dagger proj_in}.  proj_out has the property that proj_out^\dagger proj_out = 1.
         call projector_renormalization
      $    (nbnd_in_win_co(irk),nbnd_in_win_co(irk),proj_in,proj_out)
-        
+       
+        ! This sets vw_matrix_new = proj_out. vw_matrix_new is saved in wannier_den_matrix.
         do ibnd=1, nbnd_in_win_co(irk)
           do jbnd=1, nbnd_in_win_co(irk)
             vw_matrix_new(ibnd,jbnd,irk)
@@ -5430,9 +6075,12 @@ c$$$     $          eigenval(ibnd,irk),eigenval(ibnd_max,irk)
      $        +proj_out(ibnd,jbnd)
           enddo
         enddo
+
         deallocate(proj_in)
         deallocate(proj_out)
         
+! n_matrix_new = P_E n_matrix(q,i,j)} P_E
+! This sets n_matrix_new equal to a subsector of n_matrix, with the sector specified by nbnd_in_win_co, bnd_in_win_co. n_matrix_new is saved in wannier_den_matrix.dat.
         do ibnd=1, nbnd_in_win_co(irk)
           abnd=bnd_in_win_co(ibnd,irk)            
           do jbnd=1, nbnd_in_win_co(irk)

@@ -53,6 +53,20 @@ c$$$      open(179, file=trim(ch))
 !     1. read parameters
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+!  comdc reads from:
+!       comdc.ini,
+!       trans_dc.dat (equal to the identity),
+!       g_loc.dat [from CTQMC's gimp.dat if (control['dc_mode'] == 'dc_scf' not 'dc_at_gw') and (control['dc_g'] == 'gimp' not 'gloc'), and otherwise from ComLowH's g_loc_mat.dat],
+!       slater.dat [from comdmft.py/prepare_dc, contains f0,f2,f4,f6],
+!       dynamical_f0.dat
+!       imp['dynamical_f0'] comes from
+!           interpolating the *_w_Slater_* files produced by ComCoulomb.
+!           The interpolation is done in comdmft.py/comcoulomb_postprocessing.
+
+! comdc writes to: vmat.dat, u0mat.dat, wcmat0.dat, nimp.dat,
+!       hartree.dat, exchange.dat, sig_mat.dat,sig_gw_mat.dat,
+!       sig_gwc_mat.dat . None of these is used except sig_mat.dat, which contains the sigma and Z factor that are used by comlowh.
+
       if (maswrk) then
 
         is_magnetic=0
@@ -974,6 +988,7 @@ c$$$        enddo
 c$$$        close(111)        
         
         
+! sig_mat.dat is the only output from ComDC that is used by ComDMFT, and only when doing qsgw+dmft. ComDC is not used by dft+dmft. sig_mat.dat contains both sigma and the Z factor.
         open(unit=10, file='sig_mat.dat')
         do iomega=1, n_omega
           write(10,'(f20.12, 5x, 10000(2f20.12, 2x))')

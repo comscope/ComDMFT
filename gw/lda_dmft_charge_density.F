@@ -81,8 +81,15 @@ c$$$        temperature=dmft_temperature
       endif
       end
 
-      
-
+! initialize_wan_density_matrix reads in wannier_den_matrix.dat
+!     wannier_den_matrix.dat can be in either hdf5 or binary format. It contains
+!       - dmft_temperature="temperature"
+!       - nqdiv_temp = "nqdiv" (ignored) - the number of k-points
+!       - n_dmft_bnd="n_dmft_bnd" from nbnd_in_win_co [called 'num_band_in' when saved from comrisb, and called 'n_dmft_bnd' when saved from comlowh] - should be the number of bands
+!       - n_dmft_wan="n_dmft_wan" from nbnd_in_win_co - the number of wanniers
+!       - dmft_bnd_index="include_band_new"
+!       - disentangle_mat="vw_matrix_new"
+!       - dmft_den_mat='n_matrix_new' - the density matrix
       subroutine initialize_wan_density_matrix
 
       use lda_dmft_mod

@@ -9,13 +9,12 @@ from scipy import *
 import json
 from tabulate import tabulate
 from itertools import chain, product
-import flapwmbpt_ini
-import prepare_realaxis
+import flapwmbpt_ini # used only by run_flapwmbpt, to (1) set up the ini file 
+                        # for rspflapw, and (2) to read in wan_hmat from comdmft.ini.
+import prepare_realaxis # Used only for preparing ComLowH when doing postprocessing tasks.
 
 # from scipy.interpolate import interp1d
-# trans_basis_mode: 0, use wannier function as basis set
-# trans_basis_mode: 1, use transformation matrix to rotate the basis set. this matrix doesn't change as a function of iteration.
-# trans_basis_mode: 2, use transformation matrix to rotate the basis set. this matrix does change as a function of iteration. this matrix diagonalize the spectral function at the chemical potential.
+
 
 
 def open_h_log(control):
@@ -40,6 +39,8 @@ def close_h_log(control):
     control['h_log'].close()
     return None
 
+# read_comdmft_ini_control's job is to read in from comdmft.ini 
+# the 'method' variable variable which  specifies what to do.
 def read_comdmft_ini_control():
     vglobl={}
     vlocal={}
@@ -82,6 +83,23 @@ def read_comdmft_ini_postprocessing():
     return control, postprocessing_dict
 
 
+# read_comdmft_ini is called if doing an lda+dmft or lqsgw+dmft run.  Its 
+# job is to read in user control variables from comdmft.ini.
+# These variables are stored in control, wan_hmat, and imp. If there are
+#   several impurities, the imp variable contains distinct data for each
+#   impurity.
+# Most variables are simply read in from comdmft.ini, and usually a default 
+# value is supplied.
+# There are some exceptions:
+# control['comsuitedir'] is from the environment variable COMSUITE_BIN .
+# control['top_dir'] is from the path that comdmft.py is run in.
+# paths in comdmft.ini are converted into absolute paths using os.path.abspath
+# comdmft.ini may specify the number of processors to be used by ComCoulomb.
+# If comdmft.in does not specify this, then data from k_tau_freq.dat is fed to
+# optimized_nproc_for_comcoulomb, which decides the number of processors.
+# beta is the inverse of the temperature supplied in comdmft.ini
+# control['hdf5'] is decided by seeing whether there is a checkpoint directory.
+# control['omega'] is determined from control['n_omega'] and imp['beta']
 def read_comdmft_ini():
     vglobl={}
     vlocal={}
@@ -106,6 +124,7 @@ def read_comdmft_ini():
 
     open_h_log(control)                
 
+    # control['comsuitedir'] is from the environment variable COMSUITE_BIN .
     control['comsuitedir']=os.environ.get('COMSUITE_BIN')
     if not control['comsuitedir']:
         print("Error: Environment variable COMSUITE_BIN is not defined.", file=control['h_log'],flush=True)
@@ -116,7 +135,9 @@ def read_comdmft_ini():
     ###    in control
     control['cal_mu']=control.get('cal_mu', True)
 
+    # control['top_dir'] is from the path that comdmft.py is run in.
     control['top_dir']=os.path.abspath('./')        
+    
     check_key_in_string('method', control)
     control['sigma_mix_ratio']=control.get('sigma_mix_ratio', 0.5)
 
@@ -130,6 +151,10 @@ def read_comdmft_ini():
     
     control['u_mode']=control.get('u_mode', 'bnse')
 
+    # the default value of trans_basis_mode is 0
+    # trans_basis_mode: 0, use wannier function as basis set
+    # trans_basis_mode: 1, use transformation matrix to rotate the basis set. this matrix doesn't change as a function of iteration.
+    # trans_basis_mode: 2, use transformation matrix to rotate the basis set. this matrix does change as a function of iteration. this matrix diagonalize the spectral function at the chemical potential.
     control['trans_basis_mode']=control.get('trans_basis_mode', 0)
     if (control['trans_basis_mode']==1):
         check_key_in_string('trans_basis', control)
@@ -141,8 +166,10 @@ def read_comdmft_ini():
     check_key_in_string('spin_orbit', control)
     check_key_in_string('impurity_problem', control)    
     check_key_in_string('impurity_problem_equivalence', control)
+    
     check_key_in_string('initial_lattice_dir', control)
-    control['initial_lattice_dir']=os.path.abspath(control['initial_lattice_dir'])        
+    control['initial_lattice_dir']=os.path.abspath(control['initial_lattice_dir'])  
+      
     control['allfile']=find_allfile(control['initial_lattice_dir'])
     if ('dc_directory' not in control):
         control['dc_directory']='./dc'
@@ -159,6 +186,7 @@ def read_comdmft_ini():
 
     if ('initial_self_energy' in control):
         control['initial_self_energy'] =os.path.abspath(control['initial_self_energy'])
+        # the default value of trans_basis_mode is 0
         if (control['trans_basis_mode']!=0):
             check_key_in_string('trans_basis', control)
 
@@ -166,6 +194,7 @@ def read_comdmft_ini():
     if ('dc_mat_to_read' in control):
         control['dc_mat_to_read'] =os.path.abspath(control['dc_mat_to_read'])
 
+    # control['convergence_header'] specifies what will be printed in the first line of the convergence log.
     if (control['method']=='lda+dmft'):
         control['convergence_header']=['step','i_outer','i_latt','i_imp','causality','delta_rho','w_sp_min','w_sp_max', 'mu', 'std_sig', 'n_imp', 'histo_1', 'histo_2', 'ctqmc_sign']
     if (control['method']=='lqsgw+dmft'):
@@ -182,6 +211,9 @@ def read_comdmft_ini():
         if (control['method']=='lqsgw+dmft'):    
             control['mpi_prefix_dc']=control.get('mpi_prefix_dc', control['mpi_prefix'])
 
+    # comdmft.ini may specify the number of processors to be used by ComCoulomb.
+    # If it does not specify this, then data from k_tau_freq.dat is fed to
+    # optimized_nproc_for_comcoulomb, which decides the number of processors.
     # mpi_prefix_coulomb
     if ('mpi_prefix_coulomb' in control):
         check_key_in_string('nproc_k_coulomb', control)
@@ -222,7 +254,7 @@ def read_comdmft_ini():
         control['iter_num_impurity']=0
 
 
-
+    # figure out where to restart
     if (control['restart']):
         find_place_to_restart(control)
         if (control['method']=='lqsgw+dmft'):
@@ -261,16 +293,20 @@ def read_comdmft_ini():
         wan_hmat['radfac']=wan_hmat.get('radfac', 1.0)        
     # in imp
 
+    # beta is the inverse of the temperature supplied in comdmft.ini
     check_key_in_string('temperature', imp)    
     imp['beta']=1.0/(8.6173303*10**-5*imp['temperature'])
 
+    
     if ('initial_self_energy' in control):
         control['n_omega']=np.shape(np.loadtxt(control['initial_self_energy']))[0]
     else:
         control['n_omega']=int(300.0/(2*pi/imp['beta']))
 
+    # control['omega'] is determined from control['n_omega'] and imp['beta']
     control['omega']=(np.arange(control['n_omega'])*2+1)*pi/imp['beta']
 
+    # imp variables have one value for each impurity
     for key, value in imp.items():
 
         if (not (isinstance(imp[key], dict))):
@@ -284,6 +320,7 @@ def read_comdmft_ini():
         #         imp[key]['para']=False
 
 
+        # imp[key]['para'] = not(-1*int(key) in control['impurity_problem_equivalence'])
         if (-1*int(key) in control['impurity_problem_equivalence']):
             imp[key]['para']=False
         else:
@@ -304,6 +341,7 @@ def read_comdmft_ini():
         check_key_in_string('thermalization_time', imp[key])
         check_key_in_string('measurement_time', imp[key])
         check_key_in_string('impurity_matrix', imp[key])
+        # the default value of trans_basis_mode is 0
         if (control['trans_basis_mode']<2):
             imp[key]['impurity_matrix']=np.array(imp[key]['impurity_matrix'])
         else:
@@ -331,6 +369,9 @@ def read_comdmft_ini():
 
 
 
+    # control['sig_header'] decides the header of sig.dat, gimp.dat,
+    # sig_bare.dat, sig_smth.dat, hartree.dat, delta.dat, sig_dc.dat, 
+    # sig_dc_hf.dat, sig_dc_h.dat, sig_dc_f.dat.
     control['sig_header']=['# omega(eV)']
     for ii in sorted(set(control['impurity_problem_equivalence'])):
         for jj in sorted(set(imp[str(abs(ii))]['impurity_matrix'].flatten().tolist())-{0}):
@@ -339,7 +380,7 @@ def read_comdmft_ini():
 
 
     # check hdf5
-
+    # control['hdf5'] is decided by seeing whether there is a checkpoint directory.
     if (os.path.isdir(control['initial_lattice_dir']+"/checkpoint/")):
         control['hdf5']=False
     else:
@@ -362,7 +403,18 @@ def read_comdmft_ini():
 
     return control,wan_hmat,imp
 
-def find_impurity_wan(control, wan_hmat):
+# find_impurity_wann sets up control['impurity_wan'], based on the 
+#   contents of wan_hmat['basis']
+#   wan_hmat['basis'] is populated by comwann_postprocessing, and it
+#       is used only here and in write_conv_wan which has num_wann=np.shape(wan_hmat['basis'])[0]  
+#  control['impurity_wan'] contains only three kinds of info:
+#       - the number of atoms, natom=len(control['impurity_wan']) 
+#       - the number of impurity orbitals for each atom, len(control['impurity_wan'][ii])
+#       - the indices of the orbitals used for impurities, which are used only
+#               in order to print them out in comcoulomb.ini and comlowh.ini
+#   find_impurity_wann is implemented of s,p,d,f if not doing spin-orbit,
+#       BUT if doing spin-orbit it is implemented only for f shell impurities.
+cdef find_impurity_wan(control, wan_hmat):
     num_wann=np.shape(wan_hmat['basis'])[0]
     control['impurity_wan']=[]
     for ip in range(np.shape(control['impurity_problem'])[0]):
@@ -725,7 +777,7 @@ def create_comcoulomb_ini(control):
 
 #     return None
 
-
+# read_wan_hmat_basis reads in wannier.inip
 def read_wan_hmat_basis(control):
     # in the wannier directory
 
@@ -840,9 +892,14 @@ def read_convergence_table(control):
         convergence_table=[]    
     return convergence_table
 
-
+# generate_initial_self_energy creates sig.dat.
+# If ('initial_self_energy' in control, copy that self_energy to sig.dat.
+#   Possibly also copy information from initial_impurity_dir.
+# Otherwise, copies data from dc.dat to sig.dat.
 def generate_initial_self_energy(control,imp):
-    os.chdir(control['impurity_directory'])    
+    
+    os.chdir(control['impurity_directory']) 
+    
     if ('initial_self_energy' in control):
         shutil.copy(control['initial_self_energy'], './sig.dat')
         if ('initial_impurity_dir' in control):
@@ -865,10 +922,13 @@ def generate_initial_self_energy(control,imp):
         dclist=[]
         for ii in sorted(set(control['impurity_problem_equivalence'])):
             for jj in sorted(set(imp[str(abs(ii))]['impurity_matrix'].flatten().tolist())-{0}):
+                
+                # imp[key]['para'] = not(-1*int(key) in control['impurity_problem_equivalence'])
                 if (imp[str(abs(ii))]['para']):
                     dclist=dclist+list(dc[(2*cnt):(2*cnt+2)])
                 else:
                     dclist=dclist+list(dc[(2*cnt):(2*cnt+2)]-np.array([0.001*np.sign(ii), 0.0]))
+                    
                 cnt=cnt+1                    
         sig_table=[]
         for jj in range(control['n_omega']):
@@ -876,6 +936,7 @@ def generate_initial_self_energy(control,imp):
             sig_table.append(sig_omega)
         with open('./sig.dat', 'w') as outputfile:
             outputfile.write(tabulate(sig_table, headers=control['sig_header'], floatfmt=".12f", numalign="right",  tablefmt="plain"))
+
     if (control['method']=='lqsgw+dmft'):
         iter_string='_0'
     elif (control['method']=='lda+dmft'):
@@ -883,9 +944,12 @@ def generate_initial_self_energy(control,imp):
 
     labeling_file('./sig.dat', iter_string)
     print('initial_self_energy generation done', file=control['h_log'],flush=True)
+    
     os.chdir(control['top_dir'])
+    
     return None
 
+# prepare_initial_ef creates ef.dat and puts 0.0 inside it.
 def prepare_initial_ef(control):
     os.chdir(control['lowh_directory'])
     f=open('ef.dat','w')
@@ -895,13 +959,37 @@ def prepare_initial_ef(control):
     return None    
 
 
+# delta_postprocessing:
+#   takes info from e_projected_mat.dat and puts it in projected_eig.dat
+#   takes info from dc_mat.dat, and puts it in dc.dat.
+#   takes info from zinv_m1_mat.dat and puts it   in zinv_m1.dat 
+#   subtracts the contents of dc.dat from the  contents of 
+#       projected_eig.dat, and writes the result to e_imp.dat
+#   takes info from delta_mat.dat, and puts in delta.dat
+#   checks the causality of delta.dat, and if not causal then exits.
 def delta_postprocessing(control,imp):
 
+    # write_transformation_matrix does nothing unless control['trans_basis_mode']==2)
+    # the default value of trans_basis_mode is 0    
     write_transformation_matrix(control,control['lowh_directory']+'/local_spectral_matrix_ef.dat')
+
+    # cal_projected_mean_field_diagonal takes info from e_projected_mat.dat 
+    #   and puts it in projected_eig.dat
     cal_projected_mean_field_diagonal(control,imp)
+    
+    # cal_dc_diagonal takes info from dc_mat.dat, and puts it in dc.dat.    
     cal_dc_diagonal(control)
+
+    # cal_zinv_m1_diagonal takes info from zinv_m1_mat.dat and puts it 
+    #    in zinv_m1.dat    
     cal_zinv_m1_diagonal(control)
+
+    # cal_e_imp_diagonal subtracts the contents of dc.dat from the 
+    # contents of projected_eig.dat, and writes the result to e_imp.dat.    
     cal_e_imp_diagonal(control)
+
+    # cal_hyb_diagonal takes info from delta_mat.dat, and puts in delta.dat
+    # It also tests the causality of delta.dat, and returns 1 if causal, 0 otherwise.
     delta_causality=cal_hyb_diagonal(control,imp)
 
     if (delta_causality ==0):
@@ -910,15 +998,25 @@ def delta_postprocessing(control,imp):
 
     return delta_causality
 
-
+# cal_dc_diagonal takes info from dc_mat.dat, and puts it in dc.dat.
 def cal_dc_diagonal(control):
 
     os.chdir(control['dc_directory'])
+    
+    # read_impurity_mat_static loads data from dc_mat.dat,
+    # and puts it in the returned object, dc_mat.
+    # dc_mat contains one matrix for each impurity.
+    # To aid in parsing the input file, it uses two variables:
+    # control['impurity_problem_equivalence'] ,
+    # and control['impurity_wan'].
     dc_mat=read_impurity_mat_static(control,control['dc_directory']+'/dc_mat.dat')
 
     h=open('./dc.dat', 'w')
 
     for ii in sorted(set(control['impurity_problem_equivalence'])):
+        # imp_from_mat_to_array takes info from dc_mat [a matrix] and puts it
+        # in dc_vec [ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
+        # which matrix elements to leave out, and about averaging over matrix elements.        
         dc_vec=imp_from_mat_to_array(dc_mat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
         for jj in range(len(dc_vec)):
             h.write(str(np.real(dc_vec[jj]))+'   '+str(np.imag(dc_vec[jj]))+'    ')
@@ -962,16 +1060,28 @@ def cal_dc_diagonal(control):
 
 #     return None
 
+# cal_zinv_m1_diagonal takes info from zinv_m1_mat.dat and puts it 
+#    in zinv_m1.dat
 def cal_zinv_m1_diagonal(control):
 
     os.chdir(control['dc_directory'])
     if os.path.isfile(control['dc_directory']+'/zinv_m1_mat.dat'):    
+        
+        # read_impurity_mat_static loads data from zinv_m1_mat.dat
+        # and puts it in the returned object, zinv_m1_dat.
+        # zinv_m1_dat contains one matrix for each impurity.
+        # To aid in parsing the input file, it uses two variables:
+        # control['impurity_problem_equivalence'] ,
+        # and control['impurity_wan'].
         zinv_m1_mat=read_impurity_mat_static(control,control['dc_directory']+'/zinv_m1_mat.dat')
         
         
         h=open('./zinv_m1.dat', 'w')
         
         for ii in sorted(set(control['impurity_problem_equivalence'])):
+            # imp_from_mat_to_array takes info from zinv_m1_mat [a matrix] and puts it
+            # in zinv_m1_vec [ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
+            # which matrix elements to leave out, and about averaging over matrix elements.                    
             zinv_m1_vec=imp_from_mat_to_array(zinv_m1_mat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])        
             for jj in range(len(zinv_m1_vec)):
                 h.write(str(np.real(zinv_m1_vec[jj]))+'   '+str(np.imag(zinv_m1_vec[jj]))+'    ')
@@ -989,6 +1099,7 @@ def cal_zinv_m1_diagonal(control):
 
     return None
 
+# never used
 def vec_from_mat_dynamic(mat,trans):
     vec=np.zeros(np.shape(mat, 0), np.shape(mat, 1))
     for ii in range(np.shape(mat, 0)):
@@ -996,22 +1107,63 @@ def vec_from_mat_dynamic(mat,trans):
     return vec
 
 
+# prepare_impurity_solver:
+#   reads in lowh/delta.dat and saves it in a 
+#          json-formatted file hyb.json
+#   reads in lowh/e_imp.dat and lowh/trans_basis.dat
+#   For each impurity, writes out params.json. If doing lqsgw+dmft, it also 
+#       creates dyn.json file for each impurity.
+# There is no real numerical work here; just transfer of data.
 def prepare_impurity_solver(control,wan_hmat,imp):
 
     # cal_trans_from_patrick(control, imp)
+    
+    # array_impurity_dynamic loads data from delta.dat into
+    # the return variable, delta.  matout depends  on an index for omega,
+    # and also has a second index with a range equal 
+    # to amax(imp[str(abs(ii))]['impurity_matrix'])
+    # The following two variables are used: 
+    #   control['impurity_problem_equivalence']
+    #   control['n_omega']
     delta=array_impurity_dynamic(control,imp,control['lowh_directory']+'/delta.dat')
 
+    # write_json_all writes the contents of delta (from delta.dat) to the json-formatted 
+    #  file named json_name='hyb.json'. It also writes out imp['beta'], and it
+    # uses n_iio=np.amax(imp[key]['impurity_matrix']).  It does not use the
+    # control argument except to decide where hyb.json should be located.
     write_json_all(control,imp,delta,'hyb.json')
 
+    # generate_mat_from_array_impurity_static loads information from 
+    # filename=e_imp.dat into the returned array, e_imp
+    # matout contains one or more matrices, one for each impurity.
+    # It uses control['impurity_problem_equivalence'] which lists the impurities 
+    # It also uses imp[ 'impurity_matrix' ], and
+    #  n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix']), which describe 
+    #  each impurity.
     e_imp=generate_mat_from_array_impurity_static(control,imp,control['lowh_directory']+'/e_imp.dat')
+
+    # read_impurity_mat_static loads data from trans_basis.dat,
+    # and puts it in the returned object, trans_basis.
+    # trans_basis contains one matrix for each impurity.
+    # To aid in parsing the input file, it uses two variables:
+    # control['impurity_problem_equivalence'] ,
+    # and control['impurity_wan'].
     trans_basis=read_impurity_mat_static(control,control['lowh_directory']+'/trans_basis.dat')
 
+    # Loop over impurities one by one, setting up ctqmc input files for
+    # each impurity.
     for key, value in imp.items(): 
+        
         if (not (isinstance(imp[key], dict))):
             continue
+        
         nimp_orb=len(imp[key]['impurity_matrix'])
         os.chdir(control['impurity_directory']+'/'+key)
+        
         if (control['spin_orbit']):
+            
+            # prepare e_imp_key from e_imp, trans_key from trans_basis, 
+            # equivalence_key from imp[key]['impurity_matrix']
             ndim=nimp_orb
             e_imp_key=np.zeros((ndim, ndim))
             trans_key=np.zeros((ndim, ndim))
@@ -1020,18 +1172,28 @@ def prepare_impurity_solver(control,wan_hmat,imp):
             trans_key=np.real(trans_basis[key])
             # equivalence_key=array([[(lambda ii: str(ii) if str(ii)!='0' else '')(ii) for ii in row] for row in imp[key]['impurity_matrix']])
             equivalence_key=list(map(lambda row: list(map(lambda x: str(x) if x!='0' else '', list(map(str, row)))), imp[key]['impurity_matrix']))
+            
         else:
+ 
+            # prepare e_imp_key from e_imp, trans_key from trans_basis, 
+            # equivalence_key from imp[key]['impurity_matrix'].
+            # There are twice as many orbitals in this case, so some extra work
+            #  is done based on the value of imp[key]['para'].
             ndim=nimp_orb*2
             e_imp_key=np.zeros((ndim, ndim))
             trans_key=np.zeros((ndim, ndim))
             equivalence_key_int_mat=np.array(imp[key]['impurity_matrix'])            
             equivalence_key_int_mat_all=np.zeros((ndim, ndim),dtype='int')
+            
+            # some special logic concerning magnetism
+            # imp[key]['para'] = not(-1*int(key) in control['impurity_problem_equivalence'])
             if (imp[key]['para']):
                 mkey=key
                 shiftval=0
             else:
                 mkey=str(-int(key))
                 shiftval=np.amax(equivalence_key_int_mat)
+                
             print(mkey, shiftval, file=control['h_log'],flush=True)
             #
             # On the next line ii>0 evaluates to 1 if ii>0 and evaluates to 0 otherwise
@@ -1049,15 +1211,41 @@ def prepare_impurity_solver(control,wan_hmat,imp):
             equivalence_key=list(map(lambda row: list(map(lambda x: str(x) if x!='0' else '', list(map(str, row)))), equivalence_key_int_mat_all))
             
 
+        # write_params_json creates a params.json file containing info needed by
+        # ctqmc.
+        # e_imp_key (from e_imp.dat) is used for: mu_ctqmc=-e_imp_key[0,0], e_ctqmc=(e_imp_key+np.identity(len(e_imp_key))*mu_ctqmc)
+        # trans_key.tolist() (from trans_basis.dat) is saved in the json file as ["basis"]["transformation"]
+        # equivalence_key.tolist() (from imp[key]['impurity_matrix'])  is saved 
+        #    in the json file as ["hybridisation"]["matrix"], 
+        #    and its length is saved in ["dyn"]['quantum numbers']
+        # control is used to obtain control['method'], control['spin_orbit']
+        # imp is used to get imp['problem'],imp['impurity_matrix'], imp['f0'], imp['f2'], 
+        #      imp['f4'], imp['f6'], imp["coulomb"], imp['measurement_time'] , 
+        #      imp['thermalization_time'], imp['green_cutoff'], 
+        #      imp['susceptibility_cutoff'], imp['susceptibility_tail']  
+        #     Most of these are simply saved in the json file.
         write_params_json(control,imp[key],e_imp_key,trans_key,equivalence_key,imp['beta'])
+
+        # write_dynamical_f0_json  saves out dyn.json, from imp['dynamical_f0'].tolist().        
         if (control['method']=='lqsgw+dmft'):
             write_dynamical_f0_json(imp[key])
 
     os.chdir(control['top_dir'])
     return None
 
-
+# run_impurity_solver runs CTQMC and EVALSIM, and then:
+# reads in ctqmc's output from params.obs.json and updates convergence.log
+# "green" from params.obs.json is saved in gimp.dat
+# "self-energy" from params.obs.json is saved in sig_bare.dat
+# "self-energy" is smoothed using Gaussian broadening and stored in sigma.
+#    sigma is saved in  sig_smth.dat.
+# If any element of imag(sigma) is positive, then sig_causality is set 
+#       to 0=False; otherwise it is 1=True.
+# If any element of imag(sigma) is positive, then sigma_to_delta = sigma_old [read in from sig.dat].
+#    If it is true then sigma_to_delta is a mix of sigma with sigma_old [ read in from sig.dat].
+# sigma_to_delta is saved in sig.dat.
 def run_impurity_solver(control,imp):
+    
     green={}
     sigma_bare={}
     sigma={}
@@ -1066,14 +1254,39 @@ def run_impurity_solver(control,imp):
         if (not (isinstance(imp[key], dict))):
             continue
         os.chdir(control['impurity_directory']+'/'+key)
+        
+        # solve_impurity_patrick just runs CTQMC
         solve_impurity_patrick(control)
+ 
+        # measure_impurity_patrick just calls EVALSIM.
         measure_impurity_patrick(control)
+        
+        # maybe document this. The default value of 'embed_mode' is 'hfc'.
+        # impurity_hartree combines u0mat.dat with val['impurity_matrix'], and
+        #       writes the result to hartree.dat
         if  (control['embed_mode'] == 'fc'):                
             impurity_hartree(control, key, value)
-            
+
+
+        # impurity_postprocessing reads in ctqmc's output from params.obs.json
+        # impurity_postprocessing also updates convergence.log
+        # green comes from "green" in params.obs.json, and is saved in gimp.dat
+        # sigma_bare comes from "self-energy" in params.obs.json, and is saved in sig_bare.dat
+        # sigma comes from  performing gaussian_broadening_linear on sigma_bare, and is saved in sig_smth.dat.
+        # gaussian_broadening_linear takes the input y, and returns ynew, which is
+        # calculated by doing Gaussian broadening.
+        # If any element of imag(sigma) is positive, then sig_causality is set 
+        #       to 0=False; otherwise it is 1=True.
+        # If any element of imag(sigma) is positive, then sigma_to_delta = sigma_old [read in from sig.dat].
+        #    If it is true then sigma_to_delta is a mix of sigma with sigma_old [ read in from sig.dat].
+        # sigma_to_delta is saved in sig.dat.
         green[key], sigma_bare[key], sigma[key], sigma_to_delta[key]=impurity_postprocessing(control, imp, key)
 
-        
+
+    # The rest of this routine saves green in gimp.dat, 
+    #      sigma_bare in sig_bare.dat,
+    #      sigma in sig_smth.dat ,
+    #      sigma_to_delta in sig.dat                 
     os.chdir(control['impurity_directory'])
 
     green_table=[]
@@ -1113,7 +1326,7 @@ def run_impurity_solver(control,imp):
     shutil.copy('./sig.dat', control['top_dir'])
 
 
-
+    # maybe document this. The default value of 'embed_mode' is 'hfc'.
     if  (control['embed_mode'] == 'fc'):                
 
         hartree_table=[]
@@ -1136,12 +1349,15 @@ def run_impurity_solver(control,imp):
     labeling_file('./sig_bare.dat',iter_string)
     labeling_file('./sig_smth.dat',iter_string)
     labeling_file('./sig.dat',iter_string)
+    
+    # maybe document this. The default value of 'embed_mode' is 'hfc'.    
     if  (control['embed_mode'] == 'fc'):                    
         labeling_file('./hartree.dat',iter_string)    
 
     os.chdir(control['top_dir'])
 
-
+# generate_mat_from_array_impurity_dynamic reads information from filename
+# and returns it in matout.
 def generate_mat_from_array_impurity_dynamic(control,imp, filename):
 
     os.chdir(control['impurity_directory'])
@@ -1173,6 +1389,13 @@ def generate_mat_from_array_impurity_dynamic(control,imp, filename):
     return matout
 
 
+# generate_mat_from_array_impurity_static loads information from 
+# filename=e_imp.dat into the returned array, matout.
+# matout contains one or more matrices, one for eqc impurity.
+# It uses control['impurity_problem_equivalence'] which lists the impurities 
+# It also uses imp[ 'impurity_matrix' ], and
+#  n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix']), which describe 
+#  each impurity.
 def generate_mat_from_array_impurity_static(control,imp, filename):
 
     os.chdir(control['impurity_directory'])
@@ -1195,10 +1418,17 @@ def generate_mat_from_array_impurity_static(control,imp, filename):
     matout={}
     for ii in sorted(set(control['impurity_problem_equivalence'])):
         tempmat2=dat[start_array[ii]:end_array[ii]]
+        
+        # imp_from_array_to_mat takes data from the list 
+        # in tempmat2[0::2]+tempmat2[1::2]*1j and uses it to
+        # initialize the output matrix matout.  The list  
+        # in imp[str(abs(ii))]['impurity_matrix'] 
+        # describes equivalences between the data points in the input list
+        # and elements of the matrix matout.        
         matout[str(ii)]=imp_from_array_to_mat(tempmat2[0::2]+tempmat2[1::2]*1j,imp[str(abs(ii))]['impurity_matrix'])
     return matout
 
-
+# never used
 def array_impurity_static(control,imp, filename):
 
     os.chdir(control['impurity_directory'])
@@ -1224,7 +1454,13 @@ def array_impurity_static(control,imp, filename):
         matout[str(ii)]=tempmat2[0::2]+tempmat2[1::2]*1j
     return matout
 
-
+# array_impurity_dynamic loads data from the file named filename into
+# the return variable, matout.  matout depends  on an index for omega,
+# and also has a second index with a range equal 
+# to amax(imp[str(abs(ii))]['impurity_matrix'])
+# The following two variables are used: 
+#   control['impurity_problem_equivalence']
+#   control['n_omega']
 def array_impurity_dynamic(control,imp, filename):
 
     os.chdir(control['impurity_directory'])
@@ -1255,15 +1491,27 @@ def array_impurity_dynamic(control,imp, filename):
         matout[str(ii)]=tempmat
     return matout
 
+# cal_projected_mean_field_diagonal takes info from e_projected_mat.dat 
+# and puts it in projected_eig.dat
 def cal_projected_mean_field_diagonal(control,imp):
 
     os.chdir(control['lowh_directory'])
+    
+    # read_impurity_mat_static loads data from e_projected_mat.dat,
+    # and puts it in the returned object, hmat.
+    # hmat contains one matrix for each impurity.
+    # To aid in parsing the input file, it uses two variables:
+    # control['impurity_problem_equivalence'] ,
+    # and control['impurity_wan'].
     hmat=read_impurity_mat_static(control,control['lowh_directory']+'/e_projected_mat.dat')
 
     h=open('./projected_eig.dat', 'w')
 
 
-    for ii in sorted(set(control['impurity_problem_equivalence'])):    
+    for ii in sorted(set(control['impurity_problem_equivalence'])):  
+        # imp_from_mat_to_array takes info from hmat [a matrix] and puts it
+        # in h_vec [ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
+        # which matrix elements to leave out, and about averaging over matrix elements.                    
         h_vec=imp_from_mat_to_array(hmat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
 
         for jj in range(len(h_vec)):
@@ -1281,16 +1529,21 @@ def cal_projected_mean_field_diagonal(control,imp):
     os.chdir(control['top_dir'])
     return None
 
+# cal_e_imp_diagonal subtracts the contents of dc.dat from the 
+# contents of projected_eig.dat, and writes the result to e_imp.dat.
 def cal_e_imp_diagonal(control):
     os.chdir(control['lowh_directory'])
     eig=np.loadtxt('projected_eig.dat')
     dc=np.loadtxt(control['dc_directory']+'/dc.dat')
+    
+    # maybe document this. The default value of 'embed_mode' is 'hfc'.   
     if  (control['embed_mode'] == 'fc'):        
         hartree=np.loadtxt(control['impurity_directory']+'/hartree.dat')    
 
     f=open('e_imp.dat', 'w')
     if  (control['embed_mode'] == 'hfc'):    
         f.write("  ".join(map(str, eig-dc))+'\n')
+    # maybe document this. The default value of 'embed_mode' is 'hfc'.        
     elif (control['embed_mode'] == 'fc'):
         f.write("  ".join(map(str, eig-dc-hartree))+'\n')    
     f.close()
@@ -1307,6 +1560,10 @@ def cal_e_imp_diagonal(control):
     return None
 
 
+# imp_from_array_to_mat takes data from the list in vecin and uses it to
+# inialize the output matrix matout.  The list  in equivalence_mat 
+# describes equivalences between the data points in vecin and elements
+# of the matrix matout.
 def imp_from_array_to_mat(vecin,equivalence_mat):
     nimp_orb=len(equivalence_mat)
     matout=np.zeros((nimp_orb, nimp_orb), dtype='complex')
@@ -1317,7 +1574,9 @@ def imp_from_array_to_mat(vecin,equivalence_mat):
     return matout
 
 
-
+# imp_from_mat_to_array takes info from matin [a matrix] and puts it
+# in vecout [ a vector].  equivalence_mat contains instructions about
+# which matrix elements to leave out, and about averaging over matrix elements.
 def imp_from_mat_to_array(matin,equivalence_mat):
     n_iio=np.amax(equivalence_mat)
     vecout=np.zeros(n_iio, dtype='complex')
@@ -1370,6 +1629,12 @@ def imp_from_mat_to_array(matin,equivalence_mat):
 #     return imp_basis
 
 
+# read_impurity_mat_static loads data from the file named filename,
+# and puts it in the returned object, inp_basis.
+# inp_basis contains one matrix for each impurity.
+# To aid in parsing the input file, it uses two variables:
+# control['impurity_problem_equivalence'] ,
+# and control['impurity_wan'].
 def read_impurity_mat_static(control,filename):
     imp_basis={}
     g=open(filename, 'r')
@@ -1388,7 +1653,8 @@ def read_impurity_mat_static(control,filename):
         imp_basis[str(ii)]=impmat
     return imp_basis
 
-
+# read_impurity_mat_dynamic reads info from filename and puts it in
+#   imp_basis, which is returned.
 def read_impurity_mat_dynamic(control,filename):
     imp_basis={}
     dat=np.loadtxt(filename)
@@ -1418,11 +1684,14 @@ def read_impurity_mat_dynamic(control,filename):
     return imp_basis
 
 
-
+# cal_hyb_diagonal takes info from delta_mat.dat, and puts in delta.dat
+# It also tests the causality of delta.dat, and returns 1 if causal, 0 otherwise.
 def cal_hyb_diagonal(control,imp):
 
     os.chdir(control['lowh_directory'])
 
+    # read_impurity_mat_dynamic reads info from delta_mat.dat and puts it in
+    #   hyb_mat.
     hyb_mat=read_impurity_mat_dynamic(control,control['lowh_directory']+'/delta_mat.dat')
 
     # print hyb_mat
@@ -1431,6 +1700,9 @@ def cal_hyb_diagonal(control,imp):
     for jj in range(control['n_omega']):
         hyb_omega=[control['omega'][jj]]
         for ii in sorted(set(control['impurity_problem_equivalence'])):
+            # imp_from_mat_to_array takes info from hyb_mat [a matrix] and puts it
+            # in hyb_vec [ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
+            # which matrix elements to leave out, and about averaging over matrix elements.                    
             hyb_vec=imp_from_mat_to_array(hyb_mat[str(ii)][jj,:,:],imp[str(abs(ii))]['impurity_matrix'])
 
             hyb_omega=hyb_omega+np.reshape(np.stack((np.real(hyb_vec), np.imag(hyb_vec)), 0), (len(hyb_vec)*2), order='F').tolist()
@@ -1448,6 +1720,10 @@ def cal_hyb_diagonal(control,imp):
     shutil.copy('./delta.dat', control['top_dir'])    
 
     print('delta.dat generation done', file=control['h_log'],flush=True)
+    
+    # test_causality returns 1 if delta.dat obeys causality, and 0 otherwise.
+    # obeying causality means that something (maybe the imaginary part) of
+    # delta.dat must be positive.    
     causality=test_causality('./delta.dat')
 
     os.chdir(control['lowh_directory'])    
@@ -1533,20 +1809,33 @@ def check_for_files(filepath, h_log):
         quit()
     return None
 
+# gaussian_broadening_linear takes the input y, and returns ynew, which is
+# calculated by doing Gaussian broadening.
+# x contains control['omega']
+# y contains sigma_bare[:,jj]
+# w1 is hard-coded to 0.05
+# temperature is imp['temperature']
+# cutoff is imp[key]['green_cutoff']
 def gaussian_broadening_linear(x, y, w1, temperature, cutoff):
+    
     # broadening starts at the second matsubara points
     print(np.shape(x))
     print(np.shape(y))
     print(x)
     print(y)
     w0=(1.0-3.0*w1)*np.pi*temperature*8.6173303*10**-5
+    
     width_array=w0+w1*x
+    
     cnt=0
+    
     ynew=np.zeros(len(y), dtype='complex')
+    
     for x0 in x:
         if (x0>cutoff+(w0+w1*cutoff)*3.0):
             ynew[cnt]=y[cnt]
         else:
+            
             if ((x0>3*width_array[cnt]) and ((x[-1]-x0)>3*width_array[cnt])):
                 dist=1.0/np.sqrt(2*pi)/width_array[cnt]*np.exp(-(x-x0)**2/2.0/width_array[cnt]**2)
                 ynew[cnt]=np.sum(dist*y)/np.sum(dist)
@@ -1555,6 +1844,7 @@ def gaussian_broadening_linear(x, y, w1, temperature, cutoff):
         cnt=cnt+1
     return ynew
 
+# solve_impurity_patrick just runs CTQMC
 def solve_impurity_patrick(control):
 
     # execute CTQMC
@@ -1582,6 +1872,7 @@ def solve_impurity_patrick(control):
     return None
 
 
+# measure_impurity_patrick just calls EVALSIM.
 def measure_impurity_patrick(control):
     
     print('-----------------------', file = sys.stdout, flush=True)     
@@ -1613,7 +1904,10 @@ def measure_impurity_patrick(control):
     # shutil.copy("./evalsim.out", "./evalsim"+iter_string+'.log')
     return None
 
-
+# write_json_all writes the contents of data_array=delta to the json-formatted 
+#  file named json_name='hyb.json'. It also writes out imp['beta'], and it
+# uses n_iio=np.amax(imp[key]['impurity_matrix']).  It does not use the
+# control argument except to decide where hyb.json should be located.
 def write_json_all(control,imp,data_array,json_name):
     # assume that it is diagonal matrix
 
@@ -1622,6 +1916,8 @@ def write_json_all(control,imp,data_array,json_name):
         if (not (isinstance(imp[key], dict))):
             continue
         n_iio=np.amax(imp[key]['impurity_matrix'])
+        
+        # imp[key]['para'] = not(-1*int(key) in control['impurity_problem_equivalence'])
         if (imp[key]['para']):
             for kk in range(n_iio):
                 orb_name=str(kk+1)
@@ -1650,7 +1946,7 @@ def write_json_all(control,imp,data_array,json_name):
     return None    
 
 
-
+# never used
 def read_json(jsonfile):
     Sig_temp=json.load(open(jsonfile))
     n_omega=len(Sig_temp['1']['real'])
@@ -1669,6 +1965,8 @@ def read_function_from_jsonfile(jsonfile, dict_name):
         dat1[:,int(key)-1]=np.array(Sig_temp[key]["function"]['real'])+np.array(Sig_temp[key]["function"]['imag'])*1j
     return dat1
 
+# impurity_hartree combines u0mat.dat with val['impurity_matrix'], and
+#       writes the result to hartree.dat
 def impurity_hartree(control, key, val):
     # matout={}    
     # for key, value in imp.items():
@@ -1680,7 +1978,8 @@ def impurity_hartree(control, key, val):
     occ=json.load(open('params.obs.json'))['partition']["occupation"]
     u0mat=np.reshape(np.loadtxt(control['dc_directory']+'/'+key+'/u0mat.dat'), [nimp_orb, nimp_orb, nimp_orb, nimp_orb, 6], order='F')[:,:,:,:,4]
     vh=np.zeros((nimp_orb, nimp_orb), dtype='complex')
-        
+
+    # imp[key]['para'] = not(-1*int(key) in control['impurity_problem_equivalence'])        
     if (val['para']):
         tempmat=np.zeros(n_iio)
         for key2, value2 in occ.items():
@@ -1703,7 +2002,9 @@ def impurity_hartree(control, key, val):
         for ii in product(np.arange(nimp_orb), repeat=4):
             vh[ii[0],ii[1]]=vh[ii[0],ii[1]]+u0mat[ii[3], ii[2], ii[1], ii[0]]*(denmat_up[ii[3], ii[2]]+denmat_dn[ii[3], ii[2]])
 
-
+    # imp_from_mat_to_array takes info from vh [a matrix] and puts it
+    # in h_vec[ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
+    # which matrix elements to leave out, and about averaging over matrix elements.                    
     h_vec=imp_from_mat_to_array(vh,val['impurity_matrix'])
 
     h=open(control['impurity_directory']+'/'+key+'/hartree.dat', 'w')
@@ -1714,7 +2015,18 @@ def impurity_hartree(control, key, val):
     return None
         
     
-
+# impurity_postprocessing reads in ctqmc's output from params.obs.json
+# impurity_postprocessing also updates convergence.log
+# green comes from "green" in params.obs.json, and is saved in gimp.dat
+# sigma_bare comes from "self-energy" in params.obs.json, and is saved in sig_bare.dat
+# sigma comes from  performing gaussian_broadening_linear on sigma_bare, and is saved in sig_smth.dat.
+# gaussian_broadening_linear takes the input y, and returns ynew, which is
+# calculated by doing Gaussian broadening.
+# If any element of imag(sigma) is positive, then sig_causality is set 
+#       to 0=False; otherwise it is 1=True.
+# If any element of imag(sigma) is positive, then sigma_to_delta = sigma_old [read in from sig.dat].
+#    If it is true then sigma_to_delta is a mix of sigma with sigma_old [ read in from sig.dat].
+# sigma_to_delta is saved in sig.dat.
 def impurity_postprocessing(control, imp, key):
 
     if (control['method']=='lqsgw+dmft'):
@@ -1726,15 +2038,21 @@ def impurity_postprocessing(control, imp, key):
     labeling_file('./params.meas.json',iter_string)
 
 
+    # Read in histogramming info from params.obs.json
     histo_temp=json.load(open('params.obs.json'))['partition']["expansion histogram"]
 
     histo=np.zeros((np.shape(histo_temp)[0], 2))
     histo[:,0]=np.arange(np.shape(histo_temp)[0])
     histo[:,1]=histo_temp
+    
+    # nn is used only for convergence.log.
     nn=json.load(open('params.obs.json'))['partition']["scalar"]["N"][0]
+    
+    # ctqmc_sign is used only for convergence.log.
     ctqmc_sign=json.load(open('params.obs.json'))['partition']["sign"][0]
 
     # histogram
+    # These moments are used only for convergence.log.
     firstmoment=np.sum(histo[:,0]*histo[:,1])/np.sum(histo[:,1])
     secondmoment=np.sum((histo[:,0]-firstmoment)**2*histo[:,1])/np.sum(histo[:,1])
     thirdmoment=np.sum((histo[:,0]-firstmoment)**3*histo[:,1])/np.sum(histo[:,1])/secondmoment**(3.0/2.0)
@@ -1745,15 +2063,31 @@ def impurity_postprocessing(control, imp, key):
 
     # previous_iter_string='_'.join(map(str,iter_string.split('_')[:-1]))+'_'+str(int(iter_string.split('_')[-1])-1)    
 
+ 
+ 
 
+    # green will be written to gimp.dat
     green=read_function_from_jsonfile('./params.obs.json',"green")
-    sigma_bare=read_function_from_jsonfile('./params.obs.json',"self-energy")
     
+    # sigma_bare will be written in sig_bare.dat.
+    sigma_bare=read_function_from_jsonfile('./params.obs.json',"self-energy")
+
+    # maybe document this. The default value of 'embed_mode' is 'hfc'.    
     if  (control['embed_mode'] == 'fc'):
         dat=np.loadtxt('hartree.dat')[0::2]
         sigma_bare=sigma_bare-dat
-    
+
+    # Read sigma_old in from sig.dat.
+    # array_impurity_dynamic loads data from sig.dat into
+    # the return variable, sigma_old.  matout depends  on an index for omega,
+    # and also has a second index with a range equal 
+    # to amax(imp[str(abs(ii))]['impurity_matrix'])
+    # The following two variables are used: 
+    #   control['impurity_problem_equivalence']
+    #   control['n_omega']    
     sigma_old=array_impurity_dynamic(control,imp,control['impurity_directory']+'/sig.dat')
+    
+    
     sigma=np.zeros(np.shape(sigma_bare), dtype='complex')
     sigma_to_delta=np.zeros(np.shape(sigma_bare), dtype='complex')
 
@@ -1761,6 +2095,16 @@ def impurity_postprocessing(control, imp, key):
 
     sig_causality=1    
 
+    # calculate sigma, sig_causality, sigma_to_delta
+    # sigma comes from  performing gaussian_broadening_linear on sigma_bare
+    # sigma will be saved in sig_smth.dat
+    # sigma_to_delta will be saved in sig.dat.
+    # If any element of imag(sigma) is positive, then sig_causality is set 
+    #       to 0=False; otherwise it is 1=True.
+    # If any element of imag(sigma) is positive, then sigma_to_delta = sigma_old.
+    #    Otherwise sigma_to_delta is a mix of sigma with sigma_old.
+    # gaussian_broadening_linear takes the input y, and returns ynew, which is
+    # calculated by doing Gaussian broadening.
     for jj in range(n_iio):
         sigma[:,jj]=gaussian_broadening_linear(control['omega'], sigma_bare[:,jj], 0.05, imp['temperature'], imp[key]['green_cutoff'])
         if ((np.imag(sigma[:,jj])>0.0).any()):
@@ -1768,6 +2112,9 @@ def impurity_postprocessing(control, imp, key):
             sigma_to_delta[:,jj]=sigma_old[key][:,jj]
         else:
             sigma_to_delta[:,jj]=(sigma_old[key][:,jj])*(1.0-control['sigma_mix_ratio'])+(sigma[:,jj])*control['sigma_mix_ratio']
+    
+    # This logic takes care of some magnetic issue.
+    # imp[key]['para'] = not(-1*int(key) in control['impurity_problem_equivalence'])
     if (not imp[key]['para']):
         for jj in range(n_iio, n_iio*2):
             mkey=str(-int(key))
@@ -1778,6 +2125,9 @@ def impurity_postprocessing(control, imp, key):
             else:
                 sigma_to_delta[:,jj]=(sigma_old[mkey][:,jj-n_iio])*(1.0-control['sigma_mix_ratio'])+(sigma[:,jj])*control['sigma_mix_ratio']
 
+    # Calculate sig_diff_ave, the norm of the difference 
+    #  between sigma_to_delta and sigma_old.
+    # imp[key]['para'] = not(-1*int(key) in control['impurity_problem_equivalence'])
     if (imp[key]['para']):
         sig_diff_ave=np.sqrt(np.mean(np.absolute((sigma_to_delta-sigma_old[key]))**2))
     else:
@@ -1790,6 +2140,7 @@ def impurity_postprocessing(control, imp, key):
     else:
         causality_flag='broken'
 
+    # update convergence.log
     if (control['method']=='lda+dmft'):
         control['conv_table'].append(['impurity_'+key,control['iter_num_outer'], '', control['iter_num_impurity'],causality_flag,'','','','',sig_diff_ave,nn,firstmoment,secondmoment,ctqmc_sign])
         with open(control['top_dir']+'/convergence.log', 'w') as outputfile:
@@ -1801,7 +2152,9 @@ def impurity_postprocessing(control, imp, key):
 
     return green, sigma_bare, sigma, sigma_to_delta
 
-
+# test_causality returns 1 if delta.dat obeys causality, and 0 otherwise.
+# obeying causality means that something (maybe the imaginary part) of
+# delta.dat must be positive.
 def test_causality(filename):
     causality=1
     dat=np.loadtxt(filename)
@@ -1815,11 +2168,12 @@ def test_causality(filename):
     return causality
 
 
-
+# write_transformation_matrix does nothing unless control['trans_basis_mode']==2)
+# the default value of trans_basis_mode is 0
 def write_transformation_matrix(control, filename):
     os.chdir(control['lowh_directory'])
     
-
+    # the default value of trans_basis_mode is 0
     if (control['trans_basis_mode']==2):
         f=open('trans_basis.dat', 'w')
         g=open(filename, 'r')
@@ -1854,6 +2208,10 @@ def write_transformation_matrix(control, filename):
 
     return None
 
+# run_comlowh executes comlowh.
+# Afterwards it moves around some of comlowh's outputs: comlowh.log, 
+# delta_mat.dat, g_loc_mat.dat, local_spectral_matrix_ef.dat, 
+# e_projected_mat.dat, and ef.dat .
 def run_comlowh(control):
 
     os.chdir(control['lowh_directory'])
@@ -2335,6 +2693,19 @@ def comcoulomb_postprocessing(control,imp):
 #     return None
 
 
+# write_params_json creates a params.json file containing info needed by
+# ctqmc.
+# e_imp_key is used for: mu_ctqmc=-e_imp_key[0,0], e_ctqmc=(e_imp_key+np.identity(len(e_imp_key))*mu_ctqmc)
+# trans_key.tolist() is saved in the json file as ["basis"]["transformation"]
+# equivalence_key.tolist() is saved in the json file as ["hybridisation"]["matrix"], 
+#    and its length is saved in ["dyn"]['quantum numbers']
+# control is used to obtain control['method'], control['spin_orbit']
+# imp is used to get imp['problem'],imp['impurity_matrix'], imp['f0'], imp['f2'], 
+#      imp['f4'], imp['f6'], imp["coulomb"], imp['measurement_time'] , 
+#      imp['thermalization_time'], imp['green_cutoff'], 
+#      imp['susceptibility_cutoff'], imp['susceptibility_tail']  
+#     Most of these are simply saved in the json file.
+#   beta is also saved.
 def write_params_json(control,imp,e_imp_key,trans_key,equivalence_key,beta):
 
     mu_ctqmc=-e_imp_key[0,0]
@@ -2441,6 +2812,7 @@ def write_params_json(control,imp,e_imp_key,trans_key,equivalence_key,beta):
 
     return None
 
+# write_dynamical_f0_json  saves out dyn.json, from imp['dynamical_f0'].tolist().
 def write_dynamical_f0_json(imp):
 
     dyn_dict={}
@@ -2487,6 +2859,7 @@ def write_dynamical_f0_json(imp):
 #     shutil.copy("./atom.out", "./atom"+iter_string+'.log')
 #     return None
 
+# write_conv_dft writes out information to convergence.log
 def write_conv_dft(control):
 
     os.chdir(control['lattice_directory'])
@@ -2571,6 +2944,8 @@ def write_conv_wan(control):
     return None
 
 
+# write_conv_delta writes out its delta_causality argument, and the Fermi 
+# level from ef.dat. This goes into convergence.log.
 def write_conv_delta(control,delta_causality):
 
     os.chdir(control['lowh_directory'])
@@ -2619,7 +2994,9 @@ def write_conv_delta(control,delta_causality):
 #     #         f.close()
 #     return nimp
 
-
+# check_wannier_function_input creates comwann.ini
+# if ('local_axis' in wan_hmat) then it reads info from crystal_structure.json
+#       and puts it in local_axis.dat
 def check_wannier_function_input(control,wan_hmat):    
 
     os.chdir(control['wannier_directory'])
@@ -2657,6 +3034,7 @@ def check_coulomb_input(control):
     os.chdir(control['top_dir'])
     return None
 
+# run_dft runs rspflapw
 def run_dft(control):
 
     print('-----------------------', file = sys.stdout, flush=True) 
@@ -2709,6 +3087,8 @@ def run_dft(control):
 #     print('update, ef in dft', ef_old, ef_new, file=control['h_log'],flush=True)
 #     return None
 
+# prepare_dft_input makes sure that wannier_den_matrix.dat is in the right place
+#   for the dft calculation.
 def prepare_dft_input(control):
     os.chdir(control['lattice_directory'])
 
@@ -2727,6 +3107,18 @@ def prepare_dft_input(control):
 # def check_nominal_dc_input(h_log):
 #     check_for_files(control['top_dir']+'/dc/n_imp.dat', h_log)    
 
+# cal_nominal_dc initializes dc_mat.dat when doing dft+dmft.
+# based on whether doing spin_orbit, and whether doing s,p,d,f,
+#   and the values of f0,f2,f4,f6, calculate uval and jval.
+#   Next uval and jval and 'nominal_n' are used to calculate dcval.
+# dcval multiplies the identity, and this is stored in dc_mat.dat - one matrix
+#   for each impurity.
+# If doing spin_orbit, only f is implemented; s,p,d are not implemented. But
+#     this fails silently.    
+# cal_nominal_dc does not create a zinv_m1.dat file, which is equivalent to 
+#   to setting Z = Z^{-1} = 1.            
+# cal_nominal_dc is interesting because it completely 
+#   circumvents ComDC, and could be used in a qsgw+dmft run if desired. 
 def cal_nominal_dc(imp,control):
     os.chdir(control['dc_directory'])
     f=open('dc_mat.dat', 'w')
@@ -2767,9 +3159,18 @@ def cal_nominal_dc(imp,control):
     os.chdir(control['top_dir'])
     return None
 
+# prepare_seed_dc_sig_and_wannier_dat:
+#   - generates comlowh.ini, using generate_comlowh_ini
+#   - saves dc.dat, which it fills with zeroes.
+#   - saves sig.dat, which seems to contains zero's, and omega's
 def prepare_seed_dc_sig_and_wannier_dat(control,wan_hmat,imp):
     os.chdir(control['lowh_directory'])
 
+# generate_comlowh_ini's job is to create comlowh.ini, whose contents
+#  are straight copies of certain variables in the control variable, plus
+#  imp['beta'], wan_hmat['kgrid'].
+#  the one exception is the last argument, 1, which says that comlowh should 
+#  recalculate the Fermi level.
     generate_comlowh_ini(control,wan_hmat,imp,1)
 
     natom=len(control['impurity_wan'])
@@ -2836,26 +3237,38 @@ def prepare_seed_dc_sig_and_wannier_dat(control,wan_hmat,imp):
 #         enddo
 
 
+# generate_comlowh_ini's job is to create comlowh.ini, whose contents
+#  are straight copies of certain variables in the control variable, plus
+#  imp['beta'], wan_hmat['kgrid'].
+#  the one exception is the is_recal_ef argument, which determines whether
+#  to recalculate the Fermi level.
 def generate_comlowh_ini(control,wan_hmat,imp,is_recal_ef):
 
     f=open('comlowh.ini', 'w')
-    f.write('1\n')
+    
+    f.write('1\n') # This tells comlowh which task to do.
+    
     natom=len(control['impurity_wan'])
     # nimp_orb=np.shape(control['impurity_wan'])[1]
     nimp_orb=np.zeros(natom, dtype=int)
     for ii in range(natom):
         nimp_orb[ii]=len(control['impurity_wan'][ii])
     f.write(str(natom)+'\n')
+    
     f.write(' '.join(map(str,nimp_orb))+'\n')
     f.write(' '.join(map(str,control['impurity_problem_equivalence']))+'\n')
+    
+    # This prints out impurity equivalence data: a matrix.
     for ii in sorted(set(control['impurity_problem_equivalence'])):
         prob_ind=control['impurity_problem_equivalence'].index(ii)
         nimp_orb=len(control['impurity_wan'][prob_ind])        
         for jj in range(nimp_orb):
             f.write(' '.join(map(str,imp[str(abs(ii))]['impurity_matrix'][jj]))+'\n')
 
+    # This prints out indices of the orbitals used for impurities.
     for iatom in range(natom):
         f.write(' '.join(map(str,control['impurity_wan'][iatom]))+' ')
+        
     f.write('\n')
     f.write(str(control['proj_win_min'])+'   '+str(control['proj_win_max'])+'\n')
     n_omega=control['n_omega']
@@ -2882,30 +3295,67 @@ def generate_comlowh_ini(control,wan_hmat,imp,is_recal_ef):
     f.close()
     return None
 
-
+# prepare_dc writes out files to be used by ComDC.
+#   - it saves comdc.ini
+#   - it saves g_loc.dat, which comes from either g_loc_mat.dat 
+#           or gimp.dat, depending on the values of dc_mode and dc_g.
+#           gimp.dat comes from CTQMC, in params.obs.json.
+#           g_loc_mat.dat comes from ComLowH
+#   - it saves trans_dc.dat, from trans_basis.dat
+#   - it saves slater.dat, which contains f0,f2,f4,f6
+#   - it saves dynamical_f0.dat, which is from imp[str(key)]['dynamical_f0']
 def prepare_dc(control,wan_hmat,imp):
+    
     if ('dc_mat_to_read' not in control):
         if (control['method']=='lqsgw+dmft'):
 
-            if (control['dc_mode'] == 'dc_at_gw'):                        
+            # This logic decides gloc_mat, which will be saved in g_loc.dat.
+            # dc_mode's default value is dc_at_gw
+            # The only difference between dc_at_gw and dc_scf, is where
+            #       gloc_mat comes from, and also that dc_scf means that 
+            #       ComDC should be rerun at every iteration.
+            if (control['dc_mode'] == 'dc_at_gw'):   
+ 
+                # read_impurity_mat_dynamic reads info from g_loc_mat.dat and puts it in
+                #   gloc_mat.                    
                 gloc_mat=read_impurity_mat_dynamic(control,control['lowh_directory']+'/g_loc_mat.dat')
+            
+            
             elif (control['dc_mode'] == 'dc_scf'):
-                if (control['dc_g'] == 'gloc'):                
+                
+                # dc_g's default value is gloc.
+                if (control['dc_g'] == 'gloc'):
+                    # read_impurity_mat_dynamic reads info from g_loc_mat.dat and puts it in
+                    #   gloc_mat.                    
                     gloc_mat=read_impurity_mat_dynamic(control,control['lowh_directory']+'/g_loc_mat.dat')                                
                 elif (control['dc_g'] == 'gimp'):
-                    if os.path.exists(control['impurity_directory']+'/gimp.dat'):
+                    if os.path.exists(control['impurity_directory']+'/gimp.dat'):                        
+                        # generate_mat_from_array_impurity_dynamic reads information from gimp.dat
+                        # and returns it in gloc_mat.
                         gloc_mat=generate_mat_from_array_impurity_dynamic(control,imp, control['impurity_directory']+'/gimp.dat')
                     else:
+                        # read_impurity_mat_dynamic reads info from g_loc_mat.dat and puts it in
+                        #   gloc_mat.                    
                         gloc_mat=read_impurity_mat_dynamic(control,control['lowh_directory']+'/g_loc_mat.dat')
 
-                        
+            # read_impurity_mat_static loads data from trans_basis.dat,
+            # and puts it in the returned object, trans_basis.
+            # trans_basis contains one matrix for each impurity.
+            # To aid in parsing the input file, it uses two variables:
+            # control['impurity_problem_equivalence'] ,
+            # and control['impurity_wan'].                        
             trans_basis=read_impurity_mat_static(control,control['lowh_directory']+'/trans_basis.dat')
             print(trans_basis)
+            
+            
             for key, value in imp.items(): # for the ordered phase this part should be fixed
+                
                 if (not (isinstance(imp[key], dict))):
                     continue
                 nimp_orb=len(imp[key]['impurity_matrix'])
                 os.chdir(control['dc_directory']+'/'+key)
+                
+                # write out comdc.ini
                 f=open('comdc.ini', 'w')
                 f.write(str(nimp_orb)+'\n')
                 if (control['spin_orbit']):
@@ -2914,11 +3364,17 @@ def prepare_dc(control,wan_hmat,imp):
                     f.write('0\n')
                     f.write('0\n')
                 f.close()
+                
+                # write out g_loc.dat, which comes from gloc_mat.
                 f=open('g_loc.dat', 'w')
                 for ii in range(control['n_omega']):
                     f.write(str(control['omega'][ii])+'  '+' '.join(map("{:.12f}".format, np.reshape(np.stack((np.real(gloc_mat[key][ii,:,:]),np.imag(gloc_mat[key][ii,:,:])),0), (2*nimp_orb**2), order='F')))+'\n')
                 f.close()
+                
+                # write out trans_dc.dat, from trans_basis, from trans_basis.dat
                 np.savetxt('trans_dc.dat',np.reshape(np.stack((np.real(trans_basis[key]),np.imag(trans_basis[key])),-1), (nimp_orb, 2*nimp_orb)))
+
+                # save out slater.dat, which contains f0,f2,f4,f6
                 f=open('slater.dat', 'w')
                 if (imp[key]['problem']=='s'):
                     f.write(str(imp[key]['f0'])+'\n')
@@ -2929,13 +3385,17 @@ def prepare_dc(control,wan_hmat,imp):
                 elif (imp[key]['problem']=='f'):
                     f.write(str(imp[key]['f0'])+'  '+str(imp[key]['f2'])+'  '+str(imp[key]['f4'])+'  '+str(imp[key]['f6'])+'\n')
                 f.close()
+
+                # write out dynamical_f0.dat, from imp[str(key)]['dynamical_f0']              
                 for ii in range(len(imp[str(key)]['dynamical_f0'])):
                     if (abs(imp[str(key)]['dynamical_f0'][ii]) <0.5):
                         break
                 np.savetxt('dynamical_f0.dat', imp[str(key)]['dynamical_f0'][:ii])
+                
             os.chdir(control['top_dir'])
     return None
 
+# write_conv_dc adds a little info to convergence.log
 def write_conv_dc(control,imp):
 
     if (control['method']=='lqsgw+dmft'):
@@ -2951,6 +3411,17 @@ def write_conv_dc(control,imp):
                 outputfile.write(tabulate(control['conv_table'], headers=control['convergence_header'], numalign="right",  floatfmt=".5f"))
     return None
 
+# run_dc is responsible for creating dc_mat.dat.  If doing lqsgw+dmft, it
+#    also creates zinv_m1_mat.dat, and sig_dc.dat, and sig_dc_hf.dat.
+# if ('dc_mat_to_read' in control), copy an old dc_mat.dat, and do nothing else.
+# if doing  lda+dmft, call cal_nominal_dc, and do nothing else. cal_nominal_dc 
+#     depends only on 'nominal_n', and writes to dc_mat.dat. It does not create
+#       a zinv_m1.dat file, which is equivalent to setting Z=Z^{-1}=1.
+# otherwise, i.e. if doing lqsgw+dmft, then:
+#    -run comdc, which produces sig_mat.dat
+#    -takes data from sig_mat.dat and puts it in dc_mat.dat, and 
+#       zinv_m1_mat.dat, and sig_dc.dat.
+#    - loads hartree.dat and puts it in sig_dc_hf.dat.
 def run_dc(control,imp):
 
     
@@ -2960,6 +3431,16 @@ def run_dc(control,imp):
         os.chdir(control['top_dir'])
     else:
         if (control['method']=='lda+dmft'):
+            # cal_nominal_dc initializes dc_mat.dat when doing dft+dmft.
+            # based on whether doing spin_orbit, and whether doing s,p,d,f,
+            #   and the values of f0,f2,f4,f6, calculate uval and jval.
+            #   Next uval and jval and 'nominal_n' are used to calculate dcval.
+            # dcval multiplies the identity, and this is stored in dc_mat.dat - one matrix
+            #   for each impurity.
+            # If doing spin_orbit, only f is implemented; s,p,d are not implemented. But
+            #     this fails silently.    
+            # cal_nominal_dc does not create a zinv_m1.dat file, which is equivalent to 
+            #   to setting Z = Z^{-1} = 1.            
             cal_nominal_dc(imp,control)
         elif (control['method']=='lqsgw+dmft'):
 
@@ -2969,7 +3450,9 @@ def run_dc(control,imp):
             
             print('-----------------------', file = sys.stderr, flush=True) 
             print('run ComDC', file = sys.stderr, flush=True)
-            print('-----------------------', file = sys.stderr, flush=True)                 
+            print('-----------------------', file = sys.stderr, flush=True)   
+
+            # This bit just runs ComDC, and handles sig_mat.dat.             
             for key, value in imp.items(): # for the ordered phase this part should be fixed
                 if (not (isinstance(imp[key], dict))):
                     continue
@@ -2993,6 +3476,8 @@ def run_dc(control,imp):
                 # labeling_file('./comdc.out',iter_string)
                 labeling_file('./sig_mat.dat',iter_string)
 
+            # This extracts info from sig_mat.dat and puts it in dc_mat.dat
+            #    and zinv_m1_mat.dat.
             os.chdir(control['dc_directory'])
             f=open(control['dc_directory']+'/dc_mat.dat','w')
             g=open(control['dc_directory']+'/zinv_m1_mat.dat','w')
@@ -3000,6 +3485,7 @@ def run_dc(control,imp):
                 nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])
                 if  (control['embed_mode'] == 'hfc'):
                     dc=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_mat.dat')[0,1:], (2,nimp_orb,nimp_orb), order='F')
+                # maybe document this. The default value of 'embed_mode' is 'hfc'.
                 elif  (control['embed_mode'] == 'fc'):                    
                     dc=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_gw_mat.dat')[0,1:], (2,nimp_orb,nimp_orb), order='F')
                     
@@ -3014,29 +3500,36 @@ def run_dc(control,imp):
 
             sig_dc={}
 
+            # This extracts info from sig_mat.dat and puts it in sig_dc.
             for ii in sorted(set(control['impurity_problem_equivalence'])):
                 nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])
                 if  (control['embed_mode'] == 'hfc'):                
                     tempdat=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_mat.dat')[:,1:], (control['n_omega'],2,nimp_orb,nimp_orb), order='F')
+                # maybe document this. The default value of 'embed_mode' is 'hfc'.
                 elif  (control['embed_mode'] == 'fc'):
                     tempdat=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_gw_mat.dat')[:,1:], (control['n_omega'],2,nimp_orb,nimp_orb), order='F')
                     
                 sig_dc[str(ii)]=tempdat[:,0,:,:]+tempdat[:,1,:,:]*1j
 
+            # This moves data from sig_dc to sig_dc_vec, sig_omega, and then sig_table.
             sig_table=[]
             for jj in range(control['n_omega']):
                 sig_omega=[control['omega'][jj]]
                 for ii in sorted(set(control['impurity_problem_equivalence'])):
+                    # imp_from_mat_to_array takes info from sig_dc [a matrix] and puts it
+                    # in sig_dc_vec[ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
+                    # which matrix elements to leave out, and about averaging over matrix elements.                    
                     sig_dc_vec=imp_from_mat_to_array(sig_dc[str(ii)][jj,:,:],imp[str(abs(ii))]['impurity_matrix'])
                     print(sig_dc_vec, np.reshape(np.stack((np.real(sig_dc_vec), np.imag(sig_dc_vec)), 0), (len(sig_dc_vec)*2), order='F').tolist())
                     sig_omega=sig_omega+np.reshape(np.stack((np.real(sig_dc_vec), np.imag(sig_dc_vec)), 0), (len(sig_dc_vec)*2), order='F').tolist()
                 sig_table.append(sig_omega)
 
 
+            # This writes sig_table to sig_dc.dat.
             with open(control['top_dir']+'/sig_dc.dat', 'w') as outputfile:
                 outputfile.write(tabulate(sig_table, headers=control['sig_header'], floatfmt=".12f", numalign="right",  tablefmt="plain"))
 
-
+            # This loads hartree.dat and puts it in sig_dc_hf.dat.
             if  (control['embed_mode'] == 'hfc'):                                                                
                 sig_hf_dc={}
 
@@ -3052,13 +3545,16 @@ def run_dc(control,imp):
                 hf_header=control['sig_header'][1:]
                 hf_header[0]='# '+hf_header[0]
                 for ii in sorted(set(control['impurity_problem_equivalence'])):
+                    # imp_from_mat_to_array takes info from sig_hf_dc [a matrix] and puts it
+                    # in dc_vec[ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
+                    # which matrix elements to leave out, and about averaging over matrix elements.                    
                     dc_vec=imp_from_mat_to_array(sig_hf_dc[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
                     sig_table.append(np.reshape(np.stack((np.real(dc_vec), np.imag(dc_vec)), 0), (len(dc_vec)*2), order='F').tolist())
 
                 with open(control['top_dir']+'/sig_dc_hf.dat', 'w') as outputfile:
                     outputfile.write(tabulate(sig_table, headers=hf_header, floatfmt=".12f", numalign="right",  tablefmt="plain"))
 
-
+            # maybe document this. The default value of 'embed_mode' is 'hfc'.
             elif  (control['embed_mode'] == 'fc'):                                                                
                 sig_h_dc={}
                 sig_f_dc={}                
@@ -3079,6 +3575,9 @@ def run_dc(control,imp):
                 hf_header[0]='# '+hf_header[0]
                 sig_table=[]                
                 for ii in sorted(set(control['impurity_problem_equivalence'])):
+                    # imp_from_mat_to_array takes info from sig_h_dc [a matrix] and puts it
+                    # in dc_vec[ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
+                    # which matrix elements to leave out, and about averaging over matrix elements.                                        
                     dc_vec=imp_from_mat_to_array(sig_h_dc[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
                     sig_table.append(np.reshape(np.stack((np.real(dc_vec), np.imag(dc_vec)), 0), (len(dc_vec)*2), order='F').tolist())
 
@@ -3087,6 +3586,9 @@ def run_dc(control,imp):
 
                 sig_table=[]                
                 for ii in sorted(set(control['impurity_problem_equivalence'])):
+                    # imp_from_mat_to_array takes info from sig_f_dc [a matrix] and puts it
+                    # in dc_vec[ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
+                    # which matrix elements to leave out, and about averaging over matrix elements.                    
                     dc_vec=imp_from_mat_to_array(sig_f_dc[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
                     sig_table.append(np.reshape(np.stack((np.real(dc_vec), np.imag(dc_vec)), 0), (len(dc_vec)*2), order='F').tolist())
 
@@ -3098,6 +3600,15 @@ def run_dc(control,imp):
             os.chdir(control['top_dir'])
     return None
 
+
+# generate_initial_transformation initializes trans_basis.dat
+# the default value of trans_basis_mode is 0
+# if (control['trans_basis_mode']==0), or if:
+#     ((control['trans_basis_mode']==2) and  not ('trans_basis' in control)),
+#       then create a new trans_basis.dat, which I think contains the the identity for each impurity.
+# if (control['trans_basis_mode']==1), or if:
+#     ((control['trans_basis_mode']==2) and  ('trans_basis' in control)),
+#       then copy a pre-existing trans_basis.dat.
 def generate_initial_transformation(control):
     os.chdir(control['lowh_directory'])
     print(control['impurity_wan'], file=control['h_log'],flush=True)
@@ -3145,10 +3656,24 @@ def generate_initial_transformation(control):
     return None
 
 
+# prepare_comlowh's main work is to create an inifile for comlowh, by calling
+#   generate_comlowh_ini.
+# prepare_comlowh also copies into the working directory wannier.dat, dc.dat, sig.dat,
+#  and zinv_m1.dat.
+# The contents of omlowh's ini file
+#  are straight copies of certain variables in the control variable, plus
+#  imp['beta'], wan_hmat['kgrid'].
+#  the one exception is the control['cal_mu'] argument, which determines whether
+#  to recalculate the Fermi level.
 def prepare_comlowh(control,wan_hmat,imp):
 
     os.chdir(control['lowh_directory'])
 
+# generate_comlowh_ini's job is to create comlowh.ini, whose contents
+#  are straight copies of certain variables in the control variable, plus
+#  imp['beta'], wan_hmat['kgrid'].
+#  the one exception is the control['cal_mu'] argument, which determines whether
+#  to recalculate the Fermi level.
     generate_comlowh_ini(control,wan_hmat,imp,control['cal_mu'])
 
     # wannier files
@@ -3166,11 +3691,30 @@ def prepare_comlowh(control,wan_hmat,imp):
     os.chdir(control['top_dir'])
     return None
 
+# comwann_postprocessing reads in wannier.inip, and uses it to set up
+# control['impurity_wan']
+#  control['impurity_wan'] contains only three kinds of info:
+#       - the number of atoms, natom=len(control['impurity_wan']) 
+#       - the number of impurity orbitals for each atom, len(control['impurity_wan'][ii])
+#       - the indices of the orbitals used for impurities, which are used only
+#               in order to print them out in comcoulomb.ini and comlowh.ini
+#   find_impurity_wann is implemented of s,p,d,f if not doing spin-orbit,
+#       BUT if doing spin-orbit it is implemented only for f shell impurities.    
 def comwann_postprocessing(control, wan_hmat):
+
+    # read_wan_hmat_basis reads in wannier.inip, into    wan_hmat['basis']
+    #   wan_hmat['basis'] is populated from wannier.inip,
+    #       and it is used only here in find_impurity_wan
+    #       and in write_conv_wan which has num_wann=np.shape(wan_hmat['basis'])[0]  
     wan_hmat['basis']=read_wan_hmat_basis(control)
-    find_impurity_wan(control, wan_hmat)    
+    
+    # find_impurity_wann sets up control['impurity_wan'], based on the 
+    #   contents of wan_hmat['basis']
+    find_impurity_wan(control, wan_hmat) 
+    
     return None
 
+# run_comwann runs ComWann and moves around the output files.
 def run_comwann(control,wan_hmat):
 
     print('-----------------------', file = sys.stdout, flush=True) 
@@ -3210,6 +3754,7 @@ def run_comwann(control,wan_hmat):
 
     return None
 
+# used only by comcoulomb_postprocessing
 def cubic_interp1d(x0, x, y):
     """
     Interpolate a 1-D function using cubic splines.
@@ -3522,9 +4067,13 @@ def find_allfile(dft_dir):
             allfile=templist[1].strip()
     return allfile
 
+# run_flapwmbpt sets up the ini file for rspflapw, and runs rspflapw.
+#   It also reads in wan_hmat from comdmft.ini, sets up for a ComWann
+#       run using logic similar to check_wannier_function_input, and the
+#       runs ComWann.
 def run_flapwmbpt(control):
 
-    flapwmbpt_ini.main()
+    flapwmbpt_ini.main() # set up the ini file for rspflapw.
     
     print('-----------------------', file = sys.stdout, flush=True) 
     print('run FlapwMBPT', file = sys.stdout, flush=True)
@@ -3599,7 +4148,7 @@ def run_flapwmbpt(control):
             print("Error in comwann. Check standard error file for error message", flush=True)
             sys.exit()
                
-
+# todo
 def postprocessing_comdmft():
 
     control, postprocessing_dict=read_comdmft_ini_postprocessing()
@@ -3652,7 +4201,18 @@ def lda_dmft(control,wan_hmat,imp):
     print("\n", file=control['h_log'],flush=True)
     print("\n", file=control['h_log'],flush=True)
     print("\n", file=control['h_log'],flush=True)
-
+    
+    # The outer control loop first runs dft, and then obtains wannier functions.
+    #   If this is the first outer iteration, then the outer control loop
+    #   calculates double counting. 
+    # Lastly the outer control loop executes an inner loop which consists
+    #   of alternating calls to comlowh and ctqmc.
+    
+    # control['iter_num_outer'] is initialized to 1, but if restarting then 
+    #   it is given another value based on how many iterations have been
+    #   completed.  The only other place where it is changed is inside this
+    #   loop, where it is incremented each time through the body of the loop.
+    #   All other uses of control['iter_num_outer']  are for file naming.
     while control['iter_num_outer'] <= control['max_iter_num_outer']:
 
         # iter_string_outer="_"+str(iter_num_outer)
@@ -3666,28 +4226,101 @@ def lda_dmft(control,wan_hmat,imp):
         if (control['iter_num_outer']==1):
             initial_lattice_directory_setup(control)
         else:
+            # prepare_dft_input makes sure that wannier_den_matrix.dat is in the right place
+            #   for the dft calculation.
             prepare_dft_input(control)
+            
+            # run_dft runs rspflapw
             run_dft(control)
+            
+            # write_conv_dft writes out information to convergence.log
             write_conv_dft(control)
 
         print("wannier function construction", file=control['h_log'],flush=True)
         if control['iter_num_outer']==1:
+            # prepare_initial_ef creates ef.dat and puts 0.0 inside it.            
             prepare_initial_ef(control)
 
+        # check_wannier_function_input creates comwann.ini
+        # if ('local_axis' in wan_hmat) then it reads info from crystal_structure.json
+        #       and puts it in local_axis.dat
         check_wannier_function_input(control,wan_hmat)
+        
+        # run_comwann runs ComWann and moves around the output files.
         run_comwann(control, wan_hmat)
+        
+        # comwann_postprocessing reads in wannier.inip, and uses it to set up
+        # control['impurity_wan']
+        #  control['impurity_wan'] contains only three kinds of info:
+        #       - the number of atoms, natom=len(control['impurity_wan']) 
+        #       - the number of impurity orbitals for each atom, len(control['impurity_wan'][ii])
+        #       - the indices of the orbitals used for impurities, which are used only
+        #               in order to print them out in comcoulomb.ini and comlowh.ini
+        #   find_impurity_wann is implemented of s,p,d,f if not doing spin-orbit,
+        #       BUT if doing spin-orbit it is implemented only for f shell impurities.            
         comwann_postprocessing(control, wan_hmat)
+        
         write_conv_wan(control)
 
         if control['iter_num_outer']==1:
+            
+            # generate_initial_transformation initializes trans_basis.dat.
+            #   trans_basis.dat is turned into trans_dc.dat and supplied to ComDC.
+            #   trans_basis.dat is also supplied to ComCTQMC via prepare_impurity_solver.
+            # the default value of trans_basis_mode is 0
+            # if (control['trans_basis_mode']==0), or if:
+            #     ((control['trans_basis_mode']==2) and  not ('trans_basis' in control)),
+            #       then create a new trans_basis.dat, which I think contains the the identity for each impurity.
+            # if (control['trans_basis_mode']==1), or if:
+            #     ((control['trans_basis_mode']==2) and  ('trans_basis' in control)),  
             generate_initial_transformation(control)
+
+            # run_dc is responsible for creating dc_mat.dat.  If doing lqsgw+dmft, it
+            #    also creates zinv_m1_mat.dat, and sig_dc.dat, and sig_dc_hf.dat.
+            #    [dc_mat->dc.dat, which is used by ComLowH, and also by CTQMC.]
+            #    [zinv_m1_mat.dat -> zinv_m1.dat, which is used by ComLowH]
+            #   [sig_dc.dat and sig_dc_hf.dat are never used]
+            # if ('dc_mat_to_read' in control), copy an old dc_mat.dat, and do nothing else.
+            # if doing  lda+dmft, call cal_nominal_dc, and do nothing else. cal_nominal_dc 
+            #     depends only on 'nominal_n', and f0,f2,f4,f6, and writes to dc_mat.dat.
+            #
+            # otherwise, i.e. if doing lqsgw+dmft, then:
+            #    -run comdc, which produces sig_mat.dat
+            #    -takes data from sig_mat.dat and puts it in dc_mat.dat, and 
+            #       zinv_m1_mat.dat, and sig_dc.dat.
+            #    - loads hartree.dat and puts it in sig_dc_hf.dat. 
+            #  comdc reads from: comdc.ini, trans_dc.dat, 
+            #       g_loc.dat [from CTQMC's gimp.dat or from g_loc_mat.dat], 
+            #       slater.dat [from prepare_dc, contains f0,f2,f4,f6], 
+            #       dynamical_f0.dat 
+            #       imp['dynamical_f0'] comes from
+            #           interpolating the *_w_Slater_* files produced by ComCoulomb.
+            #           The interpolation is done in comcoulomb_postprocessing.            
+            #  comdc writes to: vmat.dat, u0mat.dat, wcmat0.dat, nimp.dat, 
+            #        hartree.dat, exchange.dat, sig_mat.dat,sig_gw_mat.dat 
+            #       sig_gwc_mat.dat . None of these seem to be used except sig_mat.dat.
             run_dc(control,imp)
+
+            # generate_initial_transformation initializes trans_basis.dat
+            # the default value of trans_basis_mode is 0
+            # if (control['trans_basis_mode']==0), or if:
+            #     ((control['trans_basis_mode']==2) and  not ('trans_basis' in control)),
+            #       then create a new trans_basis.dat, which I think contains the the identity for each impurity.
+            # if (control['trans_basis_mode']==1), or if:
+            #     ((control['trans_basis_mode']==2) and  ('trans_basis' in control)),                    
             generate_initial_transformation(control)
+
+            # cal_dc_diagonal takes info from dc_mat.dat, and puts it in dc.dat.            
             cal_dc_diagonal(control)
+
+            # generate_initial_self_energy creates sig.dat.
+            # If ('initial_self_energy' in control, copies that self_energy to sig.dat.
+            #   Possibly also copy information from initial_impurity_dir.
+            # Otherwise, copies data from dc.dat to sig.dat.            
             generate_initial_self_energy(control,imp)
 
 
-
+        # The inner loop repeats comlowh and the impurity solver, in turn.
         control['iter_num_impurity']=1
 
         while control['iter_num_impurity'] <= control['max_iter_num_impurity']:
@@ -3695,15 +4328,95 @@ def lda_dmft(control,wan_hmat,imp):
             print("\n",                                                                        file=control['h_log'],flush=True)
             print('*****   iter_num_impurity: ', str(control['iter_num_impurity']), '  *****', file=control['h_log'],flush=True)
 
+            # prepare_comlowh's main work is to create an inifile for comlowh, by calling
+            #   generate_comlowh_ini.
+            # prepare_comlowh also copies into the working directory wannier.dat, 
+            #   dc.dat[from dc_mat.dat], sig.dat [from ctqmc/evalsim], 
+            #       and zinv_m1.dat [from ComDC].
+            # The contents of comlowh's ini file
+            #  are straight copies of certain variables in the control variable, plus
+            #  imp['beta'], wan_hmat['kgrid'].
+            #  the one exception is the control['cal_mu'] argument, which determines whether
+            #  to recalculate the Fermi level.
             prepare_comlowh(control,wan_hmat,imp)
+ 
+            # run_comlowh executes comlowh.
+            # Afterwards it moves around some of comlowh's outputs: comlowh.log, 
+            # delta_mat.dat, g_loc_mat.dat, local_spectral_matrix_ef.dat, 
+            # e_projected_mat.dat, and ef.dat .
+            # comlowh reads from: 
+            #       comlowh.ini, 
+            #       wannier.dat, 
+            #       wannier.inip,  
+            #       dc.dat, [ dc_mat.dat -> dc.dat, and dc_mat.dat comes from
+            #           cal_nominal_dc if doing dft+dmft, and from 
+            #           ComDC->sig_mat.dat if doing lqsgw+dmft ]
+            #       sig.dat, [produced by CTQMC, then gaussian smoothing, then mixing]
+            #       zinv_m1.dat if available [from ComDC], 
+            # comlowh also reads from:        
+            #       trans_basis.dat if available, 
+            #       ef.dat if not is_recal_ef, [used only by comlowh]
+            #       kpoints if not (is_kpath .eq. 0)
+            # comlowh writes to: 
+            #       comlowh.log, 
+            #       delta_mat.dat [used by CTQMC], 
+            #       g_loc_mat.dat [-> g_loc.dat, used by comdc], 
+            #       local_spectral_matrix_ef.dat [never used], 
+            #       e_projected_mat.dat [used by CTQMC:
+            #           ->projected_eig.data->e_imp.dat->e_imp->e_imp_key->CTQMC], 
+            #       ef.dat if is_recal_ef, [used only by comlowh]
+            #       kpoints if (is_kpath .eq. 0)
+            # comlowh writes to: n_loc.dat [never used]
+            # comlowh writes to:  wannier_den_matrix.dat [used by rspflapw]
+            # comlowh also writes to other files, some of which are for postprocessing
+            # some of the files are:
+            #   cal_mode=2: tdos.dat, pdos.dat, inquires about momentum_optics_wan.dat 
+            #   cal_mode=3: spectral.dat, spectral_orb.dat, wannier_band_non_interpolated.dat
             run_comlowh(control)
 
+            # delta_postprocessing:
+            #   takes info from e_projected_mat.dat and puts it in projected_eig.dat
+            #   takes info from dc_mat.dat, and puts it in dc.dat.
+            #   takes info from zinv_m1_mat.dat and puts it   in zinv_m1.dat 
+            #   subtracts the contents of dc.dat from the  contents of 
+            #       projected_eig.dat, and writes the result to e_imp.dat
+            #   takes info from delta_mat.dat, and puts in delta.dat
+            #   checks the causality of delta.dat, and if not causal then exits.
             delta_causality=delta_postprocessing(control,imp)
 
+            # write_conv_delta writes out its delta_causality argument, and the Fermi 
+            # level from ef.dat. This goes into convergence.log.
             write_conv_delta(control,delta_causality)
 
-
+            # prepare_impurity_solver:
+            #   reads in lowh/delta.dat [comlowh->delta_mat.dat->delta.dat]
+            #       and saves it in json-formatted file hyb.json
+            #   reads in lowh/e_imp.dat which goes into params.json
+            #       [ e_imp.dat = projected_eig.dat - dc.dat] 
+            #       [projected_eig.dat: comlowh->e_projected_mat.dat->projected_eig.data->e_imp.dat->e_imp->e_imp_key->CTQMC]
+            #       [ dc.dat:  dc_mat.dat -> dc.dat, and dc_mat.dat comes from
+            #           cal_nominal_dc if doing dft+dmft, and from 
+            #           ComDC->sig_mat.dat if doing lqsgw+dmft ]
+            #   reads in lowh/trans_basis.dat [from where?]
+            #   For each impurity, writes out params.json. If doing lqsgw+dmft, it also 
+            #       creates dyn.json file for each impurity.
+            #       dyn.json comes from imp['dynamical_f0'], which comes from
+            #       interpolating the *_w_Slater_* files produced by ComCoulomb.
+            #       The interpolation is done in comcoulomb_postprocessing.
+            # There is no real numerical work here; just transfer of data.
             prepare_impurity_solver(control,wan_hmat,imp)
+
+            # run_impurity_solver runs CTQMC and EVALSIM, and then:
+            #   reads in ctqmc's output from params.obs.json and updates convergence.log
+            #   writes out gimp.dat [used by prepare_dc to create g_loc.dat, which is used only by ComDC]: "green" from params.obs.json is saved in gimp.dat
+            #   "self-energy" from params.obs.json is saved in sig_bare.dat [never used]
+            #   "self-energy" is smoothed using Gaussian broadening and stored in sigma.
+            #       sigma is saved in  sig_smth.dat. [never used]
+            #   If any element of imag(sigma) is positive, then sig_causality is set 
+            #       to 0=False; otherwise it is 1=True.
+            #   If any element of imag(sigma) is positive, then sigma_to_delta = sigma_old [read in from sig.dat].
+            #   If sig_causality is true then sigma_to_delta is a mix of sigma with sigma_old [ read in from sig.dat].
+            #   writes out sig.dat [used by comlowh, and also is mixed]: sigma_to_delta is saved in sig.dat.            
             run_impurity_solver(control,imp)
 
             control['iter_num_impurity']=control['iter_num_impurity']+1
@@ -3718,7 +4431,6 @@ def lda_dmft(control,wan_hmat,imp):
     return None
 
 
-
 def lqsgw_dmft(control,wan_hmat,imp):
 
     print("\n", file=control['h_log'],flush=True)
@@ -3728,9 +4440,25 @@ def lqsgw_dmft(control,wan_hmat,imp):
     print('*****   wannier  *****', file=control['h_log'],flush=True)
     if control['do_wannier']:
 
+        # check_wannier_function_input creates comwann.ini
+        # if ('local_axis' in wan_hmat) then it reads info from crystal_structure.json
+        #       and puts it in local_axis.dat
         check_wannier_function_input(control,wan_hmat)
+
+        # run_comwann runs ComWann and moves around the output files.
         run_comwann(control, wan_hmat)
+
+    # comwann_postprocessing reads in wannier.inip, and uses it to set up
+    # control['impurity_wan']
+    #  control['impurity_wan'] contains only three kinds of info:
+    #       - the number of atoms, natom=len(control['impurity_wan']) 
+    #       - the number of impurity orbitals for each atom, len(control['impurity_wan'][ii])
+    #       - the indices of the orbitals used for impurities, which are used only
+    #               in order to print them out in comcoulomb.ini and comlowh.ini
+    #   find_impurity_wann is implemented of s,p,d,f if not doing spin-orbit,
+    #       BUT if doing spin-orbit it is implemented only for f shell impurities.                    
     comwann_postprocessing(control, wan_hmat)
+    
     if control['do_wannier']:
         write_conv_wan(control)
 
@@ -3747,22 +4475,73 @@ def lqsgw_dmft(control,wan_hmat,imp):
 
 
     if control['do_dc']:    
+        
+        # prepare_initial_ef creates ef.dat and puts 0.0 inside it.
         prepare_initial_ef(control)
+
+        # generate_initial_transformation initializes trans_basis.dat
+        # the default value of trans_basis_mode is 0
+        # if (control['trans_basis_mode']==0), or if:
+        #     ((control['trans_basis_mode']==2) and  not ('trans_basis' in control)),
+        #       then create a new trans_basis.dat, which I think contains the the identity for each impurity.
+        # if (control['trans_basis_mode']==1), or if:
+        #     ((control['trans_basis_mode']==2) and  ('trans_basis' in control)),        
         generate_initial_transformation(control)        
 
+        # prepare_seed_dc_sig_and_wannier_dat:
+        #   - generates comlowh.ini, using generate_comlowh_ini
+        #   - saves dc.dat, which it fills with zeroes.
+        #   - saves sig.dat, which seems to contains zero's, and omega's
         prepare_seed_dc_sig_and_wannier_dat(control,wan_hmat,imp)
+        
+        # run_comlowh executes comlowh.
+        # Afterwards it moves around some of comlowh's outputs: comlowh.log, 
+        # delta_mat.dat, g_Loc_mat.dat, local_spectral_matrix_ef.dat, 
+        # e_projected_mat.dat, and ef.dat .
         run_comlowh(control)
 
+        # prepare_dc writes out files to be used by ComDC.
+        #   - it saves comdc.ini
+        #   - it saves g_loc.dat, which comes from either g_loc_mat.dat 
+        #           or gimp.dat, depending on the values of dc_mode and dc_g.
+        #           gimp.dat comes from CTQMC, in params.obs.json.
+        #           g_loc_mat.dat comes from ComLowH
+        #   - it saves trans_dc.dat, from trans_basis.dat
+        #   - it saves slater.dat, which contains f0,f2,f4,f6
+        #   - it saves dynamical_f0.dat, which is from imp[str(key)]['dynamical_f0']
         prepare_dc(control,wan_hmat,imp) 
+        
+        # run_dc is responsible for creating dc_mat.dat.  If doing lqsgw+dmft, it
+        #    also creates zinv_m1_mat.dat, and sig_dc.dat, and sig_dc_hf.dat.
+        # if ('dc_mat_to_read' in control), copy an old dc_mat.dat, and do nothing else.
+        # if doing  lda+dmft, call cal_nominal_dc, and do nothing else. cal_nominal_dc 
+        #     depends only on 'nominal_n', and writes to dc_mat.dat. It does
+        #       not create a zinv_m1.dat file, which is equivalent to setting Z = Z^{-1} = 1.
+        # otherwise, i.e. if doing lqsgw+dmft, then:
+        #    -run comdc, which produces sig_mat.dat
+        #    -takes data from sig_mat.dat and puts it in dc_mat.dat, and 
+        #       zinv_m1_mat.dat, and sig_dc.dat.
+        #    - loads hartree.dat and puts it in sig_dc_hf.dat.        
         run_dc(control,imp)
+        
         if (control['embed_mode'] == 'fc'):            
             shutil.copy(control['top_dir']+'/sig_dc_h.dat', control['impurity_directory']+'/hartree.dat')
             shutil.copy(control['top_dir']+'/sig_dc_h.dat', control['impurity_directory']+'/hartree_0.dat')
-            
+
+        # cal_dc_diagonal takes info from dc_mat.dat, and puts it in dc.dat.            
         cal_dc_diagonal(control)
+
+        # cal_zinv_m1_diagonal takes info from zinv_m1_mat.dat and puts it 
+        #    in zinv_m1.dat
         cal_zinv_m1_diagonal(control)
 
+        # generate_initial_self_energy creates sig.dat.
+        # If ('initial_self_energy' in control, copy that self_energy to sig.dat.
+        #   Possibly also copy information from initial_impurity_dir.
+        # Otherwise, copies data from dc.dat to sig.dat.
         generate_initial_self_energy(control,imp)
+
+        # write_conv_dc adds a little info to convergence.log
         write_conv_dc(control,imp)
 
 ### from here
@@ -3771,20 +4550,92 @@ def lqsgw_dmft(control,wan_hmat,imp):
         print('\n', file=control['h_log'],flush=True)
         print('*****   iter_num_impurity: ', str(control['iter_num_impurity']), '  *****', file=control['h_log'],flush=True)
 
+        # prepare_comlowh's main work is to create an inifile for comlowh, by calling
+        #   generate_comlowh_ini.
+        # prepare_comlowh also copies into the working directory wannier.dat, 
+        #  dc.dat, sig.dat,
+        #  and zinv_m1.dat.
+        # The contents of comlowh's ini file
+        #  are straight copies of certain variables in the control variable, plus
+        #  imp['beta'], wan_hmat['kgrid'].
+        #  the one exception is the control['cal_mu'] argument, which determines whether
+        #  to recalculate the Fermi level.
         prepare_comlowh(control,wan_hmat,imp)
+
+        # run_comlowh executes comlowh.
+        # Afterwards it moves around some of comlowh's outputs: comlowh.log, 
+        # delta_mat.dat, g_Loc_mat.dat, local_spectral_matrix_ef.dat, 
+        # e_projected_mat.dat, and ef.dat .        
         run_comlowh(control)
+
+        # delta_postprocessing:
+        #   takes info from e_projected_mat.dat and puts it in projected_eig.dat
+        #   takes info from dc_mat.dat, and puts it in dc.dat.
+        #   takes info from zinv_m1_mat.dat and puts it   in zinv_m1.dat 
+        #   subtracts the contents of dc.dat from the  contents of 
+        #       projected_eig.dat, and writes the result to e_imp.dat
+        #   takes info from delta_mat.dat, and puts in delta.dat
+        #   checks the causality of delta.dat, and if not causal then exits.
         delta_causality=delta_postprocessing(control,imp)
+        
+        # write_conv_delta writes out its delta_causality argument, and the Fermi 
+        # level from ef.dat. This goes into convergence.log.
         write_conv_delta(control,delta_causality)
 
+        # prepare_impurity_solver:
+        #   reads in lowh/delta.dat and saves it in a 
+        #          json-formatted file hyb.json
+        #   reads in lowh/e_imp.dat and lowh/trans_basis.dat
+        #   For each impurity, writes out params.json. If doing lqsgw+dmft, it also 
+        #       creates dyn.json file for each impurity.
+        # There is no real numerical work here; just transfer of data.
         prepare_impurity_solver(control,wan_hmat,imp)
+
+        # run_impurity_solver runs CTQMC and EVALSIM, and then:
+        # reads in ctqmc's output from params.obs.json and updates convergence.log
+        # "green" from params.obs.json is saved in gimp.dat
+        # "self-energy" from params.obs.json is saved in sig_bare.dat
+        # "self-energy" is smoothed using Gaussian broadening and stored in sigma.
+        #    sigma is saved in  sig_smth.dat.
+        # If any element of imag(sigma) is positive, then sig_causality is set 
+        #       to 0=False; otherwise it is 1=True.
+        # If any element of imag(sigma) is positive, then sigma_to_delta = sigma_old [read in from sig.dat].
+        #    If it is true then sigma_to_delta is a mix of sigma with sigma_old [ read in from sig.dat].
+        # sigma_to_delta is saved in sig.dat.        
         run_impurity_solver(control,imp)
 
+        # dc_mode's default value is dc_at_gw
         if (control['dc_mode'] == 'dc_scf'):
+            
+            # prepare_dc writes out files to be used by ComDC.
+            #   - it saves comdc.ini
+            #   - it saves g_loc.dat, which comes from either g_loc_mat.dat 
+            #           or gimp.dat, depending on the values of dc_mode and dc_g.
+            #           gimp.dat comes from CTQMC, in params.obs.json.
+            #           g_loc_mat.dat comes from ComLowH
+            #   - it saves trans_dc.dat, from trans_basis.dat
+            #   - it saves slater.dat, which contains f0,f2,f4,f6
+            #   - it saves dynamical_f0.dat, which is from imp[str(key)]['dynamical_f0']
             prepare_dc(control,wan_hmat,imp) 
+            
+            # run_dc is responsible for creating dc_mat.dat.  If doing lqsgw+dmft, it
+            #    also creates zinv_m1_mat.dat, and sig_dc.dat, and sig_dc_hf.dat.
+            # if ('dc_mat_to_read' in control), copy an old dc_mat.dat, and do nothing else.
+            # if doing  lda+dmft, call cal_nominal_dc, and do nothing else. cal_nominal_dc 
+            #     depends only on 'nominal_n', and writes to dc_mat.dat.
+            # otherwise, i.e. if doing lqsgw+dmft, then:
+            #    -run comdc, which produces sig_mat.dat
+            #    -takes data from sig_mat.dat and puts it in dc_mat.dat, and 
+            #       zinv_m1_mat.dat, and sig_dc.dat.
+            #    - loads hartree.dat and puts it in sig_dc_hf.dat. 
+            # cal_nominal_dc is interesting because it completely 
+            #   circumvents ComDC, and could be used in a qsgw+dmft run if desired. 
             run_dc(control,imp)
 
             # cal_dc_diagonal(control)
             # cal_zinv_m1_diagonal(control)
+            
+            # write_conv_dc adds a little info to convergence.log           
             write_conv_dc(control,imp)               
 
 
@@ -3795,14 +4646,29 @@ def lqsgw_dmft(control,wan_hmat,imp):
 
 if __name__ == '__main__':
 
+    # read_comdmft_ini_control's job is to read in from comdmft.ini 
+    # the 'method' variable variable which  specifies what to do.
     control=read_comdmft_ini_control()
 
     if ((control['method'] == 'dft') | (control['method'] == 'hf') | (control['method'] == 'lqsgw') + (control['method'] == 'gw')):
+        # run_flapwmbpt sets up the ini file for rspflapw, and runs rspflapw.
+        #   It also reads in wan_hmat from comdmft.ini, sets up for a ComWann
+        #       run using logic similar to check_wannier_function_input, and the
+        #       runs ComWann.
         run_flapwmbpt(control)
         
+    # read_comdmft_ini is called if doing an lda+dmft or lqsgw+dmft run.  Its 
+    # job is to read in user control variables from comdmft.ini.
+    # These variables are stored in control, wan_hmat, and imp. If there are
+    #   several impurities, the imp variable contains distinct data for each
+    #   impurity.
+    # Most variables are simply read in from comdmft.ini, and usually a default 
+    # value is supplied.
+    # There are some exceptions:
     elif ((control['method'] == 'lda+dmft') | (control['method'] == 'lqsgw+dmft')):
         control,wan_hmat,imp=read_comdmft_ini()
 
+        # set up directories for each executable that will be run.
         initial_file_directory_setup(control)    
 
         if (control['method'] == 'lda+dmft'):
@@ -3813,8 +4679,10 @@ if __name__ == '__main__':
     #     lqsgw_dmft_u_fixed(control,wan_hmat,imp)        
         close_h_log(control)
 
+
     elif ((control['method'] == 'spectral') | (control['method'] == 'band') | (control['method'] == 'dos') | (control['method'] == 'dos_qp')):
         postprocessing_comdmft()
+        
     else:
         print(control['method'], ' is not supported')
 
