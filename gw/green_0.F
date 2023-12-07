@@ -1,3 +1,16 @@
+! green_0 calculates:
+! If (dft or hf) and (.not.is_lda_dmft):
+!      g_full_00(i,k,ispin)=-green0(de,tau_mesh(n_tau))
+! If (dft or hf) and (is_lda_dmft):
+
+!      g_full_0(k) = -green0(k)+deltarhomat1(k)-deltarhomat2(k)
+!      g_full_0(k) = -green0(k)+proj_mat(k) * dmft_den_mat(k) * proj_mat^\dagger(k) + (proj_mat(k) * proj_mat^\dagger(k)) * green0 * (proj_mat(k) * proj_mat^\dagger(k))
+!      proj_mat(k) = umat(k) * disentangle_mat(k)
+!      umat(k) is a rotation basis that is prepared by dft_basis_rotmat_k.  
+! If (qp or gw):
+!      g_full_0 = an unpacked version of -g_full
+! green0 is the Fermi-Dirac function, applied to e_bnd(k)-chem_pot
+! g_full_00 and g_full_0 are used by g_mt_from_g_full to create g_loc_0.  It is used by gx_rs_from_ks_mi, gx_rs_from_ks_mm, gx_k_g_r1, and sumi_gw. sumi_gw uses g_full_00 and g_full_0 to calculate the interstitial sector of the charge density. g_full_00 is also used by seteny.
       subroutine green_0(correlation)
       use atom_mod
       use manager_mod
@@ -37,11 +50,14 @@ c$$$            endif
       
             
             if(.not.correlation) then
+
+! g_full_00(k) = -green0()
               g_full_00(:,k,ispin)=0.d0
               do i=1,n_bnd(k0,ispin)
                 de=e_bnd(i,k0,ispin)-chem_pot
                 g_full_00(i,k,ispin)=-green0(de,tau_mesh(n_tau))
               enddo
+
               if (is_lda_dmft) then
                 allocate(umat(nbndf,nbndf))
                 allocate(proj_mat(nbndf,n_dmft_wan_max))
@@ -50,8 +66,10 @@ c$$$            endif
                 allocate(deltarhomat1(nbndf,nbndf))
                 allocate(deltarhomat2(nbndf,nbndf))                                
                 
+! dft_basis_rotmat_k initializes umat(k), a rotation matrix. It uses fifi_j_prepare_onepoint_2, integral_band_pw_band_mt_wan, and integral_band_pw_band_full.
                 umat=0.0d0
                 call dft_basis_rotmat_k(k,k0,ispin,umat)
+
 c$$$  if (dmft_rho_cal_count .eq. 1) then
 c$$$  call is_identity_dcmplx(umat,n_bnd(k0,ispin),nbndf)
 c$$$  endif
@@ -62,6 +80,7 @@ c$$$                  write(179,'(10000(2f12.6, 2x))')
 c$$$     $              (umat(i,j), j=1,n_bnd(k0,ispin))
 c$$$                enddo
                 
+! force_mat_unitary does an SVD of umat(k), sets the eigenvalues in the SVD to 1, and rebuilds the SVD so that umat(k) is now unitary.
                 call force_mat_unitary(n_bnd(k0,ispin),nbndf,umat)
 
 c$$$                write(179,*) 'umat'
@@ -79,6 +98,7 @@ c$$$  $            ispin,k,k0,maxerror
                   call ending
                 endif
                 
+! g_full_0(k) = -green0(k)
                 do ibnd=1,nbndf
                   do jbnd=1, nbndf
                     g_full_0(ibnd,jbnd,k,ispin)=0.0d0
@@ -106,6 +126,7 @@ c$$$                close(189)
                 deltarhomat1=0.0d0
                 deltarhomat2=0.0d0                                
                 
+! proj_mat(k) = umat(k) * disentangle_mat(k)
                 proj_mat=0.0d0
                 do aa=1,n_bnd(k0,ispin)
                   do bb=1, n_dmft_bnd(k0)
@@ -113,10 +134,12 @@ c$$$                close(189)
                       proj_mat(aa,cc)=proj_mat(aa,cc)
      $                  +umat(aa,dmft_bnd_index(bb,k0))
      $                  *disentangle_mat(bb,cc,k0)
-                    enddo
-                  enddo
-                enddo
+                    enddo ! cc
+                  enddo ! bb
+                enddo ! aa
                 
+
+! deltarhomat1(k) = proj_mat(k) * dmft_den_mat(k) * proj_mat^\dagger(k)
                 tmp1=0.0d0
                 call zgemm('n','n',n_bnd(k0,ispin),n_dmft_wan(k0),
      $            n_dmft_wan(k0),(1.d0,0.d0),proj_mat,nbndf,
@@ -137,6 +160,7 @@ c$$$                close(189)
                 
                 tmp2=0.0d0
                 
+! check that proj_mat * proj_mat^\dagger is Hermitian
                 call zgemm('n','c',n_bnd(k0,ispin),n_bnd(k0,ispin),
      $            n_dmft_wan(k0),(1.d0,0.d0),proj_mat,nbndf,
      $            proj_mat,nbndf,
@@ -145,6 +169,8 @@ c$$$                close(189)
                 call check_hermitian(tmp2,n_bnd(k0,ispin),nbndf,
      $            'subtracting_double_counted_rho')
                 
+
+! deltarhomat2(k) = -(proj_mat(k) * proj_mat^\dagger(k)) green0(k) (proj_mat(k) * proj_mat^\dagger(k))
                 do aa=1,n_bnd(k0,ispin)
                   de=e_bnd(aa,k0,ispin)-chem_pot                                          
                   do bb=1,n_bnd(k0,ispin)                  
@@ -153,9 +179,9 @@ c$$$                close(189)
      $                  =deltarhomat2(bb,cc)
      $                  -tmp2(bb,aa)*green0(de,tau_mesh(n_tau))
      $                  *tmp2(aa,cc)
-                    enddo
-                  enddo
-                enddo
+                    enddo ! cc
+                  enddo ! bb
+                enddo ! aa
 
 c$$$                open(unit=189,file=trim(ch)//'rho'//intt//'_2.dat')                
 c$$$
@@ -164,16 +190,19 @@ c$$$                do i=1,n_bnd(k0,ispin)
 c$$$                  write(189,'(10000(2f12.6,2x))')                                    
 c$$$     $              (deltarhomat2(i,j),j=1,n_bnd(k0,ispin))
 c$$$                enddo                                
-c$$$                close(189)
+c$$$       close(189)
 
+! g_full_0(k) = -green0(k)+deltarhomat1(k)-deltarhomat2(k)
+! g_full_0(k) = -green0(k)+proj_mat(k) * dmft_den_mat(k) * proj_mat^\dagger(k) + (proj_mat(k) * proj_mat^\dagger(k)) green0 (proj_mat(k) * proj_mat^\dagger(k))
+! proj_mat(k) = umat(k) * disentangle_mat(k)
                 do bb=1,n_bnd(k0,ispin)                  
                   do cc=1,n_bnd(k0,ispin)
                     g_full_0(bb,cc,k,ispin)
      $                =g_full_0(bb,cc,k,ispin)
      $                +deltarhomat1(bb,cc)
      $                -deltarhomat2(bb,cc)                    
-                  enddo
-                enddo
+                  enddo ! cc
+                enddo ! aa
 c$$$                if (intt .eq. '0') then
 c$$$                  intloc=maxloc(cdabs(deltarhomat1-deltarhomat2))                  
 c$$$                  write(*,'(a,i5,f12.6, 2i5,2f12.6)') 'deltarho k0',k0,
@@ -189,16 +218,21 @@ c$$$                endif
                 deallocate(deltarhomat1)
                 deallocate(deltarhomat2)                                
 
-              endif
-            else
+              endif ! (is_lda_dmft) 
+
+            else ! correlation is true
+
+! g_full_0 = an unpacked version of -g_full
               call ferm_unpack_tau(g_full_0(1,1,k,ispin),
      &          g_full(1,1,1,1,k,ispin),
      &          n_bnd(k0,ispin),nbndf,nbndf,2)
               g_full_0(:,:,k,ispin)=-g_full_0(:,:,k,ispin)
-            endif
+
+            endif ! correlation is true
           enddo                 !! over k
         enddo                   !! over ispin
-      endif
+      endif ! (me3_tau==0) 
+
       if(nproc_tau/=1) then
         if(.not.correlation) then
           len=nbndf*maxval(ndim3_k)*nspin_0
@@ -212,4 +246,5 @@ c$$$                endif
           if(len/=0) call dgop(g_full_0,2*len,'  +',comm_pnk)
         endif
       endif
+
       end

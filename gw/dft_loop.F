@@ -5,25 +5,34 @@
 	use solid_mod
 	implicit none
 	integer :: ispin,ind_k,k
+
 	if(ubi/='dft') then
 	  v_mt_h=adm_gw*v_mt_h+(1.d0-adm_gw)*v_mt_h_old
 	endif
+
 	v_mt_h_old=v_mt_h
+
       call rad_eqs
+
 	pv=0.d0
 	if(irel==2) pvj=0.d0
+
 c ----------- Full Potential; L=0 term is absent ---------------
       if(ubi=='dft') then
 	  call vslli(2,2,v_mt_h,v_mt_xc,v_intr_h,v_intr_xc)
       else
 	  call vslli(0,2,v_mt_h,v_mt_xc,v_intr_h,v_intr_xc)
 	endif
+
       call timel('******* vslli finished *************')
+
 	if(iter>iter_dft.and.we_need_v) then
 	  call prod_bas
 	  call trans_pb_pw
 	endif
+
       call bands
+
       if(iter==1) chem_pot=minval(e_bnd(n_semic+1,:,1:nspin))+0.5d0
 c -----------------------------------------------------------------
 c$$$      call search_mu_0(chem_pot,nelec,chem_pot)
@@ -36,7 +45,9 @@ c$$$      call search_mu_0(chem_pot,nelec,chem_pot)
       
       call timel('**** Search_mu finished ************')
 c -----------------------------------------------------------------
+! If doing dft or hf, then set_g calls green_0 and g_mt_from_g_full.  It also calls etot_gw_0, and etot_gw_1, and g_x_tau which is needed by etot_gw_1.  These calls to etot_* just calculate variables concerning the total energy.
 	call set_g
+
       call timel('******** Set_G finished ************')
 c -----------------------------------------------------------------
       call seteny

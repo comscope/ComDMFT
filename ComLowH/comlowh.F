@@ -34,7 +34,7 @@
 c$$$      if (me .lt. 10) then
 c$$$        write(ch, '(a, i1, a)') "check_comlowh_", me, ".dat"
 c$$$      elseif (me .lt. 100) then
-c$$$        write(ch, '(a, i2, a)') "check_comlowh_", me, "13"
+c$$$        write(ch, '(a, i2, a)') "check_comlowh_", me, ".dat"
 c$$$      elseif (me .lt. 1000) then
 c$$$        write(ch, '(a, i3, a)') "check_comlowh_", me, ".dat"
 c$$$      elseif (me .lt. 10000) then
@@ -90,24 +90,24 @@ c$$$      write(179,*) 'here'
 ! If (is_metal==0), or if doing post-processing, ComLowH reads in ef.dat and uses its value.
 ! ef.dat is not used by other parts of ComDMFT.
           is_qp=0 ! use cal_g not cal_h_qp
-        elseif (cal_mode .eq. 2) then ! yes analytic continuation, DOS
+        elseif (cal_mode .eq. 2) then ! yes needs analytic continuation, DOS
           is_matsubara=0 ! frequency(iomega) is real
           is_kpath=0
           is_recal_ef=0
           is_qp=0 ! use cal_g not cal_h_qp
-        elseif (cal_mode .eq. 3) then ! yes analytic continuation, A(k,omega)
+        elseif (cal_mode .eq. 3) then ! yes needs analytic continuation, A(k,omega)
           is_matsubara=0 ! frequency(iomega) is real
           is_kpath=1 ! is_kpath means we are calculating either A((k,omega) [if cal_mode=3] or qp spectra [if cal_mode=5]
           is_recal_ef=0
           is_qp=0 ! use cal_g not cal_h_qp
-        elseif (cal_mode .eq. 4) then ! no analytic continuation, DOS
+        elseif (cal_mode .eq. 4) then ! the output files are exactly the same as (cal_mode .eq. 5)
           is_matsubara=1 ! frequency(iomega) is imaginary
           is_kpath=0
           is_recal_ef=0
           is_qp=1 ! use cal_h_qp
-        elseif (cal_mode .eq. 5) then ! no analytic continuation, qp spectra
+        elseif (cal_mode .eq. 5) then ! no analytic continuation, produces qp spectra, does not produce a DOS or A(k,omega)
           is_matsubara=1 ! frequency(iomega) is imaginary
-          is_kpath=1 ! is_kpath means we are calculating either A((k,omega) [if cal_mode=3] or qp spectra [if cal_mode=5]
+          is_kpath=1 ! is_kpath means we are calculating either A(k,omega) [if cal_mode=3] or qp spectra [if cal_mode=5]
           is_recal_ef=0
           is_qp=1 ! ! use cal_h_qp
         endif
@@ -119,12 +119,12 @@ c$$$        read(10,*) num_cell
         allocate(num_orb(num_atom))
 
         num_orb=0
-        read(10,*) (num_orb(iatom), iatom=1, num_atom) ! nimp_orb, control['impurity_problem_equivalence']
+        read(10,*) (num_orb(iatom), iatom=1, num_atom) ! nimp_orb
         num_orb_max=maxval(num_orb)
 
         allocate(iac(num_atom,num_cell))
 
-# This reads in impurity equivalence data: a matrix, from control['impurity_problem_equivalence'].
+# read in map(str,control['impurity_problem_equivalence'])
         read(10,*)
      $    ((iac(iatom,icell),iatom=1,num_atom),icell=1,num_cell)
         
@@ -161,7 +161,7 @@ c$$$        read(10,*) num_cell
      $    n_iac_mat_i:n_iac_mat_f))
         ioac=0          
 
-# This reads in indices of the orbitals used for impurities, which came from control['impurity_wan'][iatom].
+# This reads  a matrix, from the entries of  control['impurity_problem_equivalence'].
         do ii=n_iac_mat_i, n_iac_mat_f
           if ((is_magnetic .eq. 1) .and. (ii .eq. 0)) cycle
           do iorb=1, norb_iac(ii)
@@ -233,8 +233,10 @@ c$$$        read(10,*) num_cell
         allocate(wan_correlated(num_orb_max, num_atom))
         wan_correlated=0
 
+# Read in indices of the orbitals used for impurities, which came from control['impurity_wan'][iatom].
         read(10,*) ((wan_correlated(iorb,iatom),
      $    iorb=1,num_orb(iatom)),iatom=1,num_atom)
+
         read(10,*) ewin_min, ewin_max ! control['proj_win_min'], control['proj_win_max']
         read(10,*) n_omega ! control['n_omega']
         read(10,*) gamma_selfenergy ! 0.0
@@ -247,6 +249,9 @@ c$$$        is_metal=1
         is_recal_ef=is_recal_ef*is_metal
         read(10,*) den_mode ! 'bnd'
         read(10,*) is_spinorbit ! control['spin_orbit']
+
+! ndiv and nqdiv are the coarse grid, ndim_kk_co,n_mpi_kk_co
+! ndiv_fi and nqdiv_fi are the fine grid, ndim_kk_fi,n_mpi_kk_fi
 
         !  if (is_kpath .eq. 0), comlowh uses the ndiv_fi to set up kpt_latt_fi, and then writes it out to the kpoints file.
         ! if not(is_kpath .eq. 0), then comlowh reads from the kpoints file into kpt_latt_fi
@@ -751,11 +756,11 @@ c$$$        write(179, *) 'cal_g run'
       else ! not (is_qp .eq. 0)
         if (maswrk) then
           write(iun, *) 'cal_h_qp run'
-        endif ! not (is_qp .eq. 0)
+        endif 
 c$$$        write(179, *) 'cal_h_qp run'        
         call cal_h_qp(nqdiv_fi,ndim_kk_fi,n_mpi_kk_fi,ndim_kk_fi_max,
      $    kpt_latt_fi)
-      endif
+      endif ! not (is_qp .eq. 0)
 
 
 ! deallocate 
@@ -1455,7 +1460,19 @@ c$$$  test if it is unitary
 c$$$  endif      
       if (is_recal_ef  .eq. 1) then
 
-! todo. search_fermi_energy_brent calculates the new value of the Fermi level ef.
+! todo. search_fermi_energy_brent calculates the new value of the Fermi level ef. Uses the 'doping' parameter in comdmft.ini, which turns into the delta_charge variable read in from comlowh.ini.
+! -------------
+! This routine finds a Fermi energy ef (used in gmat) that solves the equation 0=cal_tos_analytical_tail_fun.
+! cal_tos_analytical_tail_fun=Tr(nimp(b))-nelectron
+! nimp(b) = -2 \beta^{-1} N_k^{-1} \sum_k \sum_{\omega} \exp(-\beta \omega) diag[ gmat(k,\omega) - \omega^{-1} - g2mat(k,\omega_{max}) / \omega^2 - g3mat(k,\omega_{max}) / \omega^3] - N_k^{-1} \sum_k (-1/2 + g2mat(k,\omega_{max}) \beta/4)
+! g2mat(k,\omega_{max}) = (g(k,\omega_{max}) + g^\dagger(k,\omega_{max}))/2 * \omega_{max}^2
+! g3mat(k,\omega_{max})  = (g(k,\omega_{max}) - g^\dagger(k,\omega_{max})  - 2/\omega_{max})/2 * \omega_{max}^3
+! gmat(k,\omega) = g(k,\omega) = (ef + frequency(\omega) - h_nonint - \sum_atoms proj_renorm^\dagger (sig(\omega) - dc - I * gamma_selfenergy) proj_renorm)^{-1}
+! ---------
+! g_gw is set to zero by the caller
+! if no spin-orbit, nelectron=dble(nint(nelectron_dble*2))/2.0d0    +delta_charge/2.0d0
+! if spin-orbit, nelectron=dble(nint(nelectron_dble))+delta_charge
+! nelectron_dble=N_q^{-1} \sum_{q,b,o, eigenvalues(b,k) < 0} |v_matrix(b,o,k)|^2 
         call search_fermi_energy_brent
      $    (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,0)
 
@@ -1498,7 +1515,7 @@ c$$$  write(179,*) 'e_projected', e_projected
             do iatom=1, num_atom
               ii=iac(iatom,icell)
 
-! ndeg_iac = num_orb(atom) + 1
+! ndeg_iac = number of impurities (atoms) that are equivalent to each other
               fac=1.0d0/dble(numk)/dble(ndeg_iac(ii))              
               tempmat1=0.0d0
 
@@ -1860,7 +1877,7 @@ c$$$          close(305)
 
         if (cal_mode .eq. 1) then ! doing a non-postprocessing run
 
-! fermi_level_spectral_function_local calculates and prints out local_spectral_matrix_ef.dat and n_loc.dat, which are never used by ComDMFT.
+! fermi_level_spectral_function_local calculates and prints out local_spectral_matrix_ef.dat, which is under certain circumstances used by comdmft.py. It also writes out n_loc.dat, which is never used by ComDMFT.
           call fermi_level_spectral_function_local
 
 ! ! fermi_level_spectral_function_ksum computes and prints out  spectral_matrix_ef.dat
@@ -1898,8 +1915,8 @@ c$$$          close(305)
 ! cal_mat_eig_co calculates h_nonint_co, and eigenvalues_co, and eigenvalues_co_all, and w_matrix_co. It would be trivial if zinv_m1_exist were false, i.e. if zinv_m1.dat did not exist, which is the case when doing dft+dmft.
 ! h_nonint_co is used only in cal_n_matrix, and w_matrix_co is used by write_den_matrix.
 ! eigenvalues_co=eigenvalues_co_all and w_matrix_co are the eigenvalues and eigenvectors of v_matrix^\dagger * eigenvalues * v_matrix
-! h_nonint_co = zinv_half * eigenvalues_co * zinv_half
-! zinv_half = \sqrt(1 + \sum_atoms proj_renorm_co^\dagger * zinv_m1 * proj_renorm_co)
+! h_nonint_co(k) = \sqrt{zinv}(k) * eigenvalues_co(k) * \sqrt{zinv}(k)
+! zinv = 1 + \sum_i proj_renorm_co^\dagger(i,k) * zinv_m1(i) * proj_renorm_co(i,k)
 ! If zinv_m1.dat doesn't exist that means that zinv_m1 = 0 and h_nonint_co = eigenvalues_co.
 ! output: h_nonint_co
 ! output: eigenvalues_co, eigenvalues_co_all
@@ -2006,7 +2023,7 @@ c$$$          close(305)
 !       - "temperature"
 !       - "nqdiv" - the number of q-points
 !       - "n_dmft_bnd" from nbnd_in_win_co [called 'num_band_in' when saved from comrisb, and read in by rspflapw as 'n_dmft_bnd'] - should be the number of bands
-!       - "n_dmft_wan" from nbnd_in_win_co - the number of wanniers
+!       - "n_dmft_wan" from nbnd_in_win_co
 !       - "include_band_new"
 !               include_band_new comes from nbnd_in_win_co, bnd_in_win_co, to_orig_bnd, and include_bands.
 !       - "vw_matrix_new"
@@ -2639,7 +2656,9 @@ c$$$  self_energy
 
       do ik=1, ndim_k(me1)
         irk=n_mpi_k(me1)+ik
+
         if (zinv_m1_exist) then
+
           zinv=0.0d0
           do iwancell=1, num_wancell
             zinv(iwancell,iwancell)=1.0d0
@@ -2702,17 +2721,22 @@ c$$$  self_energy
               enddo
             enddo
           enddo
-        else
+
+        else ! not (zinv_m1_exist)
+
           do iwancell=1, num_wancell
             h_nonint(iwancell,iwancell,ik)
      $        =eigenvalues_fi(iwancell,ik)
           enddo
-        endif
+
+        endif ! not (zinv_m1_exist)
+
         do iwancell=1,num_wancell
           h_nonint(iwancell,iwancell,ik)
      $      =h_nonint(iwancell,iwancell,ik)-ef
         enddo
-      enddo
+
+      enddo ! ik=1, ndim_k(me1)
 
 
         
@@ -2731,10 +2755,13 @@ c$$$      write(179,*) 'here7'
         
         do icell=1, num_cell ! num_cell=1
           do iatom=1, num_atom
+
             ii=iac(iatom,icell)
             mat_loc_ackw=0.0d0
+
             do iorb=1, num_orb(iatom)
               do jorb=1, num_orb(iatom)
+
                 iio=ioac(iorb,jorb,ii)
                 if (iio .ne. 0) then
                   mat_loc_ackw(iorb,jorb)
@@ -2743,8 +2770,8 @@ c$$$      write(179,*) 'here7'
      $              -dc(iio,ii)
                 endif
                 
-              enddo
-            enddo
+              enddo ! jorb=1, num_orb(iatom)
+            enddo ! iorb=1, num_orb(iatom)
             
             tempmat1=0.0d0
             call zgemm('n','n',num_orb(iatom),num_wancell,
@@ -2759,8 +2786,9 @@ c$$$      write(179,*) 'here7'
      $        proj_renorm(1,1,iatom,icell,ik),num_orb_max,
      $        tempmat1,num_orb_max,(1.d0,0.d0),
      $        h_nonint(1,1,ik),num_wancell)
-          enddo
-        enddo
+
+          enddo ! iatom=1, num_atom
+        enddo  ! icell=1, num_cell ! num_cell=1
 
 
         zinv_imp=0.0d0
@@ -2770,6 +2798,7 @@ c$$$      write(179,*) 'here7'
         
         do icell=1, num_cell ! num_cell=1
           do iatom=1, num_atom
+
             ii=iac(iatom,icell)
             mat_loc_ackw=0.0d0
             do iorb=1, num_orb(iatom)
@@ -2796,8 +2825,9 @@ c$$$      write(179,*) 'here7'
      $        proj_renorm(1,1,iatom,icell,ik),num_orb_max,
      $        tempmat1,num_orb_max,(1.d0,0.d0),
      $        zinv_imp,num_wancell)
-          enddo
-        enddo
+
+          enddo ! iatom=1, num_atom
+        enddo ! icell=1, num_cell ! num_cell=1
         
         call hermitianeigen_cmplxdouble
      $    (num_wancell,diag,zinv_imp)
@@ -2853,7 +2883,7 @@ c$$$  write(179,*) 'here8',irk,ik
      $      =eigenvalues_qp_fi_all(tempind(1),irk)
         enddo
         
-      enddo
+      enddo ! ik=1, ndim_k(me1)
 
 c$$$      write(179,*) 'here8'
         
@@ -3116,7 +3146,17 @@ c$$$      endif
       end
 
 
-
+! This routine finds a Fermi energy ef (used in gmat) that solves the equation 0=cal_tos_analytical_tail_fun.
+! cal_tos_analytical_tail_fun=Tr(nimp(b))-nelectron
+! nimp(b) = -2 \beta^{-1} N_k^{-1} \sum_k \sum_{\omega} \exp(-\beta \omega) diag[ gmat(k,\omega) - \omega^{-1} - g2mat(k,\omega_{max}) / \omega^2 - g3mat(k,\omega_{max}) / \omega^3] - N_k^{-1} \sum_k (-1/2 + g2mat(k,\omega_{max}) \beta/4)
+! g2mat(k,\omega_{max}) = (g(k,\omega_{max}) + g^\dagger(k,\omega_{max}))/2 * \omega_{max}^2
+! g3mat(k,\omega_{max})  = (g(k,\omega_{max}) - g^\dagger(k,\omega_{max})  - 2/\omega_{max})/2 * \omega_{max}^3
+! gmat(k,\omega) = g(k,\omega) = (ef + frequency(\omega) - h_nonint - \sum_atoms proj_renorm^\dagger (sig(\omega) - dc - I * gamma_selfenergy) proj_renorm)^{-1}
+! ---------
+! g_gw is set to zero by the caller
+! if no spin-orbit, nelectron=dble(nint(nelectron_dble*2))/2.0d0  +delta_charge/2.0d0
+! if spin-orbit, nelectron=dble(nint(nelectron_dble))+delta_charge
+! nelectron_dble=N_q^{-1} \sum_{q,b,o, eigenvalues(b,k) < 0} |v_matrix(b,o,k)|^2 
       subroutine search_fermi_energy_brent
      $  (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,g_gw)
       
@@ -3142,7 +3182,7 @@ c$$$      endif
       t = 1.0d-5
 
 c$$$  check if we have different sign at aa and bb
-      if (g_gw .eq. 1) then
+      if (g_gw .eq. 1) then ! This never executes because g_gw=0.
         tos_aa=cal_tos_gw_fun
      $    (aa,numk,ndim_k,n_mpi_k,ndim_k_max,kvec,0.0d0)
         tos_bb=cal_tos_gw_fun
@@ -3153,6 +3193,7 @@ c$$$  check if we have different sign at aa and bb
         tos_bb=cal_tos_analytical_tail_fun
      $    (bb,numk,ndim_k,n_mpi_k,ndim_k_max,kvec,0.0d0)              
       endif
+
       if ((tos_aa .gt. 0.0d0) .or. (tos_bb .lt. 0.0d0)) then
         if (maswrk) then
           write(iun,*) "wrong initial setup in search fermi level"
@@ -3161,7 +3202,7 @@ c$$$  check if we have different sign at aa and bb
       endif
       
       n_target=0.0d0
-      if (g_gw .eq. 1) then      
+      if (g_gw .eq. 1) then  ! This never executes because g_gw=0.
         mu_target=find_fermi_level(aa, bb, machep,t, cal_tos_gw_fun,
      $    numk,ndim_k,n_mpi_k,ndim_k_max,kvec,nproc,n_target)
       else
@@ -3172,7 +3213,7 @@ c$$$  check if we have different sign at aa and bb
 
       ef=mu_target
       
-      if (g_gw .eq. 1) then
+      if (g_gw .eq. 1) then  ! This never executes because g_gw=0.
         tos_ef=cal_tos_gw_fun
      $    (ef,numk,ndim_k,n_mpi_k,ndim_k_max,kvec,0.0d0)
       else
@@ -3183,7 +3224,7 @@ c$$$  check if we have different sign at aa and bb
       endif
 
       if (maswrk) then
-        if (g_gw .eq. 1) then        
+        if (g_gw .eq. 1) then  ! This never executes because g_gw=0.
           write(iun,*) 'ef', ef, tos_ef
         else
           write(iun,*) 'ef', ef, tos_ef, tos_ef_gw
@@ -3223,8 +3264,16 @@ c$$$  check if we have different sign at aa and bb
       cal_tos_gw_fun=cal_tos_gw_fun-nelectron*num_cell-nshift
       end            
       
-
-
+! cal_n_matrix is almost exactly the same as cal_n_lattice+cal_tos_analytical_tail_fun, except 
+!   that the former is evaluated on the coarse k-point grid associated with ndiv and nqdiv,
+!   while the latter is evaluated on the fine k-point grid associated with ndiv_fi and nqdiv_fi.
+!   The former is used to produce the density matrix which is supplied to flapwmbpt, while
+!   the latter is used to produce an electron count for adjusting the Fermi level.
+! cal_tos_analytical_tail_fun=Tr(nimp(b))-nelectron-nshift
+! nimp(b) = -2 \beta^{-1} N_k^{-1} \sum_k \sum_{\omega} \exp(-\beta \omega) diag[ gmat(k,\omega) - \omega^{-1} - g2mat(k,\omega_{max}) / \omega^2 - g3mat(k,\omega_{max}) / \omega^3] - N_k^{-1} \sum_k (-1/2 + g2mat(k,\omega_{max}) \beta/4)
+! g2mat(k,\omega_{max}) = (g(k,\omega_{max}) + g^\dagger(k,\omega_{max}))/2 * \omega_{max}^2
+! g3mat(k,\omega_{max})  = (g(k,\omega_{max}) - g^\dagger(k,\omega_{max})  - 2/\omega_{max})/2 * \omega_{max}^3
+! gmat(k,\omega) = g(k,\omega) = (ef_tmp + frequency(\omega) - h_nonint - \sum_atoms proj_renorm^\dagger (sig(\omega) - dc - I * gamma_selfenergy) proj_renorm)^{-1}
       subroutine cal_n_lattice
      $  (numk,ndim_k,n_mpi_k,ndim_k_max,kvec,ef_tmp,
      $  nimp)
@@ -3263,32 +3312,45 @@ c$$$  g3_corr=0.0d0
         gmat=0.0d0        
         g_lat_inv_temp=g_lat_inv(:,:,ik,n_omega)        
         
+! g_lat_inv = frequency(\omega_{max}) - h_nonint - \sum_atoms proj_renorm^\dagger (sig(\omega_{max}) - dc - I * gamma_selfenergy) proj_renorm
+! g_lat_inv_temp = ef_tmp + frequency(\omega_{max}) - h_nonint - \sum_atoms proj_renorm^\dagger (sig(\omega_{max}) - dc - I * gamma_selfenergy) proj_renorm
         do ibnd=1, num_wancell
           g_lat_inv_temp(ibnd,ibnd)
      $      =g_lat_inv_temp(ibnd,ibnd)+ef_tmp
         enddo
+
 c$$$  write(179,*), iomega, ik, irk
+
+! gmat(k,\omega_{max}) = g(k,\omega_{max}) = (ef_tmp + frequency(\omega_{max}) - h_nonint - \sum_atoms proj_renorm^\dagger (sig(\omega_{max}) - dc - I * gamma_selfenergy) proj_renorm)^{-1}
         call dcmplx_matinv(g_lat_inv_temp, gmat,
      $    num_wancell,num_wancell)
         
+! g2mat(k,\omega_{max}) = (g(k,\omega_{max}) + g^\dagger(k,\omega_{max}))/2 * \omega_{max}^2
+! g3mat(k,\omega_{max})  = (g(k,\omega_{max}) - g^\dagger(k,\omega_{max})  - 2/\omega_{max})/2 * \omega_{max}^3
         g2mat=(gmat+transpose(dconjg(gmat)))
      $    /2.0d0*frequency(n_omega)**2
         g3mat=(gmat-transpose(dconjg(gmat))
      $    -one_matrix_f*2.0/frequency(n_omega))
      $    /2.0d0*frequency(n_omega)**3                  
         
+
+
         do iomega=1, n_omega
           
           gmat=0.0d0        
+
           g_lat_inv_temp=g_lat_inv(:,:,ik,iomega)        
           
           do ibnd=1, num_wancell
             g_lat_inv_temp(ibnd,ibnd)
      $        =g_lat_inv_temp(ibnd,ibnd)+ef_tmp
           enddo
+
 c$$$  write(179,*), iomega, ik, irk
+
           call dcmplx_matinv(g_lat_inv_temp, gmat,
      $      num_wancell,num_wancell)
+! gmat(k,\omega) = g(k,\omega) = (ef_tmp + frequency(\omega) - h_nonint - \sum_atoms proj_renorm^\dagger (sig(\omega) - dc - I * gamma_selfenergy) proj_renorm)^{-1}
 
           do ibnd=1,num_wancell
             nimp(ibnd)
@@ -3326,8 +3388,9 @@ c$$$  $        *(
 c$$$  $        -g3mat(ibnd,ibnd)/(frequency(iomega))**3                  
 c$$$  $        )
 c$$$  $        )/dble(numk)            
-          enddo
-        enddo
+          enddo ! ibnd=1,num_wancell
+        enddo ! iomega=1, n_omega
+
         do ibnd=1,num_wancell        
 !     asymptotic interval
           nimp(ibnd)
@@ -3359,21 +3422,32 @@ c$$$  c$$$  $        *(beta/beta-1.0d0/2.0d0)
 c$$$  c$$$  $        -g3mat(ibnd,ibnd)*beta**2/4.0d0
 c$$$  c$$$  $        *((beta/beta)**2-(beta/beta))
 c$$$  $      )/dble(numk)
-        enddo
-      enddo
+        enddo ! ibnd=1,num_wancell 
+
+      enddo ! ik=1, ndim_k(me1)
       
       call mpi_allreduce_dble(nimp,num_wancell,mpi_sum,mpi_comm_world)
+
 c$$$  call mpi_allreduce_dble(g1_corr,
 c$$$  $  num_wancell,mpi_sum,mpi_comm_world)
 c$$$  call mpi_allreduce_dble(g2_corr,
 c$$$  $  num_wancell,mpi_sum,mpi_comm_world)
 c$$$  call mpi_allreduce_dble(g3_corr,
 c$$$  $  num_wancell,mpi_sum,mpi_comm_world)                  
+
       end
 
 
-
-
+! cal_n_matrix is almost exactly the same as cal_n_lattice+cal_tos_analytical_tail_fun, except 
+!   that the former is evaluated on the coarse k-point grid associated with ndiv and nqdiv,
+!   while the latter is evaluated on the fine k-point grid associated with ndiv_fi and nqdiv_fi.
+!   The former is used to produce the density matrix which is supplied to flapwmbpt, while
+!   the latter is used to produce an electron count for adjusting the Fermi level.
+! cal_tos_analytical_tail_fun=Tr(nimp(b))-nelectron-nshift
+! nimp(b) = -2 \beta^{-1} N_k^{-1} \sum_k \sum_{\omega} \exp(-\beta \omega) diag[ gmat(k,\omega) - \omega^{-1} - g2mat(k,\omega_{max}) / \omega^2 - g3mat(k,\omega_{max}) / \omega^3] - N_k^{-1} \sum_k (-1/2 + g2mat(k,\omega_{max}) \beta/4)
+! g2mat(k,\omega_{max}) = (g(k,\omega_{max}) + g^\dagger(k,\omega_{max}))/2 * \omega_{max}^2
+! g3mat(k,\omega_{max})  = (g(k,\omega_{max}) - g^\dagger(k,\omega_{max})  - 2/\omega_{max})/2 * \omega_{max}^3
+! gmat(k,\omega) = g(k,\omega) = (ef_tmp + frequency(\omega) - h_nonint - \sum_atoms proj_renorm^\dagger (sig(\omega) - dc - I * gamma_selfenergy) proj_renorm)^{-1}
       double precision function cal_tos_analytical_tail_fun(ef_tmp,
      $  numk,ndim_k,n_mpi_k,ndim_k_max,kvec,nshift)
       use comlowh_mod
@@ -3459,9 +3533,10 @@ c$$$      call flush(179)
           enddo
         enddo
       enddo      
+
       if (is_spinorbit .eq. 1) then
         nelectron=dble(nint(nelectron_dble*num_cell))/num_cell
-     $    +delta_charge
+     $    +delta_charge ! delta_charge comes from the 'doping' entry in comdmft.ini
       else
         nelectron=dble(nint(nelectron_dble*num_cell*2))/2.0d0/num_cell
      $    +delta_charge/2.0d0
@@ -3616,7 +3691,6 @@ c$$$      deallocate(tempdble1)
       
 
 ! wan_cor_index maps (iorb,iatom,icell) to an index over wanniers.
-! wan_cor_index = wan_correlated
 ! for instance, for a single d-shell atom, wan_cor_index=wan_correlated might be [8,9,10,11,12], and its iatom and icell indices are constrained to 1.
 
 !     calculate projector in a fine grid
@@ -4309,8 +4383,8 @@ c$$$            call flush(179)
 ! cal_mat_eig_co calculates h_nonint_co, and eigenvalues_co, and eigenvalues_co_all, and w_matrix_co. It would be trivial if zinv_m1_exist were false, i.e. if zinv_m1.dat did not exist, which is the case when doing dft+dmft.
 ! h_nonint_co is used only in cal_n_matrix, and w_matrix_co is used by write_den_matrix.
 ! eigenvalues_co=eigenvalues_co_all and w_matrix_co are the eigenvalues and eigenvectors of v_matrix^\dagger * eigenvalues * v_matrix
-! h_nonint_co = zinv_half * eigenvalues_co * zinv_half
-! zinv_half = \sqrt(1 + \sum_atoms proj_renorm_co^\dagger * zinv_m1 * proj_renorm_co)
+! h_nonint_co(k) = \sqrt{zinv}(k) * eigenvalues_co(k) * \sqrt{zinv}(k)
+! zinv = 1 + \sum_i proj_renorm_co^\dagger(i,k) * zinv_m1(i) * proj_renorm_co(i,k)
 ! If zinv_m1.dat doesn't exist that means that zinv_m1 = 0 and h_nonint_co = eigenvalues_co.
 ! output: h_nonint_co
 ! output: eigenvalues_co, eigenvalues_co_all
@@ -4373,8 +4447,9 @@ c$$$            call flush(179)
             zinv(iwancell,iwancell)=1.0d0
           enddo
           
-          do icell=1, num_cell
+          do icell=1, num_cell ! num_cell = 1
             do iatom=1, num_atom
+
               ii=iac(iatom,icell)
               mat_loc_ackw=0.0d0
               do iorb=1, num_orb(iatom)
@@ -4401,8 +4476,9 @@ c$$$            call flush(179)
      $          proj_renorm_co(1,1,iatom,icell,ik),num_orb_max,
      $          tempmat1,num_orb_max,(1.d0,0.d0),
      $          zinv,num_wancell)
-            enddo
-          enddo
+
+            enddo ! iatom=1, num_atom
+          enddo !  icell=1, num_cell ! num_cell = 1
           
           call hermitianeigen_cmplxdouble
      $      (num_wancell,diag,zinv)
@@ -4429,7 +4505,7 @@ c$$$            call flush(179)
               enddo
             enddo
           enddo
-        else
+        else ! not (zinv_m1_exist)
           do iwancell=1, num_wancell
             h_nonint_co(iwancell,iwancell,ik)
      $        =eigenvalues_co(iwancell,ik)
@@ -5023,7 +5099,7 @@ c$$$  call flush(179)
       call mpi_barrier(mpi_comm_world,mpierr)      
       end
 
-! fermi_level_spectral_function_local calculates and prints out local_spectral_matrix_ef.dat and n_loc.dat, which are never used by ComDMFT.
+! fermi_level_spectral_function_local calculates and prints out local_spectral_matrix_ef.dat, which is under certain circumstances used by comdmft.py. It also writes out n_loc.dat, which are never used by ComDMFT.
       subroutine fermi_level_spectral_function_local
       use comlowh_mod
       
@@ -5144,7 +5220,7 @@ c$$$  call flush(179)
       endif
       end
 
-
+! fermi_level_spectral_function computes and prints out  spectral_matrix_ef.dat
       subroutine fermi_level_spectral_function
      $  (numk, ndim_k, n_mpi_k,ndim_k_max, g_lat_kw_diagonal)
       
@@ -5351,6 +5427,11 @@ c$$$     $    divisionarray
       endif
       end
 
+! cal_n_matrix is almost exactly the same as cal_n_lattice+cal_tos_analytical_tail_fun, except 
+!   that the former is evaluated on the coarse k-point grid associated with ndiv and nqdiv,
+!   while the latter is evaluated on the fine k-point grid associated with ndiv_fi and nqdiv_fi.
+!   The former is used to produce the density matrix which is supplied to flapwmbpt, while
+!   the latter is used to produce an electron count for adjusting the Fermi level.
 ! cal_n_matrix calculates the n_matrix:
 ! It calculates g_lat_inv_co(omega) = frequency(iomega) - h_nonint_co(:,:,ik) + \sum_{atom} proj_renorm_co(k)^\dagger * (sig(omega) - dc - I * gamma_selfenergy) * proj_renorm_co(k)
 ! Next it calculates gmat = (ef + g_lat_inv_co(:,:,n_omega))^{-1}
@@ -5674,7 +5755,7 @@ c$$$          write(179,*) 'higher order correction to the g is necessary'
 ! output: to_orig_bnd.  jbnd=to_orig_bnd(ibnd,k) is an integer specifying which vector in vw_matrix_co(:,jbnd,k) matches most strongly to the basis element (band) specified by ibnd.
 ! vw_matrix_temp = v_matrix(q)  P_w w_matrix_co(q) P_w + eigenvectors[1 - v_matrix^\dagger P_w v_matrix] P_r
 ! v_matrix is from wannier.dat, and w_matrix_co is calculated by h_nonint_co.
-      h cal_vw_matrix_co
+      subroutine cal_vw_matrix_co
 
       use comlowh_mod
 
@@ -5806,7 +5887,7 @@ c$$$     $    tempvec_dble((num_wann+1):num_bands)
 
 ! The whole point of this next block is to calculate to_orig_bnd, which is used ONLY in write_den_matrix.
 ! jbnd=to_orig_bnd(ibnd,k) is an integer specifying which vector in vw_matrix_co(:,jbnd,k) matches most strongly to the basis element (band) specified by ibnd.
-! this looks at the vector vw_matrix_co(:,ibnd,k).  Based on the which element of this vector has the largest magnitude, it sets to_orig_bnd(ibnd,k) equal the indexof that element.
+! this looks at the vector vw_matrix_co(:,ibnd,k).  Based on the which element of this vector has the largest magnitude, it sets to_orig_bnd(ibnd,k) equal to the index of that element.  The bits about tempvec_int guarantee that orig_bnd does not have duplicates.
       to_orig_bnd=0
       
       do irk=1, nqdiv
@@ -5822,6 +5903,7 @@ c$$$     $    tempvec_dble((num_wann+1):num_bands)
             if (tempvec_int(jbnd) .eq. 1) then
               tempvec_dble(jbnd)=0.0d0
             endif
+
           enddo ! jbnd=1, num_bands
           
           tempint=maxloc(tempvec_dble)
@@ -5981,7 +6063,7 @@ c$$$     $          eigenval(ibnd,irk),eigenval(ibnd_max,irk)
 !       - "temperature"
 !       - "nqdiv" - the number of k-points
 !       - "n_dmft_bnd" from nbnd_in_win_co [called 'num_band_in' when saved from comrisb, and read in by rspflapw as 'n_dmft_bnd'] - should be the number of bands
-!       - "n_dmft_wan" from nbnd_in_win_co - the number of wanniers
+!       - "n_dmft_wan" from nbnd_in_win_co 
 !       - "include_band_new"
 !               include_band_new comes from nbnd_in_win_co, bnd_in_win_co, to_orig_bnd, and include_bands.
 !       - "vw_matrix_new"

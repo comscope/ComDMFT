@@ -152,9 +152,9 @@ def read_comdmft_ini():
     control['u_mode']=control.get('u_mode', 'bnse')
 
     # the default value of trans_basis_mode is 0
-    # trans_basis_mode: 0, use wannier function as basis set
+    # trans_basis_mode: 0, use wannier functions as basis set
     # trans_basis_mode: 1, use transformation matrix to rotate the basis set. this matrix doesn't change as a function of iteration.
-    # trans_basis_mode: 2, use transformation matrix to rotate the basis set. this matrix does change as a function of iteration. this matrix diagonalize the spectral function at the chemical potential.
+    # trans_basis_mode: 2, use transformation matrix to rotate the basis set. this matrix does change as a function of iteration. this matrix diagonalizes the spectral function at the chemical potential.
     control['trans_basis_mode']=control.get('trans_basis_mode', 0)
     if (control['trans_basis_mode']==1):
         check_key_in_string('trans_basis', control)
@@ -346,7 +346,7 @@ def read_comdmft_ini():
             imp[key]['impurity_matrix']=np.array(imp[key]['impurity_matrix'])
         else:
             print("impurity_matrix reset", file=control['h_log'],flush=True)
-            nimp_orb=len(imp[key]['impurity_matrix'])
+            nimp_orb=len(imp[key]['impurity_matrix']) # the number of impurity orbitals
             imp[key]['impurity_matrix']=np.zeros((nimp_orb,nimp_orb), dtype='int')
             for ii in range(nimp_orb):
                 imp[key]['impurity_matrix'][ii,ii]=ii+1
@@ -373,7 +373,8 @@ def read_comdmft_ini():
     # sig_bare.dat, sig_smth.dat, hartree.dat, delta.dat, sig_dc.dat, 
     # sig_dc_hf.dat, sig_dc_h.dat, sig_dc_f.dat.
     control['sig_header']=['# omega(eV)']
-    for ii in sorted(set(control['impurity_problem_equivalence'])):
+    for ii in sorted(set(control['impurity_problem_equivalence'])):# loop over impurities
+    # This following line looks at all non-zero entries in impurity_matrix, finds the ones that are distinct, and loops through them.  The ii is an index over impurities, and jj is an index over distinct orbitals as defined by impurity_matrix.
         for jj in sorted(set(imp[str(abs(ii))]['impurity_matrix'].flatten().tolist())-{0}):
             control['sig_header'].append("Re Sig_{"+str(ii)+','+str(jj)+'}(eV)')
             control['sig_header'].append("Im Sig_{"+str(ii)+','+str(jj)+'}(eV)')
@@ -414,7 +415,7 @@ def read_comdmft_ini():
 #               in order to print them out in comcoulomb.ini and comlowh.ini
 #   find_impurity_wann is implemented of s,p,d,f if not doing spin-orbit,
 #       BUT if doing spin-orbit it is implemented only for f shell impurities.
-cdef find_impurity_wan(control, wan_hmat):
+def find_impurity_wan(control, wan_hmat):
     num_wann=np.shape(wan_hmat['basis'])[0]
     control['impurity_wan']=[]
     for ip in range(np.shape(control['impurity_problem'])[0]):
@@ -896,6 +897,7 @@ def read_convergence_table(control):
 # If ('initial_self_energy' in control, copy that self_energy to sig.dat.
 #   Possibly also copy information from initial_impurity_dir.
 # Otherwise, copies data from dc.dat to sig.dat.
+# sig.dat contains only one entry for each non-equivalent impurity orbital.
 def generate_initial_self_energy(control,imp):
     
     os.chdir(control['impurity_directory']) 
@@ -921,6 +923,7 @@ def generate_initial_self_energy(control,imp):
         cnt=0
         dclist=[]
         for ii in sorted(set(control['impurity_problem_equivalence'])):
+# This following line looks at all non-zero entries in impurity_matrix, finds the ones that are distinct, and loops through them.  The ii is an index over impurities, and jj is an index over distinct orbitals as defined by impurity_matrix.
             for jj in sorted(set(imp[str(abs(ii))]['impurity_matrix'].flatten().tolist())-{0}):
                 
                 # imp[key]['para'] = not(-1*int(key) in control['impurity_problem_equivalence'])
@@ -977,7 +980,9 @@ def delta_postprocessing(control,imp):
     #   and puts it in projected_eig.dat
     cal_projected_mean_field_diagonal(control,imp)
     
-    # cal_dc_diagonal takes info from dc_mat.dat, and puts it in dc.dat.    
+		# cal_dc_diagonal takes info from dc_mat.dat, and puts it in dc.dat.
+		# dc_mat.dat stores matrices of size equal to the number of impurity orbitals.
+		# dc.dat contains is a vector with elements only for non-equivalent orbitals within each matrix.
     cal_dc_diagonal(control)
 
     # cal_zinv_m1_diagonal takes info from zinv_m1_mat.dat and puts it 
@@ -988,7 +993,7 @@ def delta_postprocessing(control,imp):
     # contents of projected_eig.dat, and writes the result to e_imp.dat.    
     cal_e_imp_diagonal(control)
 
-    # cal_hyb_diagonal takes info from delta_mat.dat, and puts in delta.dat
+    # cal_hyb_diagonal takes info from delta_mat.dat, and puts it in delta.dat
     # It also tests the causality of delta.dat, and returns 1 if causal, 0 otherwise.
     delta_causality=cal_hyb_diagonal(control,imp)
 
@@ -999,6 +1004,8 @@ def delta_postprocessing(control,imp):
     return delta_causality
 
 # cal_dc_diagonal takes info from dc_mat.dat, and puts it in dc.dat.
+# dc_mat.dat stores matrices of size equal to the number of impurity orbitals.
+# dc.dat contains is a vector with elements only for non-equivalent orbitals within each matrix.
 def cal_dc_diagonal(control):
 
     os.chdir(control['dc_directory'])
@@ -1006,6 +1013,7 @@ def cal_dc_diagonal(control):
     # read_impurity_mat_static loads data from dc_mat.dat,
     # and puts it in the returned object, dc_mat.
     # dc_mat contains one matrix for each impurity.
+		# The matrix size is the number of impurity orbitals.
     # To aid in parsing the input file, it uses two variables:
     # control['impurity_problem_equivalence'] ,
     # and control['impurity_wan'].
@@ -1014,9 +1022,13 @@ def cal_dc_diagonal(control):
     h=open('./dc.dat', 'w')
 
     for ii in sorted(set(control['impurity_problem_equivalence'])):
-        # imp_from_mat_to_array takes info from dc_mat [a matrix] and puts it
-        # in dc_vec [ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
-        # which matrix elements to leave out, and about averaging over matrix elements.        
+# imp_from_mat_to_array takes info from matin [a matrix] and puts it
+# in vecout [ a vector].  equivalence_mat contains instructions about
+# which matrix elements to leave out, and about averaging over matrix elements.
+# If  equivalence_mat is diagonal, and its largest entry is equal to the number 
+# of non-equivalent orbitals, then the result is to make a vector with length equal
+# to the number of non-equivalent orbitals. Each entry in this vector is equal to the 
+# average of the diagonal entries in the input matrix which are equivalent to each other.
         dc_vec=imp_from_mat_to_array(dc_mat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
         for jj in range(len(dc_vec)):
             h.write(str(np.real(dc_vec[jj]))+'   '+str(np.imag(dc_vec[jj]))+'    ')
@@ -1070,6 +1082,7 @@ def cal_zinv_m1_diagonal(control):
         # read_impurity_mat_static loads data from zinv_m1_mat.dat
         # and puts it in the returned object, zinv_m1_dat.
         # zinv_m1_dat contains one matrix for each impurity.
+				# The matrix size is the number of impurity orbitals.
         # To aid in parsing the input file, it uses two variables:
         # control['impurity_problem_equivalence'] ,
         # and control['impurity_wan'].
@@ -1079,10 +1092,15 @@ def cal_zinv_m1_diagonal(control):
         h=open('./zinv_m1.dat', 'w')
         
         for ii in sorted(set(control['impurity_problem_equivalence'])):
-            # imp_from_mat_to_array takes info from zinv_m1_mat [a matrix] and puts it
-            # in zinv_m1_vec [ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
-            # which matrix elements to leave out, and about averaging over matrix elements.                    
-            zinv_m1_vec=imp_from_mat_to_array(zinv_m1_mat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])        
+        
+# imp_from_mat_to_array takes info from matin [a matrix] and puts it
+# in vecout [ a vector].  equivalence_mat contains instructions about
+# which matrix elements to leave out, and about averaging over matrix elements.
+# If  equivalence_mat is diagonal, and its largest entry is equal to the number 
+# of non-equivalent orbitals, then the result is to make a vector with length equal
+# to the number of non-equivalent orbitals. Each entry in this vector is equal to the 
+# average of the diagonal entries in the input matrix which are equivalent to each other.
+           zinv_m1_vec=imp_from_mat_to_array(zinv_m1_mat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])        
             for jj in range(len(zinv_m1_vec)):
                 h.write(str(np.real(zinv_m1_vec[jj]))+'   '+str(np.imag(zinv_m1_vec[jj]))+'    ')
         h.close()
@@ -1118,18 +1136,19 @@ def prepare_impurity_solver(control,wan_hmat,imp):
 
     # cal_trans_from_patrick(control, imp)
     
-    # array_impurity_dynamic loads data from delta.dat into
-    # the return variable, delta.  matout depends  on an index for omega,
-    # and also has a second index with a range equal 
-    # to amax(imp[str(abs(ii))]['impurity_matrix'])
-    # The following two variables are used: 
-    #   control['impurity_problem_equivalence']
-    #   control['n_omega']
-    delta=array_impurity_dynamic(control,imp,control['lowh_directory']+'/delta.dat')
+# array_impurity_dynamic loads data from the file named filename into
+# the return variable, matout, which contains a matrix for each
+# impurity. The matrix depends  on an index for omega,
+# and also has a second index with a range equal 
+# to amax(imp[str(abs(ii))]['impurity_matrix']), which is the number of inequivalent orbitals.
+# The following two variables are used: 
+#   control['impurity_problem_equivalence']
+#   control['n_omega']
+`    delta=array_impurity_dynamic(control,imp,control['lowh_directory']+'/delta.dat')
 
     # write_json_all writes the contents of delta (from delta.dat) to the json-formatted 
     #  file named json_name='hyb.json'. It also writes out imp['beta'], and it
-    # uses n_iio=np.amax(imp[key]['impurity_matrix']).  It does not use the
+    # uses n_iio=np.amax(imp[key]['impurity_matrix']), which is the number of distinct orbitals.  It does not use the
     # control argument except to decide where hyb.json should be located.
     write_json_all(control,imp,delta,'hyb.json')
 
@@ -1138,13 +1157,14 @@ def prepare_impurity_solver(control,wan_hmat,imp):
     # matout contains one or more matrices, one for each impurity.
     # It uses control['impurity_problem_equivalence'] which lists the impurities 
     # It also uses imp[ 'impurity_matrix' ], and
-    #  n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix']), which describe 
+    #  n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix']) which is the number of non-equivalent orbitals, which describe 
     #  each impurity.
     e_imp=generate_mat_from_array_impurity_static(control,imp,control['lowh_directory']+'/e_imp.dat')
 
     # read_impurity_mat_static loads data from trans_basis.dat,
     # and puts it in the returned object, trans_basis.
     # trans_basis contains one matrix for each impurity.
+		# The matrix size is the number of impurity orbitals.
     # To aid in parsing the input file, it uses two variables:
     # control['impurity_problem_equivalence'] ,
     # and control['impurity_wan'].
@@ -1160,6 +1180,7 @@ def prepare_impurity_solver(control,wan_hmat,imp):
         nimp_orb=len(imp[key]['impurity_matrix'])
         os.chdir(control['impurity_directory']+'/'+key)
         
+        # Transfer e_imp to e_imp_key, trans_basis to trans_key, and imp[key]['impurity_matrix'] to equivalence_key.  This involves (a) keeping track of the impurity equivalence, and (b) if this calculation is not spin-orbit, then double the basis size. If 'para' is true, e_imp goes both in the spin up-up block and also in the spin down-down block of e_imp_key.  trans_key is the same.  If 'para' is false, the spin up-up block is the same but the spin down-down block changes.  There is also some logic for figuring out what goes in the up-up and down-down blocks of equivalence_key.  If this is a spin-orbit calculation, there is no basis doubling and everything is much simpler.
         if (control['spin_orbit']):
             
             # prepare e_imp_key from e_imp, trans_key from trans_basis, 
@@ -1195,19 +1216,22 @@ def prepare_impurity_solver(control,wan_hmat,imp):
                 shiftval=np.amax(equivalence_key_int_mat)
                 
             print(mkey, shiftval, file=control['h_log'],flush=True)
-            #
+				 
             # On the next line ii>0 evaluates to 1 if ii>0 and evaluates to 0 otherwise
             # equivalence_mkey_int_mat=equivalence_key_int_mat+shiftval*array([[(lambda ii: ii>0)(ii) for ii in row] for row in equivalence_key_int_mat])
             # equivalence_mkey_int_mat=equivalence_key_int_mat+shiftval*array(map(lambda row: map(int,row), equivalence_key_int_mat>0))
             equivalence_mkey_int_mat=equivalence_key_int_mat+shiftval*(equivalence_key_int_mat>0)
 
 
-            e_imp_key[0:nimp_orb,0:nimp_orb]=np.real(e_imp[key])
-            e_imp_key[nimp_orb:(2*nimp_orb),nimp_orb:(2*nimp_orb)]=np.real(e_imp[mkey])
-            trans_key[0:nimp_orb,0:nimp_orb]=np.real(trans_basis[key])
-            trans_key[nimp_orb:(2*nimp_orb),nimp_orb:(2*nimp_orb)]=np.real(trans_basis[mkey])
-            equivalence_key_int_mat_all[0:nimp_orb,0:nimp_orb]=equivalence_key_int_mat
-            equivalence_key_int_mat_all[nimp_orb:(2*nimp_orb),nimp_orb:(2*nimp_orb)]=equivalence_mkey_int_mat
+            e_imp_key[0:nimp_orb,0:nimp_orb]=np.real(e_imp[key]) # spin up-up block
+            e_imp_key[nimp_orb:(2*nimp_orb),nimp_orb:(2*nimp_orb)]=np.real(e_imp[mkey]) # spin down-down block
+            
+            trans_key[0:nimp_orb,0:nimp_orb]=np.real(trans_basis[key]) # spin up-up block
+            trans_key[nimp_orb:(2*nimp_orb),nimp_orb:(2*nimp_orb)]=np.real(trans_basis[mkey]) # spin down-down block
+            
+            equivalence_key_int_mat_all[0:nimp_orb,0:nimp_orb]=equivalence_key_int_mat # spin up-up block
+            equivalence_key_int_mat_all[nimp_orb:(2*nimp_orb),nimp_orb:(2*nimp_orb)]=equivalence_mkey_int_mat # spin down-down block
+            
             equivalence_key=list(map(lambda row: list(map(lambda x: str(x) if x!='0' else '', list(map(str, row)))), equivalence_key_int_mat_all))
             
 
@@ -1299,7 +1323,7 @@ def run_impurity_solver(control,imp):
         sigma_to_delta_omega=[control['omega'][jj]]
         sigma_bare_omega=[control['omega'][jj]]
         for ii in sorted(set(control['impurity_problem_equivalence'])):
-            n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix'])
+            n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix']) # the number of non-equivalent orbitals
             for kk in range(n_iio):
                 if (ii<0):
                     pp=kk+n_iio
@@ -1356,8 +1380,14 @@ def run_impurity_solver(control,imp):
 
     os.chdir(control['top_dir'])
 
-# generate_mat_from_array_impurity_dynamic reads information from filename
-# and returns it in matout.
+# generate_mat_from_array_impurity_dynamic loads information from 
+# filename (a serial array) into the returned array, matout.
+# matout contains one or more matrices, one for each impurity.  The matrix size
+# is the number of impurity orbitals.
+# Actually for in the input file matrix only certain matrix elements are kept - the number of non-equivalent orbitals.
+# It uses control['impurity_problem_equivalence'] which lists the orbitals. 
+# It also uses imp[ 'impurity_matrix' ], and
+#  n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix']) which is the number of non-equivalent orbitals, which describe   each impurity.
 def generate_mat_from_array_impurity_dynamic(control,imp, filename):
 
     os.chdir(control['impurity_directory'])
@@ -1369,8 +1399,10 @@ def generate_mat_from_array_impurity_dynamic(control,imp, filename):
 
     last_index=1
 
+		# this counts the total number of inequivalent impurity orbitals, summed over all impurities.
+		# start_array and end_array tell where different impurities begin and end in the total array.
     for ii in sorted(set(control['impurity_problem_equivalence'])):
-        n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix'])
+        n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix']) # the number of non-equivalent orbitals
         start_array[ii]=last_index
         end_array[ii]=last_index+2*n_iio
         last_index=last_index+2*n_iio
@@ -1380,10 +1412,16 @@ def generate_mat_from_array_impurity_dynamic(control,imp, filename):
     matout={}
 
     for ii in sorted(set(control['impurity_problem_equivalence'])):
-        nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])
+        nimp_orb=len(imp[str(abs(ii))]['impurity_matrix']) # the number of orbitals
         tempmat=np.zeros((control['n_omega'],nimp_orb,nimp_orb), dtype='complex')
         for iomega in range(control['n_omega']):
             tempmat2=dat[iomega,start_array[ii]:end_array[ii]]
+           
+# imp_from_array_to_mat unpacks data from the list in vecin and uses it to
+# initalize the output matrix matout.  The list  in equivalence_mat 
+# describes equivalences between the data points in vecin (the first argument) and elements
+# of the matrix tempmat.
+
             tempmat[iomega,:,:]=imp_from_array_to_mat(tempmat2[0::2]+tempmat2[1::2]*1j,imp[str(abs(ii))]['impurity_matrix'])
         matout[str(ii)]=tempmat
     return matout
@@ -1391,11 +1429,11 @@ def generate_mat_from_array_impurity_dynamic(control,imp, filename):
 
 # generate_mat_from_array_impurity_static loads information from 
 # filename=e_imp.dat into the returned array, matout.
-# matout contains one or more matrices, one for eqc impurity.
-# It uses control['impurity_problem_equivalence'] which lists the impurities 
+# matout contains one or more matrices, one for each impurity.  The matrix size
+# is the number of impurity orbitals.
+# Actually for in the input file matrix only certain matrix elements are kept - the number of non-equivalent orbitals.
 # It also uses imp[ 'impurity_matrix' ], and
-#  n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix']), which describe 
-#  each impurity.
+#  n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix']) which is the number of non-equivalent orbitals, which describe   each impurity.
 def generate_mat_from_array_impurity_static(control,imp, filename):
 
     os.chdir(control['impurity_directory'])
@@ -1407,6 +1445,8 @@ def generate_mat_from_array_impurity_static(control,imp, filename):
 
     last_index=0
 
+		# this counts the total number of inequivalent impurity orbitals, summed over all impurities.
+		# start_array and end_array tell where different impurities begin and end in the total array.
     for ii in sorted(set(control['impurity_problem_equivalence'])):
         n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix'])
         start_array[ii]=last_index
@@ -1440,6 +1480,8 @@ def array_impurity_static(control,imp, filename):
 
     last_index=0
 
+		# this counts the total number of inequivalent impurity orbitals, summed over all impurities.
+		# start_array and end_array tell where different impurities begin and end in the total array.
     for ii in sorted(set(control['impurity_problem_equivalence'])):
         n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix'])
         start_array[ii]=last_index
@@ -1455,9 +1497,10 @@ def array_impurity_static(control,imp, filename):
     return matout
 
 # array_impurity_dynamic loads data from the file named filename into
-# the return variable, matout.  matout depends  on an index for omega,
+# the return variable, matout, which contains a matrix for each
+# impurity. The matrix depends  on an index for omega,
 # and also has a second index with a range equal 
-# to amax(imp[str(abs(ii))]['impurity_matrix'])
+# to amax(imp[str(abs(ii))]['impurity_matrix']), which is the number of inequivalent orbitals.
 # The following two variables are used: 
 #   control['impurity_problem_equivalence']
 #   control['n_omega']
@@ -1472,6 +1515,8 @@ def array_impurity_dynamic(control,imp, filename):
 
     last_index=1
 
+# this counts the total number of inequivalent impurity orbitals, summed over all impurities.
+# start_array and end_array tell where different impurities begin and end in the total array.
     for ii in sorted(set(control['impurity_problem_equivalence'])):
         n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix'])
         start_array[ii]=last_index
@@ -1482,6 +1527,7 @@ def array_impurity_dynamic(control,imp, filename):
 
     matout={}
 
+# this copies data from the input matrices into matout.
     for ii in sorted(set(control['impurity_problem_equivalence'])):
         n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix'])
         tempmat=np.zeros((control['n_omega'],n_iio), dtype='complex')
@@ -1489,10 +1535,13 @@ def array_impurity_dynamic(control,imp, filename):
             tempmat2=dat[iomega,start_array[ii]:end_array[ii]]
             tempmat[iomega,:]=tempmat2[0::2]+tempmat2[1::2]*1j
         matout[str(ii)]=tempmat
+        
     return matout
 
 # cal_projected_mean_field_diagonal takes info from e_projected_mat.dat 
-# and puts it in projected_eig.dat
+# and puts it in projected_eig.dat.  e_projected_mat.dat contains matrices.  
+# projected_eig.dat contains only the same number of elements as are marked as
+# distinct impurity orbitals.
 def cal_projected_mean_field_diagonal(control,imp):
 
     os.chdir(control['lowh_directory'])
@@ -1500,6 +1549,7 @@ def cal_projected_mean_field_diagonal(control,imp):
     # read_impurity_mat_static loads data from e_projected_mat.dat,
     # and puts it in the returned object, hmat.
     # hmat contains one matrix for each impurity.
+		# The matrix size is the number of impurity orbitals.
     # To aid in parsing the input file, it uses two variables:
     # control['impurity_problem_equivalence'] ,
     # and control['impurity_wan'].
@@ -1509,9 +1559,13 @@ def cal_projected_mean_field_diagonal(control,imp):
 
 
     for ii in sorted(set(control['impurity_problem_equivalence'])):  
-        # imp_from_mat_to_array takes info from hmat [a matrix] and puts it
-        # in h_vec [ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
-        # which matrix elements to leave out, and about averaging over matrix elements.                    
+# imp_from_mat_to_array takes info from matin [a matrix] and puts it
+# in vecout [ a vector].  equivalence_mat contains instructions about
+# which matrix elements to leave out, and about averaging over matrix elements.
+# If  equivalence_mat is diagonal, and its largest entry is equal to the number 
+# of non-equivalent orbitals, then the result is to make a vector with length equal
+# to the number of non-equivalent orbitals. Each entry in this vector is equal to the 
+# average of the diagonal entries in the input matrix which are equivalent to each other.
         h_vec=imp_from_mat_to_array(hmat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
 
         for jj in range(len(h_vec)):
@@ -1531,6 +1585,7 @@ def cal_projected_mean_field_diagonal(control,imp):
 
 # cal_e_imp_diagonal subtracts the contents of dc.dat from the 
 # contents of projected_eig.dat, and writes the result to e_imp.dat.
+# This is a straight subtraction; there is no change in file structure.
 def cal_e_imp_diagonal(control):
     os.chdir(control['lowh_directory'])
     eig=np.loadtxt('projected_eig.dat')
@@ -1560,10 +1615,12 @@ def cal_e_imp_diagonal(control):
     return None
 
 
-# imp_from_array_to_mat takes data from the list in vecin and uses it to
-# inialize the output matrix matout.  The list  in equivalence_mat 
+# imp_from_array_to_mat unpacks data from the list in vecin and uses it to
+# initalize the output matrix matout.  The list  in equivalence_mat 
 # describes equivalences between the data points in vecin and elements
 # of the matrix matout.
+# The matrix size is the number of impurity orbitals.
+# Actually in the input file matrix only certain matrix elements are kept - the number of non-equivalent orbitals.
 def imp_from_array_to_mat(vecin,equivalence_mat):
     nimp_orb=len(equivalence_mat)
     matout=np.zeros((nimp_orb, nimp_orb), dtype='complex')
@@ -1577,11 +1634,15 @@ def imp_from_array_to_mat(vecin,equivalence_mat):
 # imp_from_mat_to_array takes info from matin [a matrix] and puts it
 # in vecout [ a vector].  equivalence_mat contains instructions about
 # which matrix elements to leave out, and about averaging over matrix elements.
+# If  equivalence_mat is diagonal, and its largest entry is equal to the number 
+# of non-equivalent orbitals, then the result is to make a vector with length equal
+# to the number of non-equivalent orbitals. Each entry in this vector is equal to the 
+# average of the diagonal entries in the input matrix which are equivalent to each other.
 def imp_from_mat_to_array(matin,equivalence_mat):
-    n_iio=np.amax(equivalence_mat)
+    n_iio=np.amax(equivalence_mat) # n_iio is the number of orbitals that are listed as non-equivalent by the 'impurity_matrix' variable.
     vecout=np.zeros(n_iio, dtype='complex')
     degen_vec=np.zeros(n_iio, dtype='int')
-    nimp_orb=len(matin)
+    nimp_orb=len(matin) #nimp_orb is the number of impurity orbitals.
     # print(nimp_orb)
     # print(equivalence_mat)
     # print(type(equivalence_mat))
@@ -1590,9 +1651,9 @@ def imp_from_mat_to_array(matin,equivalence_mat):
 
     for ii in range(nimp_orb):    
         for jj in range(nimp_orb):
-            print(ii, jj)
+          #  print(ii, jj)
             if (equivalence_mat[ii,jj]!=0):
-                ind=equivalence_mat[jj,jj]-1
+                ind=equivalence_mat[jj,jj]-1  # todobugbug it looks like this should have [ii,jj] not [jj,jj]
                 vecout[ind]=vecout[ind]+matin[ii,jj]
                 degen_vec[ind]=degen_vec[ind]+1
     vecout=vecout/(degen_vec*1.0)
@@ -1631,7 +1692,8 @@ def imp_from_mat_to_array(matin,equivalence_mat):
 
 # read_impurity_mat_static loads data from the file named filename,
 # and puts it in the returned object, inp_basis.
-# inp_basis contains one matrix for each impurity.
+# inp_basis contains one matrix for each impurity. 
+# The matrix size is the number of impurity orbitals.
 # To aid in parsing the input file, it uses two variables:
 # control['impurity_problem_equivalence'] ,
 # and control['impurity_wan'].
@@ -1653,8 +1715,8 @@ def read_impurity_mat_static(control,filename):
         imp_basis[str(ii)]=impmat
     return imp_basis
 
-# read_impurity_mat_dynamic reads info from filename and puts it in
-#   imp_basis, which is returned.
+# read_impurity_mat_dynamic reads info from filename, which is in array form, and puts it in
+#   a matrix of size equal to the number of orbitals, and one more index for frequencies.
 def read_impurity_mat_dynamic(control,filename):
     imp_basis={}
     dat=np.loadtxt(filename)
@@ -1665,6 +1727,9 @@ def read_impurity_mat_dynamic(control,filename):
 
     last_index=1
 
+# nip_orb is the number of orbitals for each specific impurity.
+# This computes the total size of all the impurity matrices, summed together.
+# start_array and end_array are indices within the total array of specific impurities.
     for ii in sorted(set(control['impurity_problem_equivalence'])):
         prob_ind=control['impurity_problem_equivalence'].index(ii)
         nimp_orb=len(control['impurity_wan'][prob_ind])
@@ -1678,20 +1743,22 @@ def read_impurity_mat_dynamic(control,filename):
     for ii in sorted(set(control['impurity_problem_equivalence'])):
         prob_ind=control['impurity_problem_equivalence'].index(ii)
         nimp_orb=len(control['impurity_wan'][prob_ind])
+        
+        # This takes data from dat and puts it in a 2-D array with fortran indexing, each index being of size nimp_orb.
         dat3=np.reshape(dat[:,start_array[ii]:end_array[ii]], (control['n_omega'], 2, nimp_orb,nimp_orb), order='F')
         imp_basis[str(ii)]=dat3[:,0,:,:]+dat3[:,1,:,:]*1j
 
     return imp_basis
 
 
-# cal_hyb_diagonal takes info from delta_mat.dat, and puts in delta.dat
+# cal_hyb_diagonal takes info from delta_mat.dat, and puts it in delta.dat
 # It also tests the causality of delta.dat, and returns 1 if causal, 0 otherwise.
 def cal_hyb_diagonal(control,imp):
 
     os.chdir(control['lowh_directory'])
 
-    # read_impurity_mat_dynamic reads info from delta_mat.dat and puts it in
-    #   hyb_mat.
+		# read_impurity_mat_dynamic reads info from filename, which is in array form, and puts it in
+		#   a matrix of size equal to the number of orbitals, and one more index for frequencies.
     hyb_mat=read_impurity_mat_dynamic(control,control['lowh_directory']+'/delta_mat.dat')
 
     # print hyb_mat
@@ -1700,11 +1767,16 @@ def cal_hyb_diagonal(control,imp):
     for jj in range(control['n_omega']):
         hyb_omega=[control['omega'][jj]]
         for ii in sorted(set(control['impurity_problem_equivalence'])):
-            # imp_from_mat_to_array takes info from hyb_mat [a matrix] and puts it
-            # in hyb_vec [ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
-            # which matrix elements to leave out, and about averaging over matrix elements.                    
+# imp_from_mat_to_array takes info from matin [a matrix] and puts it
+# in vecout [ a vector].  equivalence_mat contains instructions about
+# which matrix elements to leave out, and about averaging over matrix elements.
+# If  equivalence_mat is diagonal, and its largest entry is equal to the number 
+# of non-equivalent orbitals, then the result is to make a vector with length equal
+# to the number of non-equivalent orbitals. Each entry in this vector is equal to the 
+# average of the diagonal entries in the input matrix which are equivalent to each other.
             hyb_vec=imp_from_mat_to_array(hyb_mat[str(ii)][jj,:,:],imp[str(abs(ii))]['impurity_matrix'])
 
+# The following line takes the real and imaginary parts of hyb_vec and combines them into a 1-D array of size len(hyb_vec)*2 with fortran indexing.
             hyb_omega=hyb_omega+np.reshape(np.stack((np.real(hyb_vec), np.imag(hyb_vec)), 0), (len(hyb_vec)*2), order='F').tolist()
         hyb_table.append(hyb_omega)
 
@@ -1827,10 +1899,11 @@ def gaussian_broadening_linear(x, y, w1, temperature, cutoff):
     
     width_array=w0+w1*x
     
-    cnt=0
+    cnt=0 # cnt is 0 for the first  member of x, 1 for the next, etc. - C-style indexing
     
     ynew=np.zeros(len(y), dtype='complex')
     
+  
     for x0 in x:
         if (x0>cutoff+(w0+w1*cutoff)*3.0):
             ynew[cnt]=y[cnt]
@@ -1906,7 +1979,7 @@ def measure_impurity_patrick(control):
 
 # write_json_all writes the contents of data_array=delta to the json-formatted 
 #  file named json_name='hyb.json'. It also writes out imp['beta'], and it
-# uses n_iio=np.amax(imp[key]['impurity_matrix']).  It does not use the
+# uses n_iio=np.amax(imp[key]['impurity_matrix']) which is the number of non-equivalent orbitals.  It does not use the
 # control argument except to decide where hyb.json should be located.
 def write_json_all(control,imp,data_array,json_name):
     # assume that it is diagonal matrix
@@ -1959,7 +2032,8 @@ def read_json(jsonfile):
 def read_function_from_jsonfile(jsonfile, dict_name):
     Sig_temp=json.load(open(jsonfile))['partition'][dict_name]
     n_omega=len(Sig_temp['1']["function"]['real'])
-    n_iio=len(Sig_temp.keys())
+    n_iio=len(Sig_temp.keys()) #n_iio is the basis size of the Sig_temp matrix, and it
+    #   should be the same as the number of non-equivalent impurity orbitals.
     dat1=np.zeros((n_omega, n_iio), dtype='complex')
     for key, value in Sig_temp.items():    
         dat1[:,int(key)-1]=np.array(Sig_temp[key]["function"]['real'])+np.array(Sig_temp[key]["function"]['imag'])*1j
@@ -2002,9 +2076,13 @@ def impurity_hartree(control, key, val):
         for ii in product(np.arange(nimp_orb), repeat=4):
             vh[ii[0],ii[1]]=vh[ii[0],ii[1]]+u0mat[ii[3], ii[2], ii[1], ii[0]]*(denmat_up[ii[3], ii[2]]+denmat_dn[ii[3], ii[2]])
 
-    # imp_from_mat_to_array takes info from vh [a matrix] and puts it
-    # in h_vec[ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
-    # which matrix elements to leave out, and about averaging over matrix elements.                    
+# imp_from_mat_to_array takes info from matin [a matrix] and puts it
+# in vecout [ a vector].  equivalence_mat contains instructions about
+# which matrix elements to leave out, and about averaging over matrix elements.
+# If  equivalence_mat is diagonal, and its largest entry is equal to the number 
+# of non-equivalent orbitals, then the result is to make a vector with length equal
+# to the number of non-equivalent orbitals. Each entry in this vector is equal to the 
+# average of the diagonal entries in the input matrix which are equivalent to each other.
     h_vec=imp_from_mat_to_array(vh,val['impurity_matrix'])
 
     h=open(control['impurity_directory']+'/'+key+'/hartree.dat', 'w')
@@ -2037,6 +2115,7 @@ def impurity_postprocessing(control, imp, key):
     labeling_file('./params.obs.json',iter_string)
     labeling_file('./params.meas.json',iter_string)
 
+# ------- Begin histogramming ----------------
 
     # Read in histogramming info from params.obs.json
     histo_temp=json.load(open('params.obs.json'))['partition']["expansion histogram"]
@@ -2061,15 +2140,21 @@ def impurity_postprocessing(control, imp, key):
     print('second moment', secondmoment,                     file=control['h_log'],flush=True)
     print('third moment',  thirdmoment,                      file=control['h_log'],flush=True)
 
+# firstmoment and secondmoment are used for convergence.log.
+
+# ------- End histogramming ----------------
+
     # previous_iter_string='_'.join(map(str,iter_string.split('_')[:-1]))+'_'+str(int(iter_string.split('_')[-1])-1)    
 
  
  
 
-    # green will be written to gimp.dat
+    # green will be written to gimp.dat.  green should contain the same number of elements
+    # as the number of non-equivalent impurity orbitals.
     green=read_function_from_jsonfile('./params.obs.json',"green")
     
-    # sigma_bare will be written in sig_bare.dat.
+    # sigma_bare will be written in sig_bare.dat. sigma_bare should contain the same number of elements
+    # as the number of non-equivalent impurity orbitals.
     sigma_bare=read_function_from_jsonfile('./params.obs.json',"self-energy")
 
     # maybe document this. The default value of 'embed_mode' is 'hfc'.    
@@ -2077,20 +2162,22 @@ def impurity_postprocessing(control, imp, key):
         dat=np.loadtxt('hartree.dat')[0::2]
         sigma_bare=sigma_bare-dat
 
-    # Read sigma_old in from sig.dat.
-    # array_impurity_dynamic loads data from sig.dat into
-    # the return variable, sigma_old.  matout depends  on an index for omega,
-    # and also has a second index with a range equal 
-    # to amax(imp[str(abs(ii))]['impurity_matrix'])
-    # The following two variables are used: 
-    #   control['impurity_problem_equivalence']
-    #   control['n_omega']    
+# sig.dat contains only one entry for each non-equivalent impurity orbital.
+# array_impurity_dynamic loads data from sig.dat into
+# the return variable, matout, which contains a matrix for each
+# impurity. The matrix depends  on an index for omega,
+# and also has a second index with a range equal 
+# to amax(imp[str(abs(ii))]['impurity_matrix']), which is the number of inequivalent orbitals.
+# The following two variables are used: 
+#   control['impurity_problem_equivalence']
+#   control['n_omega']
     sigma_old=array_impurity_dynamic(control,imp,control['impurity_directory']+'/sig.dat')
     
     
     sigma=np.zeros(np.shape(sigma_bare), dtype='complex')
     sigma_to_delta=np.zeros(np.shape(sigma_bare), dtype='complex')
 
+# n_iio is the number of non-equivalent impurity orbitals.
     n_iio=np.amax(imp[key]['impurity_matrix'])
 
     sig_causality=1    
@@ -2113,7 +2200,7 @@ def impurity_postprocessing(control, imp, key):
         else:
             sigma_to_delta[:,jj]=(sigma_old[key][:,jj])*(1.0-control['sigma_mix_ratio'])+(sigma[:,jj])*control['sigma_mix_ratio']
     
-    # This logic takes care of some magnetic issue.
+    # This logic takes care of antiferromagnetic impurities. The only differences are in extending the range of the loop up to n_iio*2, and in switching from sigma_old[key][:,jj] to sigma_old[mkey][:,jj-n_iio].
     # imp[key]['para'] = not(-1*int(key) in control['impurity_problem_equivalence'])
     if (not imp[key]['para']):
         for jj in range(n_iio, n_iio*2):
@@ -2709,7 +2796,7 @@ def comcoulomb_postprocessing(control,imp):
 def write_params_json(control,imp,e_imp_key,trans_key,equivalence_key,beta):
 
     mu_ctqmc=-e_imp_key[0,0]
-    nimp_orb=len(imp['impurity_matrix'])
+    nimp_orb=len(imp['impurity_matrix']) # number of orbitals
     e_ctqmc=(e_imp_key+np.identity(len(e_imp_key))*mu_ctqmc)
     
     params_json={}
@@ -3175,6 +3262,8 @@ def prepare_seed_dc_sig_and_wannier_dat(control,wan_hmat,imp):
 
     natom=len(control['impurity_wan'])
     nimp_orb=0
+    
+    # todo understand this
     for ii in sorted(set(control['impurity_problem_equivalence'])):
         nimp_orb=nimp_orb+len(set(list(chain.from_iterable(imp[str(abs(ii))]['impurity_matrix'])))-{0})
 
@@ -3242,6 +3331,7 @@ def prepare_seed_dc_sig_and_wannier_dat(control,wan_hmat,imp):
 #  imp['beta'], wan_hmat['kgrid'].
 #  the one exception is the is_recal_ef argument, which determines whether
 #  to recalculate the Fermi level.
+# is_recal_ef = control['cal_mu']
 def generate_comlowh_ini(control,wan_hmat,imp,is_recal_ef):
 
     f=open('comlowh.ini', 'w')
@@ -3316,8 +3406,8 @@ def prepare_dc(control,wan_hmat,imp):
             #       ComDC should be rerun at every iteration.
             if (control['dc_mode'] == 'dc_at_gw'):   
  
-                # read_impurity_mat_dynamic reads info from g_loc_mat.dat and puts it in
-                #   gloc_mat.                    
+# read_impurity_mat_dynamic reads info from filename, which is in array form, and puts it in
+#   a matrix of size equal to the number of orbitals, and one more index for frequencies.
                 gloc_mat=read_impurity_mat_dynamic(control,control['lowh_directory']+'/g_loc_mat.dat')
             
             
@@ -3325,22 +3415,29 @@ def prepare_dc(control,wan_hmat,imp):
                 
                 # dc_g's default value is gloc.
                 if (control['dc_g'] == 'gloc'):
-                    # read_impurity_mat_dynamic reads info from g_loc_mat.dat and puts it in
-                    #   gloc_mat.                    
+# read_impurity_mat_dynamic reads info from filename, which is in array form, and puts it in
+#   a matrix of size equal to the number of orbitals, and one more index for `frequencies.
                     gloc_mat=read_impurity_mat_dynamic(control,control['lowh_directory']+'/g_loc_mat.dat')                                
                 elif (control['dc_g'] == 'gimp'):
-                    if os.path.exists(control['impurity_directory']+'/gimp.dat'):                        
-                        # generate_mat_from_array_impurity_dynamic reads information from gimp.dat
-                        # and returns it in gloc_mat.
+                    if os.path.exists(control['impurity_directory']+'/gimp.dat'):  
+                                          
+# generate_mat_from_array_impurity_dynamic loads information from 
+# filename into the returned array, matout.
+# matout contains one or more matrices, one for each impurity.
+# Actually for each matrix only certain matrix elements are kept - the number of non-equivalent orbitals.
+# It uses control['impurity_problem_equivalence'] which lists the orbitals. 
+# It also uses imp[ 'impurity_matrix' ], and
+#  n_iio=np.amax(imp[str(abs(ii))]['impurity_matrix']) which is the number of non-equivalent orbitals, which describe   each impurity.
                         gloc_mat=generate_mat_from_array_impurity_dynamic(control,imp, control['impurity_directory']+'/gimp.dat')
                     else:
-                        # read_impurity_mat_dynamic reads info from g_loc_mat.dat and puts it in
-                        #   gloc_mat.                    
+# read_impurity_mat_dynamic reads info from filename, which is in array form, and puts it in
+#   a matrix of size equal to the number of orbitals, and one more index for frequencies.
                         gloc_mat=read_impurity_mat_dynamic(control,control['lowh_directory']+'/g_loc_mat.dat')
 
             # read_impurity_mat_static loads data from trans_basis.dat,
             # and puts it in the returned object, trans_basis.
             # trans_basis contains one matrix for each impurity.
+						# The matrix size is the number of impurity orbitals.
             # To aid in parsing the input file, it uses two variables:
             # control['impurity_problem_equivalence'] ,
             # and control['impurity_wan'].                        
@@ -3352,7 +3449,7 @@ def prepare_dc(control,wan_hmat,imp):
                 
                 if (not (isinstance(imp[key], dict))):
                     continue
-                nimp_orb=len(imp[key]['impurity_matrix'])
+                nimp_orb=len(imp[key]['impurity_matrix']) # the number of impurity orbitals
                 os.chdir(control['dc_directory']+'/'+key)
                 
                 # write out comdc.ini
@@ -3482,7 +3579,7 @@ def run_dc(control,imp):
             f=open(control['dc_directory']+'/dc_mat.dat','w')
             g=open(control['dc_directory']+'/zinv_m1_mat.dat','w')
             for ii in sorted(set(control['impurity_problem_equivalence'])):
-                nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])
+                nimp_orb=len(imp[str(abs(ii))]['impurity_matrix']) # the number of impurity orbitals
                 if  (control['embed_mode'] == 'hfc'):
                     dc=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_mat.dat')[0,1:], (2,nimp_orb,nimp_orb), order='F')
                 # maybe document this. The default value of 'embed_mode' is 'hfc'.
@@ -3502,7 +3599,7 @@ def run_dc(control,imp):
 
             # This extracts info from sig_mat.dat and puts it in sig_dc.
             for ii in sorted(set(control['impurity_problem_equivalence'])):
-                nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])
+                nimp_orb=len(imp[str(abs(ii))]['impurity_matrix']) # the number of impurity orbitals
                 if  (control['embed_mode'] == 'hfc'):                
                     tempdat=np.reshape(np.loadtxt(control['dc_directory']+'/'+str(abs(ii))+'/sig_mat.dat')[:,1:], (control['n_omega'],2,nimp_orb,nimp_orb), order='F')
                 # maybe document this. The default value of 'embed_mode' is 'hfc'.
@@ -3516,10 +3613,14 @@ def run_dc(control,imp):
             for jj in range(control['n_omega']):
                 sig_omega=[control['omega'][jj]]
                 for ii in sorted(set(control['impurity_problem_equivalence'])):
-                    # imp_from_mat_to_array takes info from sig_dc [a matrix] and puts it
-                    # in sig_dc_vec[ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
-                    # which matrix elements to leave out, and about averaging over matrix elements.                    
-                    sig_dc_vec=imp_from_mat_to_array(sig_dc[str(ii)][jj,:,:],imp[str(abs(ii))]['impurity_matrix'])
+# imp_from_mat_to_array takes info from matin [a matrix] and puts it
+# in vecout [ a vector].  equivalence_mat contains instructions about
+# which matrix elements to leave out, and about averaging over matrix elements.
+# If  equivalence_mat is diagonal, and its largest entry is equal to the number 
+# of non-equivalent orbitals, then the result is to make a vector with length equal
+# to the number of non-equivalent orbitals. Each entry in this vector is equal to the 
+# average of the diagonal entries in the input matrix which are equivalent to each other.
+									sig_dc_vec=imp_from_mat_to_array(sig_dc[str(ii)][jj,:,:],imp[str(abs(ii))]['impurity_matrix'])
                     print(sig_dc_vec, np.reshape(np.stack((np.real(sig_dc_vec), np.imag(sig_dc_vec)), 0), (len(sig_dc_vec)*2), order='F').tolist())
                     sig_omega=sig_omega+np.reshape(np.stack((np.real(sig_dc_vec), np.imag(sig_dc_vec)), 0), (len(sig_dc_vec)*2), order='F').tolist()
                 sig_table.append(sig_omega)
@@ -3534,7 +3635,7 @@ def run_dc(control,imp):
                 sig_hf_dc={}
 
                 for ii in sorted(set(control['impurity_problem_equivalence'])):
-                    nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])
+                    nimp_orb=len(imp[str(abs(ii))]['impurity_matrix']) # number of impurity orbitals
                     # Generalize [:, 3:] -> [..., 3:] to add compatibility for the case when the hartree/exchange 
                     # data are 1D. This seems necessary for monoatomic s-orbital problems. For Li, we obtained
                     # hartree.dat: "    1    1    1    0.823343    0.000000"
@@ -3545,9 +3646,14 @@ def run_dc(control,imp):
                 hf_header=control['sig_header'][1:]
                 hf_header[0]='# '+hf_header[0]
                 for ii in sorted(set(control['impurity_problem_equivalence'])):
-                    # imp_from_mat_to_array takes info from sig_hf_dc [a matrix] and puts it
-                    # in dc_vec[ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
-                    # which matrix elements to leave out, and about averaging over matrix elements.                    
+# imp_from_mat_to_array takes info from matin [a matrix] and puts it
+# in vecout [ a vector].  equivalence_mat contains instructions about
+# which matrix elements to leave out, and about averaging over matrix elements.
+# If  equivalence_mat is diagonal, and its largest entry is equal to the number 
+# of non-equivalent orbitals, then the result is to make a vector with length equal
+# to the number of non-equivalent orbitals. Each entry in this vector is equal to the 
+# average of the diagonal entries in the input matrix which are equivalent to each other.
+             
                     dc_vec=imp_from_mat_to_array(sig_hf_dc[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
                     sig_table.append(np.reshape(np.stack((np.real(dc_vec), np.imag(dc_vec)), 0), (len(dc_vec)*2), order='F').tolist())
 
@@ -3560,7 +3666,7 @@ def run_dc(control,imp):
                 sig_f_dc={}                
 
                 for ii in sorted(set(control['impurity_problem_equivalence'])):
-                    nimp_orb=len(imp[str(abs(ii))]['impurity_matrix'])
+                    nimp_orb=len(imp[str(abs(ii))]['impurity_matrix']) # number of impurity orbitals
                     # Generalize [:, 3:] -> [..., 3:] to add compatibility for the case when the hartree/exchange 
                     # data are 1D. This seems necessary for monoatomic s-orbital problems. For Li, we obtained
                     # hartree.dat: "    1    1    1    0.823343    0.000000"
@@ -3575,9 +3681,14 @@ def run_dc(control,imp):
                 hf_header[0]='# '+hf_header[0]
                 sig_table=[]                
                 for ii in sorted(set(control['impurity_problem_equivalence'])):
-                    # imp_from_mat_to_array takes info from sig_h_dc [a matrix] and puts it
-                    # in dc_vec[ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
-                    # which matrix elements to leave out, and about averaging over matrix elements.                                        
+# imp_from_mat_to_array takes info from matin [a matrix] and puts it
+# in vecout [ a vector].  equivalence_mat contains instructions about
+# which matrix elements to leave out, and about averaging over matrix elements.
+# If  equivalence_mat is diagonal, and its largest entry is equal to the number 
+# of non-equivalent orbitals, then the result is to make a vector with length equal
+# to the number of non-equivalent orbitals. Each entry in this vector is equal to the 
+# average of the diagonal entries in the input matrix which are equivalent to each other.
+                                 
                     dc_vec=imp_from_mat_to_array(sig_h_dc[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
                     sig_table.append(np.reshape(np.stack((np.real(dc_vec), np.imag(dc_vec)), 0), (len(dc_vec)*2), order='F').tolist())
 
@@ -3586,9 +3697,14 @@ def run_dc(control,imp):
 
                 sig_table=[]                
                 for ii in sorted(set(control['impurity_problem_equivalence'])):
-                    # imp_from_mat_to_array takes info from sig_f_dc [a matrix] and puts it
-                    # in dc_vec[ a vector].  imp[str(abs(ii))]['impurity_matrix'] contains instructions about
-                    # which matrix elements to leave out, and about averaging over matrix elements.                    
+# imp_from_mat_to_array takes info from matin [a matrix] and puts it
+# in vecout [ a vector].  equivalence_mat contains instructions about
+# which matrix elements to leave out, and about averaging over matrix elements.
+# If  equivalence_mat is diagonal, and its largest entry is equal to the number 
+# of non-equivalent orbitals, then the result is to make a vector with length equal
+# to the number of non-equivalent orbitals. Each entry in this vector is equal to the 
+# average of the diagonal entries in the input matrix which are equivalent to each other.
+             
                     dc_vec=imp_from_mat_to_array(sig_f_dc[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
                     sig_table.append(np.reshape(np.stack((np.real(dc_vec), np.imag(dc_vec)), 0), (len(dc_vec)*2), order='F').tolist())
 
@@ -4267,12 +4383,13 @@ def lda_dmft(control,wan_hmat,imp):
             # generate_initial_transformation initializes trans_basis.dat.
             #   trans_basis.dat is turned into trans_dc.dat and supplied to ComDC.
             #   trans_basis.dat is also supplied to ComCTQMC via prepare_impurity_solver.
-            # the default value of trans_basis_mode is 0
+            # the default value of trans_basis_mode is 0.
             # if (control['trans_basis_mode']==0), or if:
             #     ((control['trans_basis_mode']==2) and  not ('trans_basis' in control)),
             #       then create a new trans_basis.dat, which I think contains the the identity for each impurity.
             # if (control['trans_basis_mode']==1), or if:
-            #     ((control['trans_basis_mode']==2) and  ('trans_basis' in control)),  
+            #     ((control['trans_basis_mode']==2) and  ('trans_basis' in control)), 
+            #       then copy a pre-existing trans_basis.dat.
             generate_initial_transformation(control)
 
             # run_dc is responsible for creating dc_mat.dat.  If doing lqsgw+dmft, it
@@ -4301,22 +4418,27 @@ def lda_dmft(control,wan_hmat,imp):
             #       sig_gwc_mat.dat . None of these seem to be used except sig_mat.dat.
             run_dc(control,imp)
 
+# todo why are we calling generate_initial_transformation a second time?
             # generate_initial_transformation initializes trans_basis.dat
             # the default value of trans_basis_mode is 0
             # if (control['trans_basis_mode']==0), or if:
             #     ((control['trans_basis_mode']==2) and  not ('trans_basis' in control)),
             #       then create a new trans_basis.dat, which I think contains the the identity for each impurity.
             # if (control['trans_basis_mode']==1), or if:
-            #     ((control['trans_basis_mode']==2) and  ('trans_basis' in control)),                    
+            #     ((control['trans_basis_mode']==2) and  ('trans_basis' in control)), 
+            #       then copy a pre-existing trans_basis.dat.
             generate_initial_transformation(control)
 
-            # cal_dc_diagonal takes info from dc_mat.dat, and puts it in dc.dat.            
+						# cal_dc_diagonal takes info from dc_mat.dat, and puts it in dc.dat.
+						# dc_mat.dat stores matrices of size equal to the number of impurity orbitals.
+						# dc.dat contains is a vector with elements only for non-equivalent orbitals within each matrix.
             cal_dc_diagonal(control)
 
             # generate_initial_self_energy creates sig.dat.
             # If ('initial_self_energy' in control, copies that self_energy to sig.dat.
             #   Possibly also copy information from initial_impurity_dir.
-            # Otherwise, copies data from dc.dat to sig.dat.            
+            # Otherwise, copies data from dc.dat to sig.dat. 
+             # sig.dat contains only one entry for each non-equivalent impurity orbital.
             generate_initial_self_energy(control,imp)
 
 
@@ -4528,7 +4650,9 @@ def lqsgw_dmft(control,wan_hmat,imp):
             shutil.copy(control['top_dir']+'/sig_dc_h.dat', control['impurity_directory']+'/hartree.dat')
             shutil.copy(control['top_dir']+'/sig_dc_h.dat', control['impurity_directory']+'/hartree_0.dat')
 
-        # cal_dc_diagonal takes info from dc_mat.dat, and puts it in dc.dat.            
+				# cal_dc_diagonal takes info from dc_mat.dat, and puts it in dc.dat.
+				# dc_mat.dat stores matrices of size equal to the number of impurity orbitals.
+				# dc.dat contains is a vector with elements only for non-equivalent orbitals within each matrix.
         cal_dc_diagonal(control)
 
         # cal_zinv_m1_diagonal takes info from zinv_m1_mat.dat and puts it 
@@ -4539,6 +4663,7 @@ def lqsgw_dmft(control,wan_hmat,imp):
         # If ('initial_self_energy' in control, copy that self_energy to sig.dat.
         #   Possibly also copy information from initial_impurity_dir.
         # Otherwise, copies data from dc.dat to sig.dat.
+				# sig.dat contains only one entry for each non-equivalent impurity orbital.
         generate_initial_self_energy(control,imp)
 
         # write_conv_dc adds a little info to convergence.log
@@ -4553,8 +4678,7 @@ def lqsgw_dmft(control,wan_hmat,imp):
         # prepare_comlowh's main work is to create an inifile for comlowh, by calling
         #   generate_comlowh_ini.
         # prepare_comlowh also copies into the working directory wannier.dat, 
-        #  dc.dat, sig.dat,
-        #  and zinv_m1.dat.
+        #  dc.dat, sig.dat, and zinv_m1.dat.
         # The contents of comlowh's ini file
         #  are straight copies of certain variables in the control variable, plus
         #  imp['beta'], wan_hmat['kgrid'].

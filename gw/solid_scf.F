@@ -66,6 +66,7 @@ c     ---------------------------------------------------------------------
         if(ubi==' qp') we_need_pol=.true.
         if(ubi==' gw') we_need_pol=.true.
 
+! If doing dft or hf, set_g00 only calls green_0 and g_mt_from_g_full. 
 	call set_g00
 c     ---------------------------------------------------------------------
         call smultro

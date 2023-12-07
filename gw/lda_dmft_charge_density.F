@@ -63,6 +63,8 @@ The code expects to be using MPI if you want to use HDF5
 
 #ifdef USE_HDF5
         call fopen('wannier_den_matrix.dat',fid_f)
+
+! dmft_temperature is never used
         call fread(MPI_COMM_WORLD,dmft_temperature,"temperature",fid_f)
         call fclose(fid_f)
 #else
@@ -117,32 +119,46 @@ c$$$        temperature=dmft_temperature
 #ifdef USE_HDF5
 
       call fopen('wannier_den_matrix.dat',fid_f)
+
+! dmft_temperature is never used
       call fread(MPI_COMM_WORLD,dmft_temperature,"temperature",fid_f)
 !      if (maswrk)  write(iun,*)'dmft_temperature',dmft_temperature
+
+! nqdiv is never used
       call fread(MPI_COMM_WORLD,nqdiv_temp,"nqdiv",fid_f)
 !      if (maswrk)  write(iun,*)'nqdiv_temp',nqdiv_temp
+
+
         allocate(n_dmft_bnd(nqdiv))
         allocate(n_dmft_wan(nqdiv))
+
+! n_dmft_bnd is used once
       ng(1)=size(n_dmft_bnd,1)
       call fread(MPI_COMM_WORLD,n_dmft_bnd,ng(1),nv(1),
      $                "n_dmft_bnd",fid_f)
 !      if (maswrk)  write(iun,*)'n_dmft_bnd',n_dmft_bnd
         n_dmft_bnd_max=maxval(n_dmft_bnd)
 
+! n_dmft_bnd is used several times
       ng(1)=size(n_dmft_wan,1)
       call fread(MPI_COMM_WORLD,n_dmft_wan,ng(1),nv(1),
      $                "n_dmft_wan",fid_f)
 !      if (maswrk)  write(iun,*)'n_dmft_bnd',n_dmft_bnd
         n_dmft_wan_max=maxval(n_dmft_wan)
 
+! 
         allocate(dmft_bnd_index(n_dmft_bnd_max,nqdiv))
       ng(1)=size(dmft_bnd_index,1)
       ng(2)=size(dmft_bnd_index,2)
       call fread(MPI_COMM_WORLD,dmft_bnd_index,ng,nv,
      $                "include_band_new",fid_f)
 !      if (maswrk)  write(iun,*)'dmft_bnd_index',dmft_bnd_index
+
+! disentangle_mat is used once
         allocate(disentangle_mat(n_dmft_bnd_max,n_dmft_wan_max,nqdiv))
         disentangle_mat=0.0d0
+
+! dmft_den_mat is used once
         allocate(dmft_den_mat(n_dmft_wan_max,n_dmft_wan_max,nqdiv))
         dmft_den_mat=0.0d0
       ng(1)=size(disentangle_mat,1)
@@ -262,6 +278,7 @@ c$$$  enddo
       end
 
       
+! dft_basis_rotmat_k initializes umat, a rotation matrix. It uses fifi_j_prepare_onepoint_2, integral_band_pw_band_mt_wan, and integral_band_pw_band_full.
       subroutine dft_basis_rotmat_k(ind_k,k0,ispin,umat)
       use lda_dmft_mod
       use solid_mod
@@ -601,7 +618,7 @@ c     ----------------- Interstitial contribution ------------------------
       end      
 
 
-
+! force_mat_unitary does an SVD of umat, sets the eigenvalues in the SVD to 1, and rebuilds the SVD so that umat is now unitary.
       subroutine force_mat_unitary(dim1,dim0,umat)
       implicit none
       integer, intent(in) :: dim1, dim0
@@ -621,14 +638,18 @@ c     ----------------- Interstitial contribution ------------------------
         enddo
       enddo
 
+! The first call to zgesvd is there just to  figure out the size of work.
       call zgesvd('A','A',dim1,dim1,umat_temp,dim1,
      $  ss,uu,dim1,vt,dim1,worktemp,-1,rwork,info)
       lwork=max(int(worktemp(1)), 1)
       allocate(work(lwork))
+
+! This finds the SVD: U * Sigma * V^\dagger = umat_temp
       call zgesvd('A','A',dim1,dim1,umat_temp,dim1,
      $  ss,uu,dim1,vt,dim1,work,lwork,rwork,info)
       deallocate(work)
 
+! umat = U * V^\dagger
       umat=0.0d0
       call zgemm('n','n',dim1,dim1,dim1,
      &  (1.d0,0.d0),uu,dim1,vt,dim1,

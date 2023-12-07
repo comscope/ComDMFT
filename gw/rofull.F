@@ -13,13 +13,27 @@ c     key = 1  - We renormalize the density
       integer, intent(in) :: key
       logical :: jreal,jimag
 	integer :: keym
+
       rointr=(0.d0,0.d0)
       if(magn.eq.2) spintr=(0.d0,0.d0)
+
+
+! ro_int_g calculates the interstitial sector of the charge density, rointr, and symmetrizes it.
+! If doing irel<=1, 
+! rointr = \sum_k ev_bnd(k) * g * ev_bnd^\dagger * w(k) / amega, plus symmetrization.
+! w(k) = wgt(k)*2.d0/dfloat(nrel*nspin)
+! ev_bnd is the interstitial sector of the DFT bands.
+! g is g_full_00 if doing dft/hf but not with dmft, and is g_full_0 if doing dmft or qp or gw.
+! If doing irel=2, the equations are a bit different.
 	call ro_int_g(correlation)
+
 	  ro=0.d0
         if(magn.eq.2) spmt=0.d0
+
+! The get_t+ro_val pair calculates the muffin-tin sector of the charge density.
         call get_t
 	  call ro_val
+
 	if(key==1) call renr_val
 	  call add_cor(1)
         if(itest.gt.0) then

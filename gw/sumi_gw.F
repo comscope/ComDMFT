@@ -1,3 +1,11 @@
+! sumi_gw calculates the interstitial sector of the charge density, rointr.
+! rointr is later symmetrized by ro_int_g.
+! If doing irel<=1, 
+! rointr = \sum_k ev_bnd(k) * g * ev_bnd^\dagger * w(k) / amega
+! w(k) = wgt(k)*2.d0/dfloat(nrel*nspin)
+! ev_bnd is the interstitial sector of the DFT bands.
+! g is g_full_00 if doing dft/hf but not with dmft, and is g_full_0 if doing dmft or qp or gw.
+! If doing irel=2, the equations are a bit different.
       subroutine sumi_gw(correlation,ind_k,k,ispin)
       use manager_mod
       use parallel_mod
@@ -13,50 +21,72 @@
      &  scal,ddot,ann,sr,si,womr(3),womi(3),relr,reli
       complex*16 :: cc
       complex*16, allocatable :: tmp(:,:),aga(:,:)
+
       n0=nbndf
       ndim=n_bnd(k,ispin)
       wei=wgt(k)*2.d0/dfloat(nrel*nspin)
+
       if(irel<=1) then
+
         nbas=nbask(k)
         allocate(tmp(nbas,ndim),aga(nbas,nbas))
+
         if(.not.correlation) then
+
           if (is_lda_dmft) then
+
             call zgemm('n','n',nbas,ndim,ndim,(1.d0,0.d0),
      &        ev_bnd(1,1,ind_k,ispin),nbasmpw,
      &        g_full_0(1,1,ind_k,ispin),n0,(0.d0,0.d0),tmp,nbas)            
-          else
+          else ! not is_lda_dmft
+
             do j=1,ndim
               do i=1,nbas
                 tmp(i,j)=ev_bnd(i,j,ind_k,ispin)
      $            *g_full_00(j,ind_k,ispin)
               enddo
             enddo
-          endif
-        else
+
+          endif ! not is_lda_dmft
+
+        else ! correlation
+
           call zgemm('n','n',nbas,ndim,ndim,(1.d0,0.d0),
      &      ev_bnd(1,1,ind_k,ispin),nbasmpw,
      &      g_full_0(1,1,ind_k,ispin),n0,(0.d0,0.d0),tmp,nbas)
-        endif
+
+        endif ! correlation
+
         call zgemm('n','c',nbas,nbas,ndim,(1.d0,0.d0),tmp,nbas,
      &    ev_bnd(1,1,ind_k,ispin),nbasmpw,(0.d0,0.d0),aga,
      &    nbas)
+
         deallocate(tmp)
+
         aga=aga/amega
 c     --------------------------------------------------------------------
+
         do ibas=1,nbas
           ind=indgb(ibas,k)
           do jbas=1,nbas
             jnd=indgb(jbas,k)
+
             ia=igbs(1,ind)-igbs(1,jnd)
             ib=igbs(2,ind)-igbs(2,jnd)
             ic=igbs(3,ind)-igbs(3,jnd)
             j=indplw(ia,ib,ic)
             if(j>nplwro) cycle
+
             rointr(j,ispin)=rointr(j,ispin)+wei*aga(ibas,jbas)
+!       wei=wgt(k)*2.d0/dfloat(nrel*nspin)
+
           enddo                 !!! over jbas
         enddo                   !!! over ibas
+
         deallocate(aga)
+
       else if(irel==2) then
+
         if(.not.rel_interst) then
           nbas=nbask(k)/2
           allocate(tmp(nbas,ndim),aga(nbas,nbas))
@@ -148,7 +178,9 @@ c     --------------------------------------------------------------------
             enddo               !!! over ibas
           endif
           deallocate(aga,tmp)
+
         else if(rel_interst) then
+
           nbas=nbask(k)
           allocate(tmp(nbas,ndim),aga(nbas,nbas))
           if(.not.correlation) then
@@ -178,6 +210,7 @@ c     --------------------------------------------------------------------
           pi2a=pi2/par
           c05=0.5d0*clight
           c2=clight*clight
+
           do igb=1,nbask(k)/2
             ind=indgb(igb,k)
             g2i=0.d0
@@ -190,6 +223,7 @@ c     --------------------------------------------------------------------
             c2i=c2+eni
             const1=clight/c2i
             anormi=c2i/sqrt(c2i*c2i+(clight*gi)**2)
+
             do jgb=1,nbask(k)/2
               jnd=indgb(jgb,k)
               ia=igbs(1,ind)-igbs(1,jnd)
@@ -211,10 +245,12 @@ c     --------------------------------------------------------------------
               scal=ddot(3,gki,1,gkj,1)
               call cross(cr,gki,gkj)
               ann=anormi*anormj
+
               do ipp=1,2
                 ih=(ipp-1)*nbask(k)/2+igb
                 do jp=1,2
                   jh=(jp-1)*nbask(k)/2+jgb
+
                   sr=dreal(aga(ih,jh))
                   si=dimag(aga(ih,jh))
                   call setrel(cr,scal,const,ipp,jp,ann,gki,gkj,womr,
@@ -223,18 +259,23 @@ c     --------------------------------------------------------------------
                   if(complex_ro) rointr(j,1)=rointr(j,1)
      &              +(0.d0,1.d0)*wei
      &              *(sr*reli+si*relr)
+
                   if(magn.eq.2) then
                     do i=1,3
                       spintr(i,j)=spintr(i,j)+wei
      &                  *dcmplx(sr*womr(i)-si*womi(i),
      &                  sr*womi(i)+si*womr(i))
                     enddo
-                  endif
+                  endif ! (magn.eq.2)
+
                 enddo           !!! jp
               enddo             !!! ipp
+
             enddo               !!! over jgb
           enddo                 !!! over igb
           deallocate(aga)
-        endif
-      endif                     !!! over irel
+        endif  ! rel_interst
+
+      endif                     !!! irel==2
+
       end

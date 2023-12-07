@@ -49,7 +49,10 @@ c$$$  call search_mu_0(chem_pot,nelec,chem_pot)
         if(ubi==' qp') call output_eigen_states('__qp',3,ispin)
       enddo          
       call timel('**** Search_mu finished ************')
-      call set_g    
+
+! If doing dft or hf, then set_g calls green_0 and g_mt_from_g_full.  It also calls etot_gw_0, and etot_gw_1, and g_x_tau which is needed by etot_gw_1.  These calls to etot_* just calculate variables concerning the total energy.
+      call set_g   
+
       call timel('******** Set_G finished ************')
       end
       

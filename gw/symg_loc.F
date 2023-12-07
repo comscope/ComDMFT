@@ -1,3 +1,4 @@
+! symg_loc loops over the symmetry group operations.  For each symmetry group iteration it performs two rotations on gloc (presumably on its left and right indices), and then adds the result to a sum.  In other words, symg_loc averages gloc over symmetry operations.
       subroutine symg_loc(gloc)
       use atom_mod
       use manager_mod
@@ -17,12 +18,17 @@
       cf=dcmplx(1.d0/dfloat(ngroup),0.d0)
       g_tmp=gloc
       gloc=(0.d0,0.d0)
+
       do iatom=1,natom
         isort=is(iatom)
-        do ig=1,ngroup
+
+        do ig=1,ngroup ! a list of group operations
           jatom=ip(iatom,ig)
+
           do j=1,lfunm(isort)
+
             if(irel.le.1) then
+
               do l=0,lmb(isort)
                 lp1=l+1
                 do ie=1,ntle(l,isort)
@@ -35,6 +41,8 @@
                       lm0=l+m+1
                       t0(lm0)=g_tmp(km,j,jatom)
                     enddo
+
+! This rotates t0=g_tmp to y0 and then pa1.
                     call rotate1c(t0,y0,l,u(1,ig),1)
                     do m=-l,l
                       lm=l*(l+1)+m+1
@@ -44,8 +52,10 @@
                     enddo
                   enddo
                 enddo
-              enddo             !! over l
+              enddo             !! l=0,lmb(isort)
+
             else if(irel.eq.2) then
+
               li=0
               do l=0,lmb(isort)
                 ist=-1
@@ -64,6 +74,7 @@
                         km=indbasa(jn,ie,lm,isort)
                         t0j(lm0)=g_tmp(km,j,jatom)
                       enddo
+! This rotates t0j=g_tmp to y0j and then pa1.
                       call rotate2(t0j,y0j,l,ii,uj(1,ig),1,1)
                       do mj=-jj,jj,2
                         call getlimj(lm,l,ii,mj,li,1)
@@ -75,9 +86,13 @@
                   enddo
                 enddo
               enddo
-            endif
-          enddo                 !! over j
+
+            endif ! (irel.eq.2)
+
+          enddo                 !! lfunm(isort)
+
           do i=1,lfunm(isort)
+
             if(irel.le.1) then
               do l=0,lmb(isort)
                 lp1=l+1
@@ -91,6 +106,7 @@
                       lm0=l+m+1
                       t0(lm0)=pa1(i,km)
                     enddo
+! This rotates t0=pa1 to y0 and then adds that to gloc.
                     call rotate1c(t0,y0,l,u(1,ig),1)
                     do m=-l,l
                       lm=l*(l+1)+m+1
@@ -101,7 +117,9 @@
                   enddo
                 enddo
               enddo
+
             else if(irel.eq.2) then
+
               li=0
               do l=0,lmb(isort)
                 ist=-1
@@ -120,6 +138,7 @@
                         km=indbasa(jn,ie,lm,isort)
                         t0j(lm0)=pa1(i,km)
                       enddo
+! This rotates t0j=pa1 to y0j and then adds that to gloc.
                       call rotate2(t0j,y0j,l,ii,uj(1,ig),1,2)
                       do mj=-jj,jj,2
                         call getlimj(lm,l,ii,mj,li,1)
@@ -131,9 +150,13 @@
                   enddo         !! over ie
                 enddo           !! over ii
               enddo             !! over l
-            endif
-          enddo                 !! over i
-        enddo                   !! over ig
+
+            endif ! (irel.eq.2)
+
+          enddo                 !! i=1,lfunm(isort)
+
+        enddo                   !! over ig, the crystal group operations
+
       enddo                     !! over iatom
       gloc=cf*gloc
       deallocate(y0j,t0j,g_tmp,pa1,y0,t0)
