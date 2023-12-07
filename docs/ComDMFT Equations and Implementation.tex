@@ -1,0 +1,1295 @@
+%Copyright (c) Vincent Sacksteder, 2019-2023.
+
+\documentclass[aps,prb,singlecolumn,preprintnumbers,amsmath,amssymb]{revtex4}
+%\usepackage{graphicx}% Include figure files
+\usepackage{dcolumn}% Align table columns on decimal point
+\usepackage{bm}% bold math
+\usepackage{amsmath}
+\usepackage{feynmp}
+
+
+\bibliographystyle{apsrev}
+
+\usepackage{graphicx}% Include figure files
+
+\usepackage{listings}
+
+\usepackage{xcolor}
+\usepackage[absolute,overlay]{textpos}
+%\usepackage[texcoord,grid,gridcolor=red!10,subgridcolor=green!10,gridunit=pt]{eso-pic}
+
+%red, green, blue, cyan, magenta, yellow, black, white , darkgray, gray, lightgray
+\lstset{language=C++,backgroundcolor=\color{cyan},basicstyle=\footnotesize}  
+
+\begin{document}
+
+\title{Documentation and Rearchitecture}
+
+% Use letters for affiliations, numbers to show equal authorship (if applicable) and to indicate the corresponding author
+\author{Vincent Sacksteder IV}
+\email{vincent@sacksteder.com}
+%\affiliation{Department of Physics, Royal Holloway University of London, Egham Hill, Egham, TW20 0EX, United Kingdom}
+
+%\pacs{72.15.Rn,73.23.-b,71.27.+a,74.72.Kf}
+
+\date{\today}% It is always \today, today,
+             %  but any date may be explicitly specified
+
+\maketitle 
+
+Copyright (c) Vincent Sacksteder, 2019-2023.
+
+
+\section{Comsuite DFT+DMFT}
+
+\subsection{Variables}
+
+\begin{itemize}
+\item $i$ is an index over impurities.
+\item $o$ is an index over orbitals at a specific impurity.
+\item $q$ is an index over momenta, the same momenta used by CASTEP.
+\item $k$ is an index over  momenta on a fine mesh, after interpolation using Wannier functions.
+\item $s$ is an index over spins.  
+\item $b$ is an index over bands.
+\item $\beta = (8.6173303 \times 10^{-5} \times T) $ is the inverse temperature.  
+\item n\_omega = $N_\omega$ is the number of frequencies on the frequency grid.  If the user supplies a self-energy file then $N_\omega$ is read from that file.  Otherwise it is set to $N_\omega = 150 \times \beta / \pi$.
+\item $\omega$ is a grid of real numbers: $\pi/\beta, 3\pi/\beta, 5\pi/\beta, .... , (2 N_\omega - 1)/\beta $.  
+\begin{itemize}
+\item comdmft.py does not know anything about whether it is doing its calculations in real or imaginary frequencies.  
+\item comdmft.py writes $\omega$ to sig.dat, gimp.dat, sig\_bare.dat, sig\_smth.dat,  delta.dat,  and some files used by ComDC including g\_loc.dat. 
+\item During a qsGW+DMFT calculation comdmft.py uses the first element of the grid, $\pi/\beta$, when processing information returned by ComDC.
+\item   comdmft.py also uses the grid when doing gaussian broadening of the self-energy's frequency dependence.
+\item The ComCTQMC solver does not receive $N_\omega$ or the $\omega$ grid in its input json files; instead it receives only $\beta$, and instructions to use Matsubara frequencies.  However I think it can count $N_\omega$ from the number of entries in hyb.json.  On the other hand, it also receives energy cutoffs, so maybe it decides how many Matsubara frequencies to use based on the cutoffs.
+\item ComLowH receives the omega grid in sig.dat.  When called during self-consistent DFT+DMFT or qsGW+DMFT iterations it multiplies the grid by $\imath$.  It does the same when calculating qsGW spectra.  When calculating other observables it leaves the grid at its real value,  without any imaginary part.
+\end{itemize}
+
+\item The  'spin\_orbit' parameter in comdmft.ini, if it is false, means that the impurity orbitals are cubic spherical harmonics. If it is true then they are spin-angle harmonics.  It seems that it might be fully implemented only for 'f' shell impurities, and not for s, p, or d shells. It controls the following things:
+\begin{itemize}
+\item If true, and if the impurity is 'f' shell, then it doubles the number of entries in the 'impurity\_wan' variable from 7 to 14.
+\item If true, and if the impurity is 'f' shell, then it doubles the basis size of $\Sigma_{DC}$.
+\item It changes how the contents of wannier.inip are read in to the wan\_hmat variable.  This file, if it exists, sets a preferred axis for the impurity orbitals.
+\item If true, it doubles the size of three matrices embedded in params.json:  ["basis"]["transformation"] which contains the $T$ variable, ["hybridisation"]["matrix"], and ["hloc"]["one body"].
+\item If true, it changes the ["basis"]["type"] variable in params.json from "product" to "coupled".
+\item If true, it instructs ComCTQMC to measure "J2" and "Jz" observables instead of "S2" and "Sz" observables.
+\item It becomes the is\_spinorbit variable in ComLowH. Here again it controls how wannier.inip is read in. It also doubles the electron count when calculating the Fermi level. And, if true, it ensures that the number of bands determined by find\_bnd\_in\_win (inside the energy window)  is odd. 
+\item It is the second entry in comdc.ini, and becomes the is\_spinorbit variable. ComDC is used only if doing a qsGW+DMFT calculation.
+\end{itemize}
+\item The 'impurity\_problem' variable in comdmft.ini is used to form 'impurity\_wan' variable. It is also used for processing the output of ComCoulomb, which is run only if doing a qsGW+DMFT calculation. % maybe todo this leaves the purpose unclear, and also what this input variable is.
+\item  The 'problem' variable (The s, p, d, or f in 'impurity\_problem'  in comdmft.ini) determines the basis size and value of $\Sigma_{DC}$, and also the number of $F(0), ... F(6)$ variables which are used.
+\item The 'impurity\_problem\_equivalence' variable  in comdmft.ini sets the total number of impurities, and defines which impurity problems are equivalent. Its values are positive integers starting from 1.  If two entries have the same integer, the corresponding impurities are equivalent.  If there is a negative entry, then that impurity is equivalent to the entry with its opposite (positive) value, but is related to that impurity by AFM (antiferromagnetic) symmetry.
+%used in  find_place_to_restart, generate_initial_self_energy, cal_dc_diagonal, run_impurity_solver, generate_mat_from_array_impurity_dynamic, generate_mat_from_array_impurity_dynamic, generate_mat_from_array_impurity_static, array_impurity_dynamic, cal_projected_mean_field_diagonal, cal_projected_mean_field_diagonal, read_impurity_mat_static, read_impurity_mat_dynamic, cal_hyb_diagonal, write_transformation_matrix, cal_nominal_dc, prepare_seed_dc_sig_and_wannier_dat, generate_comlowh_ini, generate_initial_transformation
+\item 'para': (Not in comdmft.ini.) When an impurity is marked by a negative equivalence number, signaling that it is connected by antiferromagnetic symmetry to another impurity, then the 'para' variable is set to False. This variable is not in comdmft.ini, only in comdmft.py. It is used when choosing an initial value of $\Sigma$, when doubling the size of three matrices (going from one spin value to two) in params.json which are fed to ComCTQMC, when writing to hyb.json,  when smoothing the self-energy generated by ComCTQMC, and when figuring out how much $\Sigma$ was changed by ComCTQMC.
+% say that 'para' means AFM. For AFM, where two problems are associated with fractional translation and time reversal, you should put opposite sign.
+\item The 'impurity\_matrix' variable keeps track of whether certain orbitals within an impurity are equivalent.  It is ignored if the 'trans\_basis\_mode' is equal to 2, but that variable's default value is zero, so usually it is not ignored. It is used to reduce the size of matrices associated with impurities.  The 'impurity\_matrix' variable is also used for interfacing with ComCTQMC, and supplies the matrix structure of the hybridization term, multiplying $\hat{\Delta}_{imp}(i,\omega)$ which is a scalar. 
+% impurity_postprocessing, write_json_all for delta, run_impurity_solver, prepare_impurity_solver, 
+It is also used when matrices are converted from matrix format to array (vector format), or vice versa. %  cal_dc_diagonal,  generate_initial_self_energy, array_impurity_dynamic, generate_mat_from_array_impurity_static, cal_projected_mean_field_diagonal, cal_hyb_diagonal, 
+
+
+\item The 'doping' parameter in comdmft.ini is passed to ComLowH, where it becomes the delta\_charge variable.  It is added to the computed charge during the search for the Fermi energy $\mu$.   
+% search_fermi_energy_brent, cal_tos_gw_fun, cal_tos_analytical_tail_fun, and a 'nelectron in one cell' in one cell printout message when comlowh reads information from wannier.dat
+\item $\lambda_{DFT}(q,b,s)$ are the CASTEP DFT eigenvalues, and are stored in wannier.dat.
+\item $V_{w90}(q,b,o)$ is the projectors created by Wannier 90.  Stored in wannier.dat.
+\item $\eta(i)$ is a user-supplied 'nominal\_n' parameter in comdmft.ini, i.e. a user-supplied occupancy that controls the double-counting energy.
+\item $F(0,i),\,F(2,i),\,F(4,i),\,F(6,i)$ are the parameters of the interaction term. These come from the 'f0', 'f2', 'f4', and 'f6' entries in comdmft.ini.
+\item $T$ is a  user-supplied transformation matrix that defaults to the identity if if is not supplied.  Stored in trans\_basis.dat
+%Docs assume (control['trans_basis_mode']==0)
+%    # trans_basis_mode: 0, use wannier functions as basis set
+%    # trans_basis_mode: 1, use transformation matrix to rotate the basis set. this matrix doesn't change as a function of iteration.
+%    # trans_basis_mode: 2, use transformation matrix to rotate the basis set. this matrix does change as a function of iteration. this matrix diagonalizes the spectral function at the chemical potential.
+\item $\Sigma_{DC}(i)$ is stored in dc\_mat.dat and dc.dat. It is produced by comdmft.py, and is an input to ComLowH. In a qsGW+DMFT calculation it is produced by ComDC.
+%            #       dc.dat, [ dc_mat.dat -> dc.dat, and dc_mat.dat comes from
+%            #           cal_nominal_dc if doing dft+dmft, and from 
+%            #           ComDC->sig_mat.dat if doing lqsgw+dmft ]
+\item $\Sigma(i,\omega)$ is stored in sig.dat. It is initialized by comdmft.py, and mixed and smoothed  and written again by comdmft.py using data from ComCTQMC.  It is used by ComLowH.
+\item $\mu$, the Fermi energy, is stored in ef.dat.  It is initialized by comdmft.py and re-calculated by ComLowH.  It is used only  by ComLowH.
+\item $\hat{E}_{imp}(i)$ is stored in e\_projected\_mat.dat. It is  a projected hamiltonian. It is produced by ComLowH, processed by comdmft.py, and used by ComCTQMC.
+%            #       e_projected_mat.dat [used by CTQMC:
+%            #           ->projected_eig.data->e_imp.dat->e_imp->e_imp_key->CTQMC], 
+\item $\hat{\Delta}_{imp}(i,\omega)$ is stored in delta\_mat.dat. It is produced by ComLowH, processed by comdmft.py, and used by ComCTQMC.
+\item The density matrix $\hat{\rho}$ is stored in  wannier\_den\_matrix.dat.  It is produced by ComLowH, and used by FlapwMBPT.
+\item $\hat{G}_{loc}(i,\omega)$ is stored in  g\_loc\_mat.dat and g\_loc.dat. It is a projected Green's function.  It is produced by ComLowH.  It is used only by ComDC, and only if doing qsGW+DMFT.
+\item ComLowH produces local\_spectral\_matrix\_ef.dat.  This is used only if the 'trans\_basis\_mode' control parameter is equal to 2, and then is used only to determine trans\_basis.dat.  The default value of the 'trans\_basis\_mode' control parameter is 0.
+%Then if (trace(local_spectral_matrix_ef.dat) > control['metal_threshold']) then trans_basis.dat = eigenvectors(local_spectral_matrix_ef.dat). if the trace condition does not hold then trans_basis.dat=1.
+\item ComLowH produces n\_loc.dat, which is never used elsewhere.
+\end{itemize}
+
+        
+\subsection{Initialization for the Outer Loop}
+
+
+\begin{itemize}
+\item Run FlapwMBPT to do the DFT calculation, using the density matrix $\hat{\rho}$ created by ComLowH.  It uses an ini file created by flapwmbpt\_ini.read\_comdmft\_ini\_wan().   
+\item Run ComWann, using check\_wannier\_function\_input and run\_comwann.  ComWann extracts information from the DFT calculation and puts that information in wannier.dat which will be used by comdmft.py and ComLowH, and wannier.inip which is used only by ComLowH.  The ini file for ComWann is created by  create\_comwann\_ini.
+\item Set $\mu = 0$.
+\item Run ComWann, using check\_wannier\_function\_input, run\_comwann, and comwann\_postprocessing.  ComWann extracts information from the DFT calculation and puts that information in wannier.dat which will be used by comdmft.py and ComLowH, and wannier.inip which is used only by ComLowH.  The ini file for ComWann is created by flapwmbpt\_ini.read\_comdmft\_ini\_wan() .
+\item Initialize $T$ in trans\_basis.dat, using generate\_initial\_transformation. The default value is the identity. If the 'trans\_basis\_mode' variable in comdmft.ini is different from zero then $T$ is set up differently. The default value is zero.
+\item If dc\_mat.dat has been supplied by the user, leave that as is, as it contains our permanent value of $\Sigma_{DC}$.
+\item If dc\_mat.dat has not been supplied, create $\Sigma_{DC}(i)$, using cal\_nominal\_dc and $U$ and $J$, and store it in dc\_mat.dat. dc\_mat.dat holds matrices of size equal to the number of impurity orbitals, but they are proportional to the identity.  The following equations give the values of  $\Sigma_{DC}(i)$ and of $N$ which is the size of the self-energy matrix.  $\Sigma_{DC}(i)$ is permanent; it remains unchanged throughout the whole calculation. % It is a matrix, but in this file it is stored one number per line.  
+%            # if doing  lda+dmft, call cal_nominal_dc, and do nothing else. cal_nominal_dc 
+%            #     depends only on 'nominal_n', and f0,f2,f4,f6, and writes to dc_mat.dat.
+\begin{itemize}
+\item The initialization here sets $\Sigma_{DC}(i)$ to a value that does not depend on spin.
+\item 's' orbital: $N=1, \; U=F(0,i), \; J=0$
+\item  'p' orbital: $N=3, \; U=F(2,i), \; J=F(2,i)/5$
+\item  'd' orbital: $N=5, \; U=F(0,i), \; J=(F(2,i)+F(4,i))/14$
+\item  'f' orbital without spin-orbit: $N=7, \; U=F(0,i), \; J=(F(2,i)+F(4,i)+F(6,i))/(6435.0/(286+195*0.668+250*0.494)\times(1.0+0.668+0.494))$
+\item  'f' orbital with spin-orbit: same as without spin-orbit, except $N=14$.
+\item $\Sigma_{DC}(i) = U(\eta(i) - 1/2) - J(\eta(i) - 1)/2$, where $\eta(i)$ is a user-supplied 'nominal\_n' parameter, i.e. a user-supplied occupancy that controls the double-counting energy.
+\end{itemize}
+\item Initialize $T$ in trans\_basis.dat, using generate\_initial\_transformation. The default value is the identity. If the 'trans\_basis\_mode' variable in comdmft.ini is different from zero then $T$ is set up differently.
+\item cal\_dc\_diagonal copies $\Sigma_{DC}(i)$ from dc\_mat.dat to dc.dat. This changes the format from a matrix  to a one-dimensional array containing only one element for each non-equivalent orbital. 
+%    dc_mat=read_impurity_mat_static(control,control['dc_directory']+'/dc_mat.dat')
+%    # To aid in parsing the input file, it uses two variables:
+%    # control['impurity_problem_equivalence'] ,
+%    # and control['impurity_wan'].
+%        dc_vec=imp_from_mat_to_array(dc_mat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
+% imp_from_mat_to_array takes info from hyb_mat [a matrix] and puts it in hyb_vec [ a vector].  
+%  imp[str(abs(ii))]['impurity_matrix'] contains instructions about which matrix elements to leave out, and about averaging over matrix elements.    
+%            h.write(str(np.real(dc_vec[jj]))+'   '+str(np.imag(dc_vec[jj]))+'    ')
+
+\item If 'initial\_self\_energy' is in comdmft.ini and sig.dat is available, then use this file as the initial value of the self-energy $\Sigma(i)$.
+\item If sig.dat is not available then generate\_initial\_self\_energy initializes $\Sigma$ and stores it in sig.dat. sig.dat contains only one entry for each non-equivalent impurity orbital.  $\Sigma(i,\omega) = \Sigma_{DC}  + \omega$, if the impurity's 'para' variable is true. 
+\item If the 'para' variable is false, then $\Sigma(i,\omega,s) = \Sigma_{DC}(i,s)  + \omega$, plus a small  real number,  $  -0.001 $ multiplied by a sign associated with the impurity.   
+%        for jj in range(control['n_omega']):
+%            sig_omega=[control['omega'][jj]]+dclist
+%            sig_table.append(sig_omega)
+%        with open('./sig.dat', 'w') as outputfile:
+%            outputfile.write(tabulate(sig_table, headers=control['sig_header'], floatfmt=".12f", numalign="right",  tablefmt="plain"))
+\end{itemize}
+
+
+\subsection{Initialization for the inner self-consistent loop}
+\begin{itemize}
+\item  lda\_dmft runs FlapwMBPT to do DFT, using the density matrix $\hat{\rho}$ created by ComLowH.   This density is used to create the charge and spin densities inside of FlapwMBPT.  For details of how ComLowH calculates $\hat{\rho}$  and of how FlapwMBPT uses it, see the subsection on "How the Density Matrix Is Produced".
+\item todocomlowh describe how wannier\_den\_matrix.dat is used inside of FlapwMBPT.
+\item Run ComWann, using check\_wannier\_function\_input, run\_comwann, and comwann\_postprocessing. This extracts information from the DFT calculation and puts that information wannier.dat which will be used by comdmft.py and ComLowH, and wannier.inip which is used only by ComLowH. todo  and document ComWann.
+\end{itemize}
+
+%  'impurity_wan' contains the number of impurity orbitals, and the number of impurities, and information about each of the impurity orbitals.  populated with information from wan_hmat
+%-written to comcoulomb.ini, comlowh.ini
+
+%        # comwann_postprocessing reads in wannier.inip, and uses it to set up
+%        # control['impurity_wan']
+%        #  control['impurity_wan'] contains only three kinds of info:
+%        #       - the number of atoms, natom=len(control['impurity_wan'])                               
+%        #       - the number of impurity orbitals for each atom, len(control['impurity_wan'][ii])
+%        #       - the indices of the orbitals used for impurities, which are used only
+%        #               in order to print them out in comcoulomb.ini and comlowh.ini
+%        #   find_impurity_wann is implemented of s,p,d,f if not doing spin-orbit,
+%        #       BUT if doing spin-orbit it is implemented only for f shell impurities.  
+
+%   document comwann inputs: comdmft.ini line 280
+
+\subsection{Inner Loop}
+\begin{itemize}
+\item Run ComLowh, which  uses the DFT eigenvalues $\lambda_{DFT}$, the Wannier90 projectors $V_{w90}$, $\Sigma$ and $\Sigma_{DC}$,  and various other variables.  It recalculates the Fermi level $E_F$,  and produces the the frequency-independent single-particle Hamiltonian $\hat{E}_{imp}$, the "hybridization" frequency-dependent single-particle Hamiltonian $\hat{\Delta}_{imp}$, and the local Green's function $\hat{G}_{imp}$. It also writes otu several other observables: local\_spectral\_matrix\_ef.dat, n\_loc.dat, and spectral\_matrix\_ef.dat.
+
+\item  If the 'trans\_basis\_mode' variable in comdmft.ini is equal to two  then do some work on trans\_basis.dat, i.e. on $T$. Otherwise do nothing. The default is to do nothing.
+
+\item Copy $\hat{E}_{imp}(i)$ from e\_projected\_mat.dat (if it exists) to projected\_eig.dat.   This changes the format from a matrix  to a one-dimensional array.  e\_projected\_mat.dat contains matrices.   projected\_eig.dat contains only the same number of elements as are marked as distinct impurity orbitals.
+% hmat=read_impurity_mat_static
+%    # To aid in parsing the input file, it uses two variables:
+%    # control['impurity_problem_equivalence'] ,
+%    # and control['impurity_wan'].
+%         h_vec=imp_from_mat_to_array(hmat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
+% imp_from_mat_to_array takes info from hyb_mat [a matrix] and puts it in hyb_vec [ a vector].  
+%  imp[str(abs(ii))]['impurity_matrix'] contains instructions about which matrix elements to leave out, and about averaging over matrix elements.    
+%             h.write(str(np.real(h_vec[jj]))+'   '+str(np.imag(h_vec[jj]))+'    ')
+
+ \item Copy $\hat{\Delta}_{imp}(i,\omega)$ from dc\_mat.dat (if it exists) to dc.dat. 
+ dc\_mat.dat stores matrices of size equal to the number of impurity orbitals. dc.dat contains  a vector with elements only for non-equivalent orbitals within each matrix.
+%    dc_mat=read_impurity_mat_static(control,control['dc_directory']+'/dc_mat.dat')
+%    # To aid in parsing the input file, it uses two variables:
+%    # control['impurity_problem_equivalence'] ,
+%    # and control['impurity_wan'].
+%        dc_vec=imp_from_mat_to_array(dc_mat[str(ii)],imp[str(abs(ii))]['impurity_matrix'])
+% imp_from_mat_to_array takes info from hyb_mat [a matrix] and puts it in hyb_vec [ a vector].  
+%  imp[str(abs(ii))]['impurity_matrix'] contains instructions about which matrix elements to leave out, and about averaging over matrix elements.    
+%            h.write(str(np.real(dc_vec[jj]))+'   '+str(np.imag(dc_vec[jj]))+'    ')
+
+ \item Don't copy data from zinv\_m1\_mat.dat to  zinv\_m1.dat, because zinv\_m1\_mat.dat exists only in qsgw+dmft calculations, not in dft+dmft calculations.
+
+\item Read in $\hat{E}_{imp}(i)$ from projected\_eig.dat and $\Sigma_{DC}(i)$ from  dc.dat, and write $\hat{E}_{imp}(i)- \Sigma_{DC}(i)$ to e\_imp.dat. (If the 'embed\_mode' option in comdmft.ini is set to 'hfc', then the contents of hartree.dat is also subtracted. ) These are pure reads and writes, with no processing other than the subtraction.  e\_imp.dat contains  a vector with elements only for non-equivalent orbitals within each matrix.
+
+
+\item Copy $\hat{\Delta}_{imp}(i,\omega)$ from delta\_mat.dat (if it exists) to delta.dat. 
+ delta\_mat.dat stores matrices of size equal to the number of impurity orbitals. delta.dat contains  a vector with elements only for non-equivalent orbitals within each matrix. If all orbitals are marked as equivalent by  the 'impurity\_matrix' entry in comdmft.ini, then  delta.dat contains a single complex number for each frequency.
+%    hyb_mat=read_impurity_mat_dynamic(control,control['lowh_directory']+'/delta_mat.dat')
+%    # To aid in parsing the input file, it uses two variables:
+%    # control['impurity_problem_equivalence'] ,
+%    # and control['impurity_wan'].
+%       hyb_table=[]
+%       for jj in range(control['n_omega']):
+%           hyb_omega=[control['omega'][jj]]
+%           for ii in sorted(set(control['impurity_problem_equivalence'])):
+%        hyb_vec=imp_from_mat_to_array(hyb_mat[str(ii)][jj,:,:],imp[str(abs(ii))]['impurity_matrix'])
+%            hyb_omega=hyb_omega+np.reshape(np.stack((np.real(hyb_vec), np.imag(hyb_vec)), 0), (len(hyb_vec)*2), order='F').tolist()
+% imp_from_mat_to_array takes info from hyb_mat [a matrix] and puts it in hyb_vec [ a vector].  
+%  imp[str(abs(ii))]['impurity_matrix'] contains instructions about which matrix elements to leave out, and about averaging over matrix elements.    
+%        hyb_table.append(hyb_omega)
+%        outputfile.write(tabulate(hyb_table, headers=control['sig_header'], floatfmt=".12f", numalign="right",  tablefmt="plain"))
+
+\item Read in  $\hat{\Delta}_{imp}(i,\omega)$ from delta.dat.  Determine whether causality is broken, i.e. if if the imaginary part of any element of $\hat{\Delta}_{imp}$ is positive. If causality is broken, print an error message.
+%            # write_conv_delta writes out its delta_causality argument, and the Fermi 
+%            # level from ef.dat. This goes into convergence.log.
+%            write_conv_delta(control,delta_causality)
+
+\item Read in $\hat{\Delta}_{imp}(i,\omega)$ from delta\_mat.dat and then write it out to hyb.json file, along with  the inverse temperature $\beta$.     If the impurity's 'para' member is false, the format of what is written out to hyb.json is a bit different. 
+
+\item Read in $\hat{E}_{imp}(i)- \Sigma_{DC}(i)$ from e\_imp.dat to e\_imp.  e\_imp.dat contains  a vector with elements only for non-equivalent orbitals within each matrix.  In contrast, e\_imp is a matrix of size equal to the number of impurity orbitals, so some reconstruction is involved, and the reconstruction is not lossless unless the original matrix has a very restricted form.
+
+
+\item Read in $T$ from  trans\_basis.dat to trans\_basis. This involves using the 'impurity\_wan' control parameter to figure out the basis size of $T$.
+
+\item Transfer $\hat{E}_{imp}(i)- \Sigma_{DC}(i)$ from e\_imp to e\_imp\_key, $T$ from trans\_basis to trans\_key, and imp[key]['impurity\_matrix'] to equivalence\_key.  This involves:
+\begin{itemize} 
+\item  Keeping track of the impurity equivalence, based on 'impurity\_matrix' which specifies which impurities are equivalent to each other.  
+\item  If this calculation is not spin-orbit, then double the basis size.
+\begin{itemize} 
+\item If 'para' is true, e\_imp goes both in the spin up-up block and also in the spin down-down block of e\_imp\_key.  trans\_key is the same.  equivalence\_key is also the same except for a following line of code involving lists, maps, and lambda functions, that I don't understand. % maybe todo figure this out.
+%                     equivalence_key=list(map(lambda row: list(map(lambda x: str(x) if x!='0' else '', list(map(str, row)))), equivalence_key_int_mat_all))
+\item  If 'para' is false, for e\_imp\_key and trans\_key: The spin up-up block is the same, but the spin down-down block comes from the impurity which is related by AFM symmetry.  
+\item  If 'para' is false, for equivalence\_key: The spin up-up block is the same, but the spin down-down block is a modified version of the 'impurity\_matrix' variable.  I don't understand the modification, but it is simple.  Just as with the 'para' = true case, there is a following line of code involving lists, maps, and lambda functions, that I don't understand.
+ %             equivalence_mkey_int_mat=equivalence_key_int_mat+shiftval*(equivalence_key_int_mat>0)
+\item There is also some logic that I don't understand for figuring out what goes in the up-up and down-down blocks of equivalence\_key.  
+\item If this is a spin-orbit calculation, there is no basis doubling and everything is much simpler. Just as when not doing spin-orbit, for equivalence\_key is modified by a last line of code involving lists, maps, and lambda functions, that I don't understand.
+\end{itemize}
+\end{itemize}
+
+\item Write params.json:
+\begin{itemize}
+\item $[$"mu"$]$ = -e\_imp\_key$[0,0]$
+\item $[$"hloc"$]$ $[$"one body"$]$ = e\_imp\_key - e\_imp\_key[0,0]; the [0,0] element is null. e\_imp\_key  = a massaged $\hat{E}_{imp}(i)-\Sigma_{DC}(i)$.
+\item $[$"hybridisation"$]$ $[$"matrix"] = equivalence\_key = a massaged 'impurity\_matrix'. This is the matrix structure for the hybridization term; it multiplies hyb.json.
+\item $[$"hybridisation"$]$ $[$"functions"] = "hyb.json"
+\item $[$"beta"$]$ = 'beta'
+\item $[$"hloc"$]$ $[$"two body"$]$ $[$"parametrisation"$]$ = "slater-condon"
+\item $[$"hloc"$]$ $[$"two body"$]$ $[$"F0"$]$ = 'f0', and similar for F2, F4, F6. 
+\item $[$"basis"$]$ $[$"transformation"$]$ = trans\_key = a massaged $T$
+\item $[$"basis"$]$ $[$"orbitals"$]$ = 'problem' , i.e. a list of shells
+\end{itemize}
+\item params.json also contains some comdmft.ini parameters that are aimed at controlling the algorithm implemented by the CTQMC solver:
+\begin{itemize}
+\item If 'spin\_orbit' is true, then $[$"basis"$]$ $[$"type"$]$ = "coupled" and the observables include "J2" and "Jz".  Otherwise it is "product" and the observables include "S2" and "Sz". 
+\item If 'coulomb' is 'full', then $[$"hloc"$]$ $[$"two body"$]$ $[$"approximation"$]$ = "none".  If 'coulomb' is 'ising', then it is 'ising'.
+\item $[$"measurement time"$]$ = 'measurement\_time'
+ \item $[$"thermalisation time"$]$ = 'thermalization\_time'
+ \item $[$'partition']$[$"green matsubara cutoff"$]$ = 'green\_cutoff'
+ \item $[$'partition']$[$"susceptibility cutoff"$]$ = 'susceptibility\_cutoff'
+ \item $[$'partition']$[$"susceptibility tail"$]$ = 'susceptibility\_tail'
+ \item Also there are a few hard-coded params.json entries that do not depend on comdmft.ini at all.
+%    params_json["green basis"]="matsubara"    
+%    params_json["occupation susceptibility direct"]=True
+%    params_json['partition']["green bulla"]=True
+%    params_json['partition']["occupation susceptibility bulla"]=True
+%    params_json['partition']["print density matrix"]=True
+%    params_json['partition']["print eigenstates"]=True
+%    params_json['partition']["density matrix precise"]=True    
+%    params_json['partition']["quantum number susceptibility"]=True    
+\end{itemize} 
+
+
+\item Don't write dyn.json because this is not a qsGW+CTQMC calculation.
+
+\item Run ComCTQMC, both CTQMC and EVALSIM. 
+
+Afterwards the results of ComCTQMC are processed and written to files.  The results of ComCTQMC have a number of entries equal to the number of nonequivalent impurity orbitals.  The output files, g\_loc.dat, sig.dat, sig\_smth.dat, and sig\_bare.dat, all contain a number of entries equal to the number of nonequivalent impurity orbitals. 
+% impurity\_postprocessing, and then code right after it for writing things out.
+\begin{itemize}
+\item Copy $g_{loc}$ from the "green" section of the params.obs.json to g\_loc.dat. This is used only by ComDC, which is used only if doing a qsGW+DMFT calculation. It is not the same as $\hat{G}_{loc}(i,\omega)$, which is computed by ComLowH. 
+\item Read $\Sigma_{CTQMC}(i,\omega)$ in from  the "self-energy" section of params.obs.json.  This is immediately saved in sig\_bare.dat, but that file is never used.
+% Look at https://github.com/jacobwilliams/json-fortran , https://github.com/josephalevin/fson , 
+\item Read $\Sigma_{old}(i,\omega)$ in from sig.dat.
+\item Obtain $\Sigma_{smeared}(i,\omega)$ by performing Gaussian broadening on $\Sigma_{CTQMC}(i,\omega)$, matrix element by matrix element.  Most values of $\omega$ are smeared, but if $\omega$ is too close to its minimum or maximum values within the $\omega$ array then no smearing is done and $\Sigma_{smeared}(i,\omega) = \Sigma_{CTQMC}(i,\omega)$.
+\begin{eqnarray}
+  \lambda(\omega_0) &=&  (0.85 \pi T \times 8.6173303 \times 10^{-5}) + 0.05 \omega_0 \nonumber \\
+    \Sigma_{smeared}(i,\omega_0) &=& \frac{
+   \sum_{\omega}  \Sigma_{CTQMC}(i,\omega) \times  \exp( -(\omega-\omega_0)^2 / 2 \lambda^2(\omega_0)) } {\sum_{\omega}  \exp( -(\omega-\omega_0)^2 / 2 \lambda^2(\omega_0)) }
+    \end{eqnarray}
+    The sums in this smearing calculation are over all elements in the $\omega$ array. \\
+    Smearing is not done if (a) $\omega_0$  less than $3 \lambda(\omega_0)$, (b) $\omega_0$  is within $3 \lambda(\omega_0)$ of the maximum value of the $\omega$ array, or (c) $\omega_0 > \Gamma + 3 \lambda(\Gamma)$, where $\Gamma$ is the 'green\_cutoff' parameter in comdmft.ini. If smearing is not done for a particular value of $\omega_0$, then $\Sigma_{smeared}(i,\omega_0) = \Sigma_{CTQMC}(i,\omega_0)$. 
+%    \omega_0 >cutoff+(3 \times \lambda(cutoff))- do not smear
+ %   (\omega_0 \leq 3*\lambda(\omega_0))  - do not smear
+ % ((\omega[-1]-\omega_0) \leq 3*\lambda(\omega_0))) - do not smear 
+ \item $\Sigma_{smeared}(i,\omega) $  is saved to sig\_smth.dat, which is never used. 
+ \item After a particular matrix element of $\Sigma_{smeared}(i,\omega) $ is calculated, it is tested for causality.  The causality requirement is that, for all values of $\omega$, $Im(\Sigma_{smeared}(i,\omega)) \leq 0 $. 
+ \begin{itemize}
+ \item If this causality requirement is met, then this particular matrix element is mixed with the old self energy to obtain the new self-energy: $\Sigma(i,\omega)  = \alpha \Sigma_{smeared}(i,\omega)  + (1-\alpha) \Sigma_{old}(i,\omega) $, where $\alpha$ is the 'sigma\_mix\_ratio' entry in comdmft.ini.
+ \item If causality is not met, then this particular matrix element is set to the old value: $\Sigma(i,\omega)  =  \Sigma_{old}(i,\omega) $.
+ \item If the 'para' variable is false, i.e. if the present impurity is related to another impurity by antimagnetic symmetry, then $\Sigma_{old}(j,\omega)$ is used (with $j$ being the other impurity) instead of $\Sigma_{old}(i,\omega)$.
+ \item It can happen that some matrix elements of $\Sigma(i,\omega)$ come from $\Sigma_{old}$, while others come from $\Sigma_{smeared} $ with subsequent  mixing.
+  \end{itemize}
+  \item  $\Sigma(i,\omega)$ is saved to sig.dat.
+ \end{itemize}
+
+\end{itemize}
+
+
+\section{ComLowH}
+
+
+Inputs:
+\begin{itemize}
+\item $i$ is an index over impurities.
+\item $o$ is an index over orbitals at a specific impurity.
+\item $q$ is an index over momenta, the same momenta used by CASTEP.
+\item $k$ is an index over  momenta on a fine mesh, after interpolation using Wannier functions.
+\item $s$ is an index over spins.  
+\item $b$ is an index over bands.
+\item $\beta = (8.6173303 \times 10^{-5} \times T) $ is the inverse temperature.  
+\item The number of bands $N_{bands}$, from wannier.dat. % num_bands
+\item The number of wanniers $N_{wann}$, from wannier.dat.  This implicitly determines the projection operators $P_w + P_r = 1$. % num_wann
+\item The number of atoms/impurities $N_a$, from comlowh.ini.
+\item  The number of correlated orbitals on each atom/impurities, $N_{orb}(i)$, from comlowh.ini. %norb_iac
+\item The number of atoms (impurities) that are equivalent, $N_{equiv}(i)$, from comlowh.ini. % ndeg_iac
+\item $[E_{min}, \, E_{max}]$, from comlowh.ini. This interval, and also the interpolated eigenvalues on the fine k-point mesh,  are used to define  the $ P_E$ projection operator.  
+\item wan\_correlated, from comlowh.ini.  This is a list of which wannier orbitals are correlated, and that is used to defined the $P_c$ projection operator.
+\item include\_bands, from wannier.dat. include\_bands\_new in wannier\_den\_matrix.dat is decided by multiplying include\_bands by $P_E$, and permuting bands according to $U_{tob}$.  % include_bands(num_bands). used only in write_den_matrix, to define include_band_new which is written out
+\item The coarse $q$-point momentum grid, from wannier.dat. % ndiv, nqdiv=ndiv(1)*ndiv(2)*ndiv(3), kpt_latt(3,nqdiv)
+\item The spatial $R$-point spatial grid, from wannier.dat. % nrpts, irvec, ndegen
+\item The fine $k$-point momentum grid, from wannier.dat. % ndiv_fi, numk= nqdiv_fi=ndiv_fi(1)*ndiv_fi(2)*ndiv_fi(3), kpt_latt_fi
+\item A path $\kappa$ through momentum space for plots of spectral density and spectra; this is read in from a user-supplied file named kpoints.  If not doing a plot through momentum space, ComLowH writes out kpoints instead of reading it in; in this case the kpoints written out are a grid, not a path.
+\item n\_omega = $N_\omega$ is the number of frequencies on the frequency grid.  If the user supplies a self-energy file then $N_\omega$ is read from that file.  Otherwise it is set to $N_\omega = 150 \times \beta / \pi$.
+\item $\omega$ is a grid of real numbers: $\pi/\beta, 3\pi/\beta, 5\pi/\beta, .... , (2 N_\omega - 1)/\beta $.  
+\begin{itemize}
+\item comdmft.py writes $\omega$ to sig.dat, gimp.dat, sig\_bare.dat, sig\_smth.dat,  delta.dat. 
+\item ComLowH receives the omega grid in sig.dat.  When called during self-consistent DFT+DMFT or qsGW+DMFT iterations it multiplies the grid by $\imath$.  It does the same when calculating qsGW spectra.  When calculating other observables it leaves the grid at its real value, apparently without any imaginary part.
+\end{itemize}
+
+\item The is\_spinorbit variable in ComLowH is read in from comlowh.ini, and originates in the comdmft.ini file.  It controls how wannier.inip is read in. The is\_spinorbit  variable also doubles the electron count when calculating the Fermi level. And, if true, it ensures that the number of bands determined by find\_bnd\_in\_win (inside the energy window)  is odd. 
+%\item The 'impurity\_problem' variable in comdmft.ini is used to form 'impurity\_wan' variable. It is also used for processing the output of ComCoulomb, which is run only if doing a qsGW+DMFT calculation.  todo ComWann docs and more about: this leaves the purpose unclear, and also what this input variable is. wannier.dat which will be used by comdmft.py and ComLowH, and wannier.inip which is used only by ComLowH.
+\item The 'doping' parameter in comdmft.ini is passed to ComLowH, where it becomes the delta\_charge variable.  It is added to the computed charge during the search for the Fermi energy $\mu$.   
+% search_fermi_energy_brent, cal_tos_gw_fun, cal_tos_analytical_tail_fun, and a 'nelectron in one cell' in one cell printout message when comlowh reads information from wannier.dat
+\item $\lambda_{DFT}(q,b,s)$ are the CASTEP DFT eigenvalues, and are stored in wannier.dat.
+\item $V_{w90}(q,b,o)$ is the projectors created by Wannier 90.  Stored in wannier.dat.
+\item $T$ is a  user-supplied transformation matrix that defaults to the identity if if is not supplied.  Stored in trans\_basis.dat
+%Docs assume (control['trans_basis_mode']==0)
+%    # trans_basis_mode: 0, use wannier functions as basis set
+%    # trans_basis_mode: 1, use transformation matrix to rotate the basis set. this matrix doesn't change as a function of iteration.
+%    # trans_basis_mode: 2, use transformation matrix to rotate the basis set. this matrix does change as a function of iteration. this matrix diagonalizes the spectral function at the chemical potential.
+\item $\Sigma_{DC}(i)$ is stored in dc\_mat.dat and dc.dat.  Keep in mind thatdc.dat contains only a few matrix elements from the full matrix stored in dc\_mat.dat, so ComLowH has to reconstruct the matrix with necessarily less information.  To see how this goes, see ComLowH's use of the ioac matrix, which contains entries from the 'impurity\_problem\_equivalence' variable in comdmft.ini.   It is produced by comdmft.py, and is an input to ComLowH. In a qsGW+DMFT calculation it is produced by ComDC.
+%            #       dc.dat, [ dc_mat.dat -> dc.dat, and dc_mat.dat comes from
+%            #           cal_nominal_dc if doing dft+dmft, and from 
+%            #           ComDC->sig_mat.dat if doing lqsgw+dmft ]
+%\begin{itemize}
+%\item $\Sigma_{DC}(i) $ comes from dc.dat.  This is the origin of dc.dat: If doing qsgw+dmft, then run\_dc runs ComDC, and then takes data (dc[0,jj,kk]) from ComDC's sig\_mat.dat and puts it dc\_mat.dat.  Alternatively, if doing dft+dmft, then run\_dc/cal\_nominal\_dc creates dc\_mat.dat.  Alternatively, if ('dc\_mat\_to\_read' in control), then run\_dc only copies an old version of dc\_mat.dat from somewhere and uses that. After ComLowH is run, delta\_postprocessing/cal\_dc\_diagonal takes takes from dc\_mat.dat and puts it in dc.dat.
+%\end{itemize}
+\item $\Sigma(i,\omega)$ is stored in sig.dat.   Keep in mind that sig.dat contains only a few matrix elements from the full $\Sigma$ matrix, so ComLowH has to reconstruct the matrix with necessarily less information.  To see how this goes, see ComLowH's use of the ioac matrix, which contains entries from the 'impurity\_problem\_equivalence' variable in comdmft.ini.  It is initialized by comdmft.py, and mixed and smoothed  and written again comdmft.py using data from ComCTQMC.  It is used by ComLowH.
+%\begin{itemize}
+%\item $\Sigma(i,\omega)$ comes from sig.dat. sig.dat comes from params.obs.json, then gaussian smoothing, then a check for negative imaginary parts, then mixing. On the initial self-consistent cycle of dft+dmft and lqsgw+dmft, comdmft.py copies data from dc.dat to sig.dat.
+%\end{itemize}
+\item $\mu$, the Fermi energy, is stored in ef.dat.  It is initialized by comdmft.py and re-calculated by ComLowH.  It is used only  by ComLowH.   This is ComLowH is called in a self-consistent calculation; otherwise ComLowH reads in $\mu$ from ef.dat.
+\item $\hat{E}_{imp}(i)$ is stored in e\_projected\_mat.dat. It is  a projected hamiltonian. It is produced by ComLowH, processed by comdmft.py, and used by ComCTQMC.
+%            #       e_projected_mat.dat [used by CTQMC:
+%            #           ->projected_eig.data->e_imp.dat->e_imp->e_imp_key->CTQMC], 
+\item $\hat{\Delta}_{imp}(i,\omega)$ is stored in delta\_mat.dat. It is produced by ComLowH, processed by comdmft.py, and used by ComCTQMC.
+\item The density matrix $\hat{\rho}$ is stored in  wannier\_den\_matrix.dat.  It is produced by ComLowH, and used by FlapwMBPT.
+\item $\hat{G}_{loc}(i,\omega)$ is stored in  g\_loc\_mat.dat and g\_loc.dat. It is a projected Green's function.  It is produced by ComLowH.  It is used only by ComDC, and only if doing qsGW+DMFT.
+\item ComLowH produces local\_spectral\_matrix\_ef.dat.  This is used only if the 'trans\_basis\_mode' control parameter is equal to 2, and then is used only to determine trans\_basis.dat.  The default value of the 'trans\_basis\_mode' control parameter is 0.
+%Then if (trace(local_spectral_matrix_ef.dat) > control['metal_threshold']) then trans_basis.dat = eigenvectors(local_spectral_matrix_ef.dat). if the trace condition does not hold then trans_basis.dat=1.
+\item ComLowH produces n\_loc.dat, which is never used elsewhere.
+\item $z_{zinvm1}(i)$ comes from zinv\_m1.dat, and is used only when doing qsGW+DMFT calculations. Keep in mind that zinv\_m1.dat contains only a few matrix elements from the full matrix stored in zinv\_m1\_mat.dat, so ComLowH has to reconstruct the matrix with necessarily less information.  To see how this goes, see ComLowH's use of the ioac matrix, which contains entries from the 'impurity\_problem\_equivalence' variable in comdmft.ini.  This is the origin of zinv\_m1.dat: run\_dc runs ComDC, and then takes data from ComDC's sig\_mat.dat and puts it zinv\_m1\_mat.  After ComLowH is run, delta\_postprocessing/cal\_zinv\_m1\_diagonal takes takes info from zinv\_m1\_mat.dat and puts it in zinv\_m1.dat. If zinv\_m1.dat is missing, ComLowH effectively sets it equal to $1$.  \\% zinv_m1
+\item The  $P_c(i,o, o)$ projection operator.   Off-diagonals are zero. $P_c$ selects from the wannier orbitals only the ones which  are marked as correlated.  comdmft.ini tracks the list of correlated orbitals in control['impurity\_wan'][iatom] and writes it to comlowh.ini.  ComLowH reads this list into wan\_correlated, and its dmft\_projector routine uses that list to apply $P_c$.    %  num_orb(iatom), wan_cor_index=wan_correlated are both from comlowh. These are used in the dmft_projector routine.
+\item  The $ P_E$ projection operator projects out bands that are inside of a certain energy interval. The correspondence between the energy interval and the bands selected for projection is a little complex, and is decided by the find\_bnd\_in\_win routine in ComLowH.  That routine produces nbnd\_k and ind\_bnd\_k which encode the projection operator.  These variables have indexes for momentum but do not actually depend on momentum.  The energy interval is controlled by the proj\_win\_min and proj\_win\_max user control parameters  in the comdmft.ini file, which are transferred to the ewin\_min and ewin\_max variables in ComLowH. 
+% P_E is defined by nbnd_in_win_co=nbnd_in_win(1), bnd_in_win_co=bnd_in_win(:,1)
+% nbnd_k,ind_bnd_k, a+\alpha is indexed from 1 to num_proj
+% interpolated eigenvalues: eigenvalues_fi_all, 
+\end{itemize}
+
+
+Variables read in from wannier.dat, generated by Wannier90 or ComWann:
+\begin{itemize}
+\item The coarse $q$-point grid. % ndiv, nqdiv=ndiv(1)*ndiv(2)*ndiv(3), kpt_latt(3,nqdiv)
+\item The spatial $R$-point grid. % nrpts, irvec, ndegen
+\item The number of bands $N_{bands}$. % num_bands
+\item The number of wanniers $N_{wann}$.  This implicitly determines the projection operators $P_w + P_r = 1$. % num_wann
+\item include\_bands. include\_bands\_new in wannier\_den\_matrix.dat is decided by multiplying include\_bands by $P_E$, and permuting bands according to $U_{tob}$.  % include_bands(num_bands). used only in write_den_matrix, to define include_band_new which is written out
+\item $\lambda_{DFT}(q,i) $, the CASTEP band energies. % eigenvalues
+\item $V_{w90}(q,i,\beta)$, the projection operators generated by Wannier90. % v_matrix
+\end{itemize}
+
+Variables read in from wannier.inip, generated by ComWann:
+\begin{itemize}
+\item wannier.inip contains identifying info about each wannier orbital, including angular momentum numbers and impurity numbr and orientation axis.  These are all stored in variables beginning with alimj. These variables are not used for anything except the optics  code, which is currently disabled.
+\end{itemize}
+
+Variables read in from comlowh.ini:
+\begin{itemize}
+\item cal\_mode. cal\_mode=1 means do ComLowH's work for a self-consistent iteration.  cal\_mode=2 means calculate the density of states and partial density of states.  cal\_mode=3 means calculate the spectral density on a path through momentum space, and the path through momentum space is read in from the file named kpoints. cal\_mode=5 means produce qsGW spectra
+\item $\Gamma$, an imaginary part that is added to the real self-energy when doing cal\_mode=2,3 calculations. comdmft.py sets this to zero; it is always zero. % gamma_selfenergy.
+\item $\beta$ % from imp['beta']
+\item The number of atoms/impurities $N_a$.
+\item  The number of correlated orbitals on each atom/impurities, $N_{orb}(i)$. %norb_iac
+\item The number of atoms (impurities) that are equivalent, $N_{equiv}(i)$. % ndeg_iac
+\item The fine k-point grid. % ndiv_fi, numk= nqdiv_fi=ndiv_fi(1)*ndiv_fi(2)*ndiv_fi(3), kpt_latt_fi
+\item $[E_{min}, \, E_{max}]$. This interval, and also the interpolated eigenvalues on the fine k-point mesh,  are used to define  the $ P_E$ projection operator.  
+\item wan\_correlated, a list of which wannier orbitals are correlated, and that is used to defined the $P_c$ projection operator.
+\end{itemize}
+
+%            # comlowh reads from: 
+%            #       comlowh.ini, 
+%            #       wannier.dat, 
+%            #       wannier.inip,  
+%            #       dc.dat, [ dc_mat.dat -> dc.dat, and dc_mat.dat comes from
+%            #           cal_nominal_dc if doing dft+dmft, and from 
+%            #           ComDC->sig_mat.dat if doing lqsgw+dmft ]
+%            #       sig.dat, [produced by CTQMC, then gaussian smoothing, then mixing]
+%            #       zinv_m1.dat if available [from ComDC], 
+%            # comlowh also reads from:        
+%            #       trans_basis.dat if available, 
+%            #       ef.dat if not is_recal_ef, [used only by comlowh]
+%            #       kpoints if not (is_kpath .eq. 0)
+%            # comlowh writes to: 
+%            #       comlowh.log, 
+%            #       kpoints if (is_kpath .eq. 0)
+%            #       delta_mat.dat [used by CTQMC], 
+%            #       g_loc_mat.dat [-> g_loc.dat, used by comdc], 
+%            #       local_spectral_matrix_ef.dat [never used], 
+%            #       e_projected_mat.dat [used by CTQMC:
+%            #           ->projected_eig.data->e_imp.dat->e_imp->e_imp_key->CTQMC], 
+%            #       ef.dat if is_recal_ef, [used only by comlowh]
+%            # comlowh writes to:  wannier_den_matrix.dat [used by rspflapw]
+%            #   cal_mode=2: tdos.dat, pdos.dat, inquires about momentum_optics_wan.dat 
+%            #   cal_mode=3: spectral.dat, spectral_orb.dat, wannier_band_non_interpolated.dat
+%% and many others
+%            # comlowh writes to: n_loc.dat [never used]
+
+
+
+\section{ComLowH called during self-consistent DFT+DMFT or qsGW+DMFT iterations; cal\_mode = 1 }
+Bear in mind that throughout this documentation of ComLowH I set the basis transformation matrix $T$ to the identity.
+
+Also keep in mind that for cal\_mode = 1 the  frequencies used in ComLowH are imaginary. They are obtained by multiplying the frequency grid supplied in sig.dat by $\imath$.
+%! numk<=>nqdiv_fi,ndim_k<=>ndim_kk_fi,n_mpi_k<=>n_mpi_kk_fi, ndim_k_max<=>ndim_kk_fi_max,kvec<=>kpt_latt_fi
+%! ndim_k and n_mpi_k are a parallelization scheme for numk k-points distributed over nproc processors.  kvec is a complete list of all numk k-points. ndim_k_max=maxval(ndim_k)
+\begin{eqnarray}
+H_{w90}(q) &=&  V_{w90}^\dagger(q) \lambda_{DFT}(q) V_{w90}(q) \\ %  v_matrix, eigenvalues
+% cal_mat_eig_co: ! ! h_k_wan_co = v_matrix^\dagger * eigenvalues * v_matrix
+H_{w90}(k) &=& N_q^{-1} \sum_{R,q} \exp(\imath R \cdot (k -q)) H_{w90}(q) \\
+%  H_{w90}(k,\alpha,\beta)  = h_k_wan_fi(k)
+ H_{w90}(k) & = &U_{w90}^\dagger(k)   \lambda_{w90}(k) U_{w90}(k)  \\
+% U_{w90} = w_matrix_fi,  \lambda_{w90} = eigenvalues_fi_all
+P_{pr}(k,i) & = & \frac{1}{\sqrt{\chi \chi^\dagger}} \chi ,  \;\;\chi(i,k) = \ P_c(i) U_{w90}(k)\; P_E(k) \\ 
+% P_{pr}(a+\overline{\alpha},k,\beta) & = & \frac{1}{\sqrt{\chi \chi^\dagger}} \chi ,  \;\;\chi(a+\overline{\alpha},k,\epsilon) = \ P_c(a+\overline{\alpha}, \gamma) U_{w90}(k,\gamma,\delta)\; P_E(k,\delta,\epsilon) \\ 
+% P_{pr}(a+\overline{\alpha},k,\beta) = proj_renorm
+% projector_renormalization_allk: chi = proj_k, P_E=nbnd_k,ind_bnd_k, a+\alpha is indexed from 1 to num_proj
+%Z^{-1}(k) &=& 1 + \sum_a P_{pr}^\dagger(i,k) z_{zinvm1}(i) P_{pr}(i,k) \\ 
+% Z^{-1}(k,\alpha,\beta) = zinv
+%H_{ni}(k) &=& Z^{1/2}(k)   \lambda_{w90}(k) Z^{1/2}(k)  \\ 
+% H_{ni}(k,\alpha,\beta) = h_nonint
+%\hat{E}_{imp}(i) &=& N_k^{-1} (N_{equiv}(i))^{-1} \sum_k  P_{pr}(i,k) H_{ni}(k)   P_{pr}^\dagger(i,k) - E_F \\
+%G_{l}^{-1}(\omega, k) &=& E_F +  \omega - H_{ni}(k)  - \sum_i P_{pr}^\dagger(k,i) (\Sigma(\omega,i) - \Sigma_{DC}(i) -  (\imath \Gamma=0))  P_{pr}(i,k) \nonumber \\ % G_{l}^{-1} = g_lat_inv, Gamma = gamma_selfenergy
+G_{l}^{-1}(\omega, k) &=& E_F +  \omega - \lambda_{w90}(k)  - \sum_i P_{pr}^\dagger(k,i) (\Sigma(\omega,i) - \Sigma_{DC}(i) -  (\imath \Gamma=0))  P_{pr}(i,k) \nonumber \\ % G_{l}^{-1} = g_lat_inv, Gamma = gamma_selfenergy
+%G_{l}^{-1}(\omega, k) &=& E_F +  \omega - H_{ni}(k)  - \sum_i P_{pr}^\dagger(k,i) (\Sigma(\omega,i) - \Sigma_{DC}(i) -  (\imath \Gamma=0))  P_{pr}(i,k) \nonumber \\ % G_{l}^{-1} = g_lat_inv, Gamma = gamma_selfenergy
+\end{eqnarray}
+At this point, if cal\_mode = 1, the Fermi energy $E_F$ is recomputed and then written to ef.dat.  For other values of cal\_mode it is not recomputed and instead read in from ef.dat.
+
+
+$E_F$ is adjusted to find a solution of the following equation (keep firmly in mind that $\omega$ is an imaginary Matsubara frequency): 
+\begin{eqnarray}
+N_{elec} &=&  N_k^{-1} \sum_k  Tr(n_{imp}(k, E_F)) \nonumber \\
+n_{imp}(k,E_F) &=& -2 \beta^{-1}\sum_{\omega} \exp(-\beta \omega) \;  (G_{l}(k,\omega,E_F) - \omega^{-1} - g_2(k,\omega_{max}) / \omega^2 - g_3(k,\omega_{max}) / \omega^3) \nonumber \\
+&+&  (1/2 - g_2(k,\omega_{max}) \beta/4) \nonumber \\
+g_2(k,\omega_{max}) &=& \omega_{max}^2  (G_{l}(k,\omega_{max}) + G_{l}^\dagger(k,\omega_{max}))/2 \nonumber \\
+g_3(k,\omega_{max}) &=& \omega_{max}^3  (G_{l}(k,\omega_{max}) - G_{l}^\dagger(k,\omega_{max})  - 2/\omega_{max})/2  \nonumber \\
+N_{elec} &=& N_d + \delta/2, if\,no\,spin-orbit \nonumber \\
+N_{elec} &=& N_d + \delta, if\,spin-orbit \nonumber \\
+N_f &=& N_q^{-1} \sum_{q,b,o, \lambda_{DFT}(q,b) < 0} |V_{w90}(q,b,o)|^2 \nonumber
+\end{eqnarray}
+If no spin-orbit then $N_f$ is rounded to integer or half-integer values and this is the value of $N_d$. If spin-orbit then $N_f$ is rounded to integer values but not to half-integer values, and this is the value of $N_d$. $\delta$ is the 'doping' user control parameter supplied in comdmft.ini.  $\omega_{max}$ is the maximum Matsubara frequency in our frequency grid.
+%! if no spin-orbit, nelectron=dble(nint(nelectron_dble*2))/2.0d0    +delta_charge/2.0d0
+%! if spin-orbit, nelectron=dble(nint(nelectron_dble))+delta_charge
+%! nelectron_dble=N_q^{-1} \sum_{q,b,o, \lambda_{DFT}(q,b) < 0} |V_{w90}(q,b,o)|^2 
+% delta_charge is the 'doping' parameter in comdmft.ini.
+
+
+After choosing $E_F$, ComLowH goes on with computing its outputs:
+\begin{eqnarray}
+g(\omega,i) &=&  N_k^{-1} \sum_k P_{pr}(i,k)   \;\;G_{l}(\omega, k) \;\; P_{pr}^\dagger(i,k) \\
+%! g_lat_kw = (g_lat_inv + ef)^{-1}
+% g(\omega,k) = projected_g(atom,omega) = Nk^{-1} \sum_k proj_renorm * g_lat_kw * proj_renorm^\dagger
+\hat{E}_{imp}(i) &=& N_k^{-1} (N_{equiv}(i))^{-1} \sum_k  P_{pr}(i,k)  \lambda_{w90}(k)  P_{pr}^\dagger(i,k) - E_F \\
+%  ! e_projected_mat(atom) = Nk^{-1} (ndeg_iac(atom))^{-1} \sum_k proj_renorm(atom) * h_nonint * proj_renorm(atom)^\dagger - ef
+\hat{\Delta}_{imp}(\omega,i)  &=& (N_{equiv}(i))^{-1}  ( \omega - \hat{E}_{imp}(i) - \Sigma(\omega,i) + \Sigma_{DC}(i)) -(N_{equiv}(i))^{-1}  g(\omega,i)^{-1}  \\
+\hat{\Delta}_{imp}(\omega,i)  &=& (N_{equiv}(i))^{-1}  ( E_F + \omega - N_k^{-1} (N_{equiv}(i))^{-1} \sum_k  P_{pr}(i,k)  \lambda_{w90}(k)  P_{pr}^\dagger(i,k) - \Sigma(\omega,i) + \Sigma_{DC}(i))\nonumber \\
+& -& (N_{equiv}(i))^{-1}  g(\omega,i)^{-1}  \\
+%\hat{\Delta}_{imp}(\omega,i)  &=& (N_{equiv}(i))^{-1}  (\imath \omega - \hat{E}_{imp}(i)\;\; -[  g(\omega,i)^{-1} ] \;\; - \Sigma(\omega,i) + \Sigma_{DC}(i))
+%! delta_mat(omega) = \sum_atoms (frequency(iomega) - e_projected_mat - (projected_g)^{-1} + dc - sig(omega))/ndeg(atom)
+\hat{G}_{loc}(\omega,i) &= & (N_{equiv}(i))^{-1} \; g(\omega,i)  \\
+%! gloc = projected_g / ndeg_iac
+g_{diag}(\omega,k,o) &=& diag(U_{w90}(k) \;\;G_{l}(\omega, k) \;\;  U_{w90}^\dagger(k)) 
+%! g_lat_kw_diagonal_orb(k,omega) = diag (w_matrix_fi * g_lat_kw * w_matrix_fi^\dagger)
+% g_lat_kw_diagonal_orb is printed out in spectral_matrix_ef.dat
+\end{eqnarray}
+
+ $\hat{E}_{imp}$ is written to e\_projected\_mat.dat, $\hat{G}_{loc}$ is written to g\_loc\_mat.dat,  $\hat{\Delta}_{imp}$  is written to delta\_mat.dat, and $g_{diag}(\omega,k)$ is written to spectral\_matrix\_ef.dat.
+
+\begin{eqnarray}
+spectral(i) &=&  \beta^{-1}\sum_{\omega} \exp(-\beta \omega/2) \;  (G_{loc}(i,\omega) - \omega^{-1} - g_2(i,\omega_{max}) / \omega^2 - g_3(i,\omega_{max}) / \omega^3) \nonumber \\
+&+&  \beta^{-1}\sum_{\omega} \exp(-\beta \omega /2) \;  (G_{loc}^\dagger(i,\omega) + \omega^{-1} - g_2(i,\omega_{max}) / \omega^2 - g_3(i,\omega_{max}) / \omega^3) \nonumber \\
+&+&  (1/2 + g_3(i,\omega_{max}) \beta^2/16) \nonumber \\
+n_{loc}(i) &=& - \beta^{-1}\sum_{\omega} \exp(-\beta \omega) \;  (G_{loc}(i,\omega) - \omega^{-1} - g_2(i,\omega_{max}) / \omega^2 - g_3(i,\omega_{max}) / \omega^3) \nonumber \\
+&-&  \beta^{-1}\sum_{\omega} \exp(-\beta \omega) \;  (G_{loc}^\dagger(i,\omega) + \omega^{-1} - g_2(i,\omega_{max}) / \omega^2 + g_3(i,\omega_{max}) / \omega^3) \nonumber \\
+&+&  (1/2 - g_2(i,\omega_{max}) \beta/4) \nonumber \\
+g_2(i,\omega_{max}) &=& \omega_{max}^2  (G_{loc}(i,\omega_{max}) + G_{loc}^\dagger(i,\omega_{max}))/2 \nonumber \\
+g_3(i,\omega_{max}) &=& \omega_{max}^3  (G_{loc}(i,\omega_{max}) - G_{loc}^\dagger(i,\omega_{max})  - 2/\omega_{max})/2  \nonumber 
+\end{eqnarray}
+$- \beta \pi^{-1} \times Re(spectral(i))$ is written to local\_spectral\_matrix\_ef.dat, and $n_{loc}(i)$ is written to n\_loc.dat. Under certain circumstances local\_spectral\_matrix\_ef.dat used by comdmft.py to create a transformation matrix $T$. $n_{loc}(i)$ is never used by comsuite.
+
+Lastly spectral\_matrix\_ef.dat is calculated:
+\begin{eqnarray}
+spectral_{lat}(o) &=&  \beta^{-1}\sum_{\omega} \exp(-\beta \omega/2) \;  (g_{lat}(o,\omega) - \omega^{-1} - g_2(o,\omega_{max}) / \omega^2 - g_3(o,\omega_{max}) / \omega^3) \nonumber \\
+&+&  \beta^{-1}\sum_{\omega} \exp(\beta \omega /2) \;  (g_{lat}^*(o,\omega) + \omega^{-1} - g_2(o,\omega_{max}) / \omega^2 + g_3(o,\omega_{max}) / \omega^3) \nonumber \\
+&+&  (-1/2 + g_3(o,\omega_{max}) \beta^2/16) \nonumber \\
+g_2(o,\omega_{max}) &=& \omega_{max}^2  Re(g_{lat}(o,\omega_{max})) \nonumber \\
+g_3(o,\omega_{max}) &=& \omega_{max}^3  (Im(g_{lat}(o,\omega_{max})) - 1/\omega_{max}) \nonumber \\
+g_{lat}(o,\omega_{max}) &=& diag(N_k^{-1} \sum_k P_{pr}(i,k)   \;\;G_{l}(\omega, k) \;\; P_{pr}^\dagger(i,k))
+\end{eqnarray}
+$- \beta \pi^{-1} \times Re(spectral_{lat}(i))$ is written to spectral\_matrix\_ef.dat, which is never used by comsuite.
+
+ In qsGW+DMFT calculations where Z is available, $H_{ni}(k) $ replaces $\lambda_{w90}(k)$ in the equations for $\hat{E}_{imp}(i) $ , $\hat{\Delta}_{imp}(\omega,i) $, and  $G_{l}^{-1}(\omega, k)$:
+ \begin{eqnarray}
+Z^{-1}(k) &=& 1 + \sum_i P_{pr}^\dagger(k,i) z_{zinvm1}(i) P_{pr}(k,i) \nonumber \\ 
+%% Z^{-1}(k) = zinv
+H_{ni}(k) &=& Z^{1/2}(k)   \lambda_{w90}(k) Z^{1/2}(k)  
+%% H_{ni}(k) = h_nonint
+\end{eqnarray}
+% maybe todo: here where Zinv is being used, why is it being used to renormalize the non-interacting hamiltonian? I don't understand the theory.
+
+
+%Old equations, before removing the indices over orbitals and bands:
+%\begin{eqnarray}
+%H_{w90}(q,\alpha,\beta) &=&  V_{w90}^\dagger(q,\alpha,i) \lambda_{DFT}(q,i) V_{w90}(q,i,\beta) \\ %  v_matrix, eigenvalues
+%% cal_mat_eig_co: ! ! h_k_wan_co = v_matrix^\dagger * eigenvalues * v_matrix
+%H_{w90}(k,\alpha,\beta) &=& N_q^{-1} \sum_{R,q} \exp(\imath R \cdot (k -q)) H_{w90}(q,\alpha,\beta) \\
+%%  H_{w90}(k,\alpha,\beta)  = h_k_wan_fi(k)
+% H_{w90}(k,\alpha,\beta) & = &U_{w90}^\dagger(k,\alpha,\gamma) \lambda_{w90}(k,\gamma) U_{w90}(k,\gamma,\beta)  \\
+%% U_{w90} = w_matrix_fi,  \lambda_{w90} = eigenvalues_fi_all
+%P_{pr}(a+\overline{\alpha},k,\beta) & = & \frac{1}{\sqrt{\chi \chi^\dagger}} \chi ,  \;\;\chi(a+\overline{\alpha},k,\epsilon) = \ P_c(a+\overline{\alpha}, \gamma) U_{w90}(k,\gamma,\delta)\; P_E(k,\delta,\epsilon) \\ % P_{pr}(a+\overline{\alpha},k,\beta) = proj_renorm
+%% projector_renormalization_allk: chi = proj_k, P_E=nbnd_k,ind_bnd_k, a+\alpha is indexed from 1 to num_proj
+%Z^{-1}(k,\alpha,\beta) &=& 1 + \sum_a P_{pr}^\dagger(k,\alpha,a+\overline{\gamma}) z_{zinvm1}(a+\overline{\gamma},a+\overline{\delta}) P_{pr}(a,k,a+\overline{\delta},\beta) \\ 
+%% Z^{-1}(k,\alpha,\beta) = zinv
+%H_{ni}(k,\alpha,\beta) &=& Z^{1/2}(k,\alpha,\gamma)   \lambda_{w90}(k,\gamma) Z^{1/2}(k,\gamma,\beta)  \\ 
+%% H_{ni}(k,\alpha,\beta) = h_nonint
+%G_{l}^{-1}(\omega, k,\alpha,\beta) &=& \imath \omega - H_{ni}(k,\alpha,\beta)  - \sum_a P_{pr}^\dagger(a+\overline{\gamma},k,\alpha) (\Sigma(\omega,a+\overline{\gamma},a+\overline{\delta}) - \Sigma_{DC}(a+\overline{\gamma},a+\overline{\delta}) - \imath \Gamma)  P_{pr}(a+\overline{\delta},k,\beta) \\ % G_{l}^{-1} = g_lat_inv, Gamma = gamma_selfenergy
+%\end{eqnarray}
+
+
+
+
+\subsection{How the Density Matrix is Produced}
+Bear in mind that throughout this documentation of ComLowH I set the basis transformation matrix $T$ to the identity.  Also bear in mind that while calculating the density matrix the $\omega$'s are all imaginary Matsubara frequencies.
+
+
+\begin{eqnarray}
+n_{imp}(q) &=& -2 \beta^{-1}\sum_{\omega} Re[\exp(-\beta \omega)] \;  (G_{l}(q,\omega,E_F) - \omega^{-1} - g_2(q,\omega_{max}) / \omega^2 - g_3(q,\omega_{max}) / \omega^3) \nonumber \\
+&+&  (1/2 - Re[g_2(q,\omega_{max})] \beta/4) \nonumber \\
+g_2(q,\omega_{max}) &=& \omega_{max}^2  (G_{l}(q,\omega_{max}) + G_{l}^\dagger(q,\omega_{max}))/2 \nonumber \\
+g_3(q,\omega_{max}) &=& \omega_{max}^3  (G_{l}(q,\omega_{max}) - G_{l}^\dagger(q,\omega_{max})  - 2/\omega_{max})/2  \nonumber 
+\end{eqnarray}
+ $\omega_{max}$ is the maximum Matsubara frequency in our frequency grid. $n_{imp}(q,E_F)$ is evaluated on the coarse k-point grid that is used by flapwmbpt, which is different from the $n_{imp}(k,E_F)$  used to find the Fermi level, which is evaluated on a fine k-point grid.  Also, the $z_{zinvm1}$ factor is ignored here while calculating $G_{l}(k,\omega,E_F) $. I'm not sure why this is so.
+
+
+The density matrix that is returned to flapwmbpt is modified as follows:
+\begin{eqnarray}
+n_{mat}(q, E_F) &= & P_E( P_w n_{imp}(q) P_w + P_r f_{FD}(\beta(\lambda_{r}(q)-E_F) )P_r) P_E  \nonumber \\ %n_{mat} = n_matrix_new
+n_{mat}(q, E_F) &= & P_E n_{imp}(q) P_E, \; if \;\; P_w = 1, \, P_r = 0
+\end{eqnarray}
+where $f_{FD}(E) = (1 + \exp(E))^{-1}$ is the Fermi-Dirac distribution. In a basis of size equal to the number of DFT bands, where the wannier functions are diagonal, $P_w$ is the operator that projects out the wannier functions, and $P_r=1-P_w$ is the operator that projects out everything else. $\lambda_{r}(q)$ is the eigenvalues of the non-wannier bands after they have been modified by disentangling them from the wannier functions.
+
+ The point of this modification is to include contributions to the density matrix which come from outside the space spanned by the Wannier orbitals $U_{w90}(k)$, i.e. from the $P_r$ sector. 
+
+
+%\begin{eqnarray}
+%H_{w90}(q) &=&  V_{w90}^\dagger(q) \lambda_{DFT}(q) V_{w90}(q) \\ %  v_matrix, eigenvalues
+%% cal_mat_eig_co: ! ! h_k_wan_co = v_matrix^\dagger * eigenvalues * v_matrix
+% H_{w90}(q) & = &U_{w90}^\dagger(q) \lambda_{w90}(q) U_{w90}(q)  \\  %  \lambda_{w90} = eigenvalues_co=eigenvalues_co_all, U_{w90}= w_matrix_co : I might have U where I should have U^\dagger
+%% cal_mat_eig_co: ! eigenvalues_co_all=eigenvalues_co and w_matrix_co=h_k_wan_co are the eigenvalues and eigenvectors of v_matrix^\dagger * eigenvalues * v_matrix
+%P_{prc} &=& 0 \\ % proj_renorm_co is P_{prc} and is set to zero immediately before the call to cal_mat_eig_co, in a line reading proj_renorm_co=0.0d0 .
+%Z^{-1}(q,\alpha,\beta) &=& 1 + \sum_i P_{prc}^\dagger(q,i) z_{zinvm1}(i) P_{prc}(q,i) = 1 \\ % P_a = proj_renorm_co 
+%% cal_mat_eig_co : zinv = 1 + \sum_{a,\gamma,\delta} P_a(q,\alpha,\gamma,a)^\dagger z_{zinvm1}(a,\gamma,\delta) P_a(q,\delta,\beta,a)
+%H_{ni}(q) &=& Z^{1/2}(q)   \lambda_{w90}(q) Z^{1/2}(q) =  \lambda_{w90}(q)  \\ 
+%% cal_mat_eig_co : H_{ni} = h_nonint_co 
+%%projco(a,q,\alpha,\beta) &= & \sum_\gamma  P_c(a,\alpha, \gamma) U_{w90}(q,\gamma,\beta) \\ 
+%% dmft_projector: proj_co = P_c w_matrix_co,
+%%P_{prc}(a+\alpha,q,\beta) & = & \frac{1}{\sqrt{\chi \chi^\dagger}} \chi ,  \;\;\chi(a+\alpha,q,\epsilon) = projco(a,q,\alpha,\gamma)\; P_E(q,\gamma,\epsilon) \\ % proj_renorm_co
+%P_{prc}(i,q) & = & \frac{1}{\sqrt{\chi \chi^\dagger}} \chi ,  \;\;\chi(i,q) = \ P_c(i) U_{w90}(q)\; P_E(q) \\ % proj_renorm_co
+% % projector_renormalization_allk: chi = proj_k, P_E=nbnd_k,ind_bnd_k, a+\alpha is indexed from 1 to num_proj
+%G_{lc}^{-1}(\omega, q) &=& E_F +  \omega - H_{ni}(q)  - \sum_i P_{prc}(i,q)^\dagger (\Sigma(\omega,i) - \Sigma_{DC}(i) - (\imath \Gamma = 0))  P_{prc}(i,q) \\ % G_{lic} = g_lat_inv_co, Gamma = gamma_selfenergy
+%G^2(q) &=& Re[G_{lc}(max(\omega),q)] \times- (max(\omega))^2 \\
+%G^2(q) &=& [Im[G_{lc}(max(\omega),q)] - \frac{1}{\imath \omega}] \times- \imath (max(\omega))^3 \\% max(omega) = n_omega, G^2_{mat} = g2mat , G^3_{mat} = g3mat
+%n_{imp}(q,E_F)  &=&  [\sum_{\omega} -\frac{2}{\beta} Re[ \exp(-\imath \beta \omega) (G_{lc}(\omega,q)  - \frac{1}{\imath \omega} - \frac{ G^2(q)}{- \omega^{2}}  -  \frac{G^3(q)}{-\imath \omega^{-3}})] + \frac{1}{2}- \frac{ \beta G^2(q)}{4} ] \\
+%\end{eqnarray} 
+
+
+It remains to calculate $\lambda_{r}(q)$, which  are the eigenvalues of the non-wannier bands after they have been modified by disentangling them from the wannier functions. We simultaneously calculate  $v_{wmc}(q)$, which  in its $P_r$ sector contains the eigenvectors which are the counterparts of $\lambda_{r}(q)$. In the $P_w$ sector it contains the wannier functions' representations in the flapwmbpt band basis.
+ \begin{eqnarray}
+v_{wmc}(q) &=&   V_{w90}(q)  U_{w90}(q) P_w + P_V(q) P_r U_r(q) P_r, \;\;1 =v_{wmc}^\dagger v_{wmc} \nonumber \\ %v_{wmc} = vw_matrix_co
+v_{wmc}(q) &=&   V_{w90}(q)  U_{w90}(q), \;\;  if \; P_w=1,\, P_r= 0 \nonumber 
+ \end{eqnarray}
+$ V_{w90}(q) $ is a matrix from Wannier90, found in wannier.dat, which contains the mapping from wanniers to the flapwmbpt band basis.  $P_V(q)$ is the complement to $V_{w90}(q)$; $P_V(q)$ and $V_{w90}(q)$ are orthogonal to each other, and $P_V(q)$ spans the space that remains after subtracting the wanniers from the bands basis.  $P_V(q)$ is constructed by diagonalization:
+ \begin{eqnarray}
+ P_V^\dagger(q) \lambda_V P_V(q) &=& 1 -  V_{w90}(q)  V_{w90}^\dagger(q), \;\; P_V^\dagger V = 0 % one_m_p = P_V
+ \end{eqnarray}
+Next, we construct and diagonalize a Hamiltonian within the $P_r$ sector:
+ \begin{eqnarray}
+H_r(q) &=& P_r P_V^\dagger(q)  \lambda_{DFT}(q) P_V(q) P_r \\
+U_r^\dagger(q) \lambda_{r}(q) U_r(q) &=& H_r(q) 
+ \end{eqnarray}
+This gives us the eigenvalues $ \lambda_{r}(q)$ and the eigenvectors $U_r(q)$ of the non-wannier bands after they have been modified by disentangling them from the wannier functions.
+
+Lastly, we try to compensate for that fact that our the disentangled eigenvectors in $v_{wmc}(q)$ may no longer match the character of the wannier orbitals that we started with.  Therefore we construct a permutation matrix   $U_{tob}(q)$ which permutes $v_{wmc}(q)$ (equal to $V_{w90}(q)  U_{w90}(q)$ if $P_w=1,\; P_r=0$)  to give a closer match with  the original wanniers. This best match is estimated using the following heuristic: the mapping from orbital $i$ to $j$  more or less maximizes the value of $|v_{wmc}(q,i,j)|^2$.
+%v_{wmc} & \rightarrow & U_{tob}  \\ % U_{tob} = to_orig_bnd
+
+ %\begin{eqnarray}
+%t(q,i,j) &=&  V_{w90}(q,i,\gamma)  U_{w90}(q,\gamma,\beta=j) P_w + P_V(q,i,j) P_r, \;\; 1 =  t^\dagger t \\
+%\end{eqnarray}
+
+The following outputs are written to wannier\_den\_matrix.dat:
+\begin{itemize}
+%\item $U_{tob} \;\times\;P_E$
+\item temperature $T$
+\item nqdiv, the number of points  in the coarse momentum grid % the number of q-points
+\item n\_dmft\_bnd, the number of bands inside the energy window $P_E$, and also the size of the first two indices of $v_{wmn}(q)$. % from nbnd_in_win_co [called 'num_band_in' when saved from comrisb, and read in by rspflapw as 'n_dmft_bnd'] - should be the number of bands
+\item      n\_dmft\_wan, the number of bands inside the energy window $P_E$, and also the size of the first two indices of $v_{wmn}(q)$.  % from nbnd_in_win_co - the number of wanniers
+\item include\_band\_new, a copy of the include\_bands array in wannier.dat.
+%!               include_band_new comes from  include_band_new, originally from nbnd_in_win_co, bnd_in_win_co, to_orig_bnd, and include_bands.
+\item  $v_{wmn}(q) =  p (p  \;\; p^\dagger)^{-1/2}, \; p = U_{tob}(q) P_E  v_{wmc}(q,i,j) P_E$.  This is the disentangled eigenvectors after orthonormalization. If $P_w=1,\,P_r=0$ then $ p = U_{tob}(q) P_E V_{w90}(q)  U_{w90}(q) P_E$. % The U_{tob} goes outside of the P_E because P_E selects out certain bands, and it is diagonal, and U_{tob} permutes the bands is also diagonal.
+%!       - "vw_matrix_new" from vw_matrix_new
+%!               vw_matrix_new is a subsector of vw_matrix_co, with the sector specified by nbnd_in_win_co, to_orig_bnd, bnd_in_win_co. vwmatrix_new is renormalized so that it satisfies vwmatrix_new^\dagger vwmatrix_new = 1.
+\item size, a three-element vector containing the size of $v_{wmn} $.
+\item $n_{mat}$
+%!       - 'n_matrix_new' - the density matrix
+%!                n_matrix_new equal is a subsector of n_matrix, with the sector specified by nbnd_in_win_co, bnd_in_win_co.
+\end{itemize}
+
+FlapwMBPT reads in wannier\_den\_matrix.dat and uses it to alter the occupation matrix that is used to evaluate the charge and spin density, which are used for the next DFT iteration.  The interstitial sector of the charge density is as follows. The muffin-tin sector is evaluated using considerably more algebra, but still starting with the same $ \mathcal{G}_0(q)$. The updated $ \mathcal{G}_0(q)$ is also used to evaluate the Fock term, Green's functions, orbital moments, etc.
+\begin{eqnarray}
+\rho_{int} &=& N_q^{-1} \sum_q \sum_n  \langle \psi_{int}(n,q) |  \mathcal{G}_0(q) | \psi_{int}(n,q) \rangle \nonumber \\
+\mathcal{G}_0(q) &=& -g_0(q) + \mathcal{P}(q) n_{mat}(q)  \mathcal{P}^\dagger(q) - \mathcal{P}(q) \; ( \mathcal{P}^\dagger(q) \; (-g_0(q)) \; \mathcal{P}(q) ) \;  \mathcal{P}^\dagger(q) \nonumber \\
+\mathcal{P}(q) &=& \mathcal{U}(q) \times v_{wmn}(q) \nonumber 
+\end{eqnarray}
+\begin{itemize}
+\item $| \psi(n,q) \rangle $ is the $n$-th eigenstate of the DFT Hamiltonian, and  $\psi_{int}(n,q) $ is the interstitial sector of those eigenstates. 
+\item  
+\begin{eqnarray}
+g_0(q) &=& - \frac{\exp((\beta - \tau)  (\lambda_{DFT}(q)-E_F)) }{ 1 + \exp(\beta (\lambda_{DFT}(q)-E_F)) }, \;\; \lambda_{DFT}(q)-E_F > 0
+\nonumber \\
+g_0(q) &=& - \exp(\tau (\lambda_{DFT}(q)-E_F))(1-  \frac{ \exp(- \beta  (\lambda_{DFT}(q)-E_F)) }{ 1 + \exp(-\beta (\lambda_{DFT}(q)-E_F)) }), \;\; \lambda_{DFT}(q)-E_F <0 \nonumber  % green0 
+\end{eqnarray}
+\item After $\rho_{int}$ is computed as shown above, it symmetrized by ro\_int\_g's call to symscal or symvec, which do sums over all the crystal group symmetrization operations.
+\item $ \mathcal{U}(q)$ is a unitary matrix with basis size equal to the number of bands. $ \mathcal{U}(q)$ is  prepared by dft\_basis\_rotmat\_k, and then force\_mat\_unitary uses a singular matrix decomposition to force it to be unitary.  I am not sure what dft\_basis\_rotmat\_k does, but it seems to take the overlap between bands.
+\end{itemize}
+
+%! g_full_0(k) = -green0(k)+deltarhomat1(k)-deltarhomat2(k)
+%! g_full_0(k) = -green0(k)+proj_mat(k) * dmft_den_mat(k) * proj_mat^\dagger(k) + (proj_mat(k) * proj_mat^\dagger(k)) green0 (proj_mat(k) * proj_mat^\dagger(k))
+%! proj_mat(k) = umat(k) * disentangle_mat(k)
+%
+%! green_0 calculates:
+%! If (dft or hf) and (.not.is_lda_dmft):
+%!      g_full_00(i,k,ispin)=-green0(de,tau_mesh(n_tau))
+%! If (dft or hf) and (is_lda_dmft):
+%
+%!      g_full_0(k) = -green0(k)+deltarhomat1(k)-deltarhomat2(k)
+%!      g_full_0(k) = -green0(k)+proj_mat(k) * dmft_den_mat(k) * proj_mat^\dagger(k) + (proj_mat(k) * proj_mat^\dagger(k)) * green0 * (proj_mat(k) * proj_mat^\dagger(k))
+%!      proj_mat(k) = umat(k) * disentangle_mat(k)
+%!      umat(k) is a rotation basis that is prepared by dft_basis_rotmat_k.  
+%! If (qp or gw):
+%!      g_full_0 = an unpacked version of -g_full
+%! green0 is the Fermi-Dirac function, applied to e_bnd(k)-chem_pot
+%! g_full_00 and g_full_0 are used by g_mt_from_g_full to create g_loc_0.  It is used by gx_rs_from_ks_mi, gx_rs_from_ks_mm, gx_k_g_r1, and sumi_gw. ro_int_g/sumi_gw uses g_full_00 and g_full_0 to calculate the interstitial sector of the charge density. g_full_00 is also used by seteny.
+%! -----------------------
+%! ro_int_g calculates the interstitial sector of the charge density, rointr, and symmetrizes it.
+%! If doing irel<=1, 
+%! rointr = \sum_k ev_bnd(k) * g * ev_bnd^\dagger * w(k) / amega, plus symmetrization.
+%! w(k) = wgt(k)*2.d0/dfloat(nrel*nspin)
+%! ev_bnd is the interstitial sector of the DFT bands.
+%! g is g_full_00 if doing dft/hf but not with dmft, and is g_full_0 if doing dmft or qp or gw.
+%! If doing irel=2, the equations are a bit different.
+%        call green_0(correlation)
+%c     ------------- Forming Local Green's Function -------------------------
+%! g_loc_0(k) = (symm(z_bnd(k) * g(k) * z_bnd^\dagger(k)))^*
+%! z_bnd is the muffin-tin sector of the dft eigenstates.
+%! symm means symmetrizing over the crystal group operations.
+%! Initialize g(k) is g_full_00 if doing dft without dmft, or otherwise g_full_0.
+%! g_loc_0 is used by get_t, t_t1_x, orb_tot, occ_number, get_pv, spin_orbit_rel. It is also used by the get_t+ro_val pair which calculates the muffin-tin sector of the charge density.
+
+\section{Postprocessing}
+Postprocessing is done entirely by ComLowH.  The only role of comdmft.ini is to construct the comlowh.ini file and execute ComLowH.  The choice of which postprocessing to do is encode in the method user control parameter in comdmft.ini, which can have values of 'dos', 'spectral', 'dos\_qp', or 'band'.
+
+In all postprocessing the Fermi level is never recalculated.
+
+Bear in mind that throughout this documentation of ComLowH I set the basis transformation matrix $T$ to the identity.
+
+
+\subsection{Real-Frequency Observables; cal\_mode=2 or 3; method = 'dos' or 'spectral'.}
+
+The frequencies used in ComLowH are the same real frequencies supplied in sig.dat.  It is assumed that the $\Sigma$ in sig.dat has been analytically continued to real energies. Except for the change from imaginary frequencies to real frequencies, and also the difference that the re-calculation of $E_F$ is omitted, the calculation of $G_l$ and $U_{w90}$ is exactly the same as when cal\_mode=1.
+
+If cal\_mode = 2, i.e. the 'dos' method is specified in comdmft.ini, then tdos is written to pdos.dat,  and dos is written to pdos.dat:
+\begin{eqnarray}
+tdos(\omega) &=& -N_k^{-1} \pi^{-1} \sum_k  Tr\; Im[G_{l}(\omega, k)]= \sum_o pdos(\omega,o) \\
+%! tdos(iomega) = - Nk^{-1} pi^{-1} \sum_k Tr(imag(g_lat_kw))
+pdos(\omega,o) &=& -N_k^{-1} \pi^{-1} \sum_k Im[ diag( U_{w90}(k)  \;\;G_{l}(\omega, k)   \;\; U_{w90}^\dagger(k)) \;\; ]  \\
+%! pdos(iomega) = -Nk^{-1} pi^{-1} \sum_k imag(w_matrix_fi * g_lat_kw * w_matrix_fi^\dagger)
+\end{eqnarray}
+Moreover,  $\hat{E}_{imp}$ is written to e\_projected\_mat.dat, $\hat{G}_{loc}$ is written to g\_loc\_mat.dat, and  $\hat{\Delta}_{imp}$  is written to delta\_mat.dat.  These will be different from the values produced by the self-consistent calculation, because they are now produced using real frequencies instead of imaginary Matsubara frequencies.
+
+
+If cal\_mode = 3, i.e. the 'spectral' method is specified in comdmft.ini, then $G_{path}$ is written to spectral.matrix,  $G_{pt}$ is written to spectral.dat, $G_{po}$ is written to spectral\_orb.dat, and $\lambda_{w90}(k)$ is written to wannier\_band\_non\_interpolated.dat:
+\begin{eqnarray}
+G_{path}(\omega,k) &=&   (2\pi)^{-1} \imath U_{w90}(k) \;\;  (G_{l}(\omega, k) - G_{l}^\dagger(\omega, k) )  \;\; U_{w90}^\dagger(k)  \\
+G_{po}(\omega,k) &=& diag(Re[G_{path}(\omega,k)])   \\
+%! g_path_orb(k,omega) = I * (2 pi)^{-1} Tr(w_matrix_fi * (g_lat_kw - g_lat_kw^\dagger) w_matrix_fi^\dagger)
+G_{pt}(\omega,k) &=&  (2\pi)^{-1} Re[ \imath Tr(G_{l}(\omega, k)  - G_{l}^\dagger(\omega, k)) ]
+%! g_path_trace(k,omega) = I * (2 pi)^{-1} trace(w_matrix_fi * (g_lat_kw - g_lat_kw^\dagger) w_matrix_fi^\dagger)
+\end{eqnarray}
+
+
+
+
+%\begin{eqnarray}
+%\hat{E}_{imp}(i) &=& N_k^{-1} (N_{equiv}(i))^{-1} \sum_k  P_{pr}(i,k) H_{ni}(k)   P_{pr}^\dagger(i,k) - E_F \\
+%  ! e_projected_mat(atom) = Nk^{-1} (ndeg_iac(atom))^{-1} \sum_k proj_renorm(atom) * h_nonint * proj_renorm(atom)^\dagger - ef
+%g(\omega,i) &=&  N_k^{-1} \sum_k P_{pr}(i,k)   \;\; [(G_{l}^{-1}(\omega, k) + E_F)^{-1} ]\;\; P_{pr}^\dagger(i,k) \\
+%%! g_lat_kw = (g_lat_inv + ef)^{-1}
+%% g(\omega,k) = projected_g(atom,omega) = Nk^{-1} \sum_k proj_renorm * g_lat_kw * proj_renorm^\dagger
+%\hat{G}_{loc}(\omega,i) &= & (N_{equiv}(i))^{-1} \; g(\omega,i)  \\
+%%! gloc = projected_g / ndeg_iac
+%\hat{\Delta}_{imp}(\omega,i)  &=& (N_{equiv}(i))^{-1}  (\omega - \hat{E}_{imp}(i)\;\; -[  g(\omega,i)^{-1} ] \;\; - \Sigma(\omega,i) + \Sigma_{DC}(i))
+%%! delta_mat(omega) = \sum_atoms (frequency(iomega) - e_projected_mat - (projected_g)^{-1} + dc - sig(omega))/ndeg(atom)
+% \end{eqnarray}
+
+%Old version of the equations: 
+% \begin{eqnarray}
+%g_{diag}(\omega,k,\alpha) &=& U_{w90}(k,\alpha,\gamma) \;\;[(G_{l}^{-1}(\omega, k,-,-) + E_F)^{-1}](\gamma,\beta)\;\;  U_{w90}^\dagger(k,\beta,\gamma) \\
+%%! g_lat_kw_diagonal_orb(k,omega) = diag (w_matrix_fi * g_lat_kw * w_matrix_fi^\dagger)
+%tdos(\omega) &=& -N_k^{-1} \pi^{-1} \sum_k \sum_\alpha Im[\;\;\sum_\alpha \;\;[(G_{l}^{-1}(\omega, k,-,-) + E_F)^{-1}](\alpha,\alpha)\;\; ] = \sum_\alpha pdos(\omega,\alpha) \\
+%%! tdos(iomega) = - Nk^{-1} pi^{-1} \sum_k Tr(imag(g_lat_kw))
+%pdos(\omega,\alpha) &=& -N_k^{-1} \pi^{-1} \sum_k Im[\;\; U_{w90}(k,\alpha,\gamma)  \;\;[(G_{l}^{-1}(\omega, k,-,-) + E_F)^{-1}](\gamma,\beta)  \;\; U_{w90}^\dagger(k,\beta,\alpha) \;\; ]  \\
+%%! pdos(iomega) = -Nk^{-1} pi^{-1} \sum_k imag(w_matrix_fi * g_lat_kw * w_matrix_fi^\dagger)
+%G_{path}(\omega,k,\alpha,\beta) &=& \imath  \pi^{-1} U_{w90}(k,\alpha,\gamma) \;\; Im[ (G_{l}^{-1}(\omega, k,\gamma,\delta) + E_F)^{-1} ]  \;\; U_{w90}^\dagger(k,\delta,\beta) \\
+%%! g_path_orb(k,omega) = I * (2 pi)^{-1} Tr(w_matrix_fi * (g_lat_kw - g_lat_kw^\dagger) w_matrix_fi^\dagger)
+%G_{po}(\omega,k,\alpha) &=& G_{path}(\omega,k,\alpha,\alpha)\\
+%%! g_path_orb(k,omega) = I * (2 pi)^{-1} Tr(w_matrix_fi * (g_lat_kw - g_lat_kw^\dagger) w_matrix_fi^\dagger)
+%G_{pt}(\omega,k) &=& \sum_{\alpha} G_{po}(\omega,k,\alpha) \\
+%%! g_path_trace(k,omega) = I * (2 pi)^{-1} trace(w_matrix_fi * (g_lat_kw - g_lat_kw^\dagger) w_matrix_fi^\dagger)
+%\hat{E}_{imp}(a+\overline{\alpha},a+\overline{\beta}) &=& N_k^{-1} (N_{orb}(a)+1)^{-1} \sum_k  P_{pr}(a+\overline{\alpha},k,\gamma) H_{ni}(k,\gamma,\delta)   P_{pr}^\dagger(a+\overline{\beta},k,\delta) - E_F \\
+%%  ! e_projected_mat(atom) = Nk^{-1} (ndeg_iac(atom))^{-1} \sum_k proj_renorm(atom) * h_nonint * proj_renorm(atom)^\dagger - ef
+%g(\omega,a+\overline{\gamma},a+\overline{\delta}) &=&  N_k^{-1} \sum_k P_{pr}(a+\overline{\gamma},k,\alpha)   \;\; [(G_{l}^{-1}(\omega, k,-,-) + E_F)^{-1}](\alpha,\beta)  \;\; P_{pr}^\dagger(a+\overline{\delta},k,\beta) \\
+%%! g_lat_kw = (g_lat_inv + ef)^{-1}
+%% g(\omega,k) = projected_g(atom,omega) = Nk^{-1} \sum_k proj_renorm * g_lat_kw * proj_renorm^\dagger
+%\hat{G}_{loc}(\omega,a+\overline{\gamma},a+\overline{\delta}) &= & (N_{orb}(a)+1)^{-1} \; g(\omega,a+\overline{\gamma},a+\overline{\delta})  \\
+%%! gloc = projected_g / ndeg_iac
+%\hat{\Delta}_{imp}(\omega,a+\overline{\alpha},a+\overline{\beta})  &=& (N_{orb}(a)+1)^{-1}  \;\;[  (\imath \omega \delta(\overline{\alpha},\overline{\beta})- \hat{E}_{imp}\;\; -[  g(\omega,-,-)^{-1} ] \;\; - \Sigma(\omega) + \Sigma_{DC}) ] (a+\overline{\gamma},a+\overline{\delta})\\
+%%! delta_mat(omega) = \sum_atoms (frequency(iomega) - e_projected_mat - (projected_g)^{-1} + dc - sig(omega))/ndeg(atom)
+% \end{eqnarray}
+ 
+ \subsection{Imaginary-Frequency Observables; cal\_mode=4 or 5; method = 'dos\_qp' or 'band'.}
+The frequencies used in ComLowH are the same real frequencies supplied in sig.dat, multiplied by $\imath$ to become Matsubara frequencies.  The re-calculation of $E_F$ is omitted.  As far as I can tell, the files written by cal\_mode=4 are exactly the same as the files written by cal\_mode=5.  The text output is a bit different.
+
+$\Sigma(\omega=0,i)$ and $-d\Sigma(\omega,i)/d\omega)$ are calculated by fitting the smallest six Matsubara frequencies of $\Sigma(\omega,i)$.  The fitting is done by pfit\_mod.F, which says that is a "Module for polynomial least-squares fitting".
+%%      do ii=n_iac_mat_i, n_iac_mat_f
+%        if ((is_magnetic .eq. 1) .and. (ii .eq. 0)) cycle
+%        do iio=1, maxval(ioac(:,:,ii))
+%          sig0(iio,ii)=coeff1(1)          
+%          zinv_m1_imp(iio,ii)=-coeff2(2)
+
+\begin{eqnarray}
+H_{w90}(q) &=&  V_{w90}^\dagger(q) \lambda_{DFT}(q) V_{w90}(q)  \nonumber \\ %  v_matrix, eigenvalues
+% cal_mat_eig_co: ! ! h_k_wan_co = v_matrix^\dagger * eigenvalues * v_matrix
+H_{w90}(k) &=& N_q^{-1} \sum_{R,q} \exp(\imath R \cdot (k -q)) H_{w90}(q)  \nonumber \\
+%  H_{w90}(k,\alpha,\beta)  = h_k_wan_fi(k)
+ H_{w90}(k) & = &U_{w90}^\dagger(k) \lambda_{w90}(k) U_{w90}(k)  \nonumber  \\
+% U_{w90} = w_matrix_fi,  \lambda_{w90} = eigenvalues_fi_all
+P_{pr}(k,i) & = & \frac{1}{\sqrt{\chi \chi^\dagger}} \chi ,  \;\;\chi(i,k) = \ P_c(i) U_{w90}(k)\; P_E(k)  \nonumber \\ 
+H_{ni}( k) &=& -E_F  + \lambda_{w90}(k)  + \sum_i P_{pr}^\dagger(i,k) (\Sigma(\omega=0,i) - \Sigma_{DC}(i) )  P_{pr}(i,k) \nonumber    \\ 
+%           sig0(iio,ii)=coeff1(1)          
+Z^{-1} (k)  &=&  1 + \sum_i P_{pr}^\dagger(i,k) (-d\Sigma(\omega,i)/d\omega)  P_{pr}(i,k) \nonumber \\
+%          zinv_m1_imp(iio,ii)=-coeff2(2)
+%zinv_imp  = 1 + \sum_i proj_renorm^\dagger zinv_m1_imp proj_renorm
+H_{qp}(k) &=& U_{w90}(k) \, Z^{1/2}(k) \, H_{ni}( k) \, Z^{1/2}(k) \, U_{w90}^\dagger(k) \nonumber  \\
+%z_half_imp = 1/sqrt(zinv_imp)
+%tempmat12 = z_half_imp h_{nonint} z_half_imp
+%h_qp = w_matrix_fi tempmat12 w_matrix_fi^\dagger
+U_{qp}^\dagger(k) \lambda_{qp}(k) U_{qp}^\dagger(k) &=& H_{qp}(k) \nonumber
+\end{eqnarray}
+$\lambda_{qp}(k)$ is written out as wannier\_band\_qp\_interpolated.dat.  From the eigenvalues in $\lambda_{qp}(k)$, a subset is written out to wannier\_band\_qp\_interpolated\_orb.dat. The size of the subset is equal to the number of wannier functions.  The selection follows a very simple heuristic that finds maximum absolute values of  the matrix elements of $U_{qp}^\dagger(k)$.  The heuristic does not guarantee against using the same eigenvalue more than once.
+
+$\lambda_{w90}(k)$ is written out as wannier\_band\_non\_interpolated.dat.  From the eigenvalues in $\lambda_{w90}(k)$, a subset is written out to wannier\_band\_non\_interpolated\_orb.dat. The size of the subset is equal to the number of wannier functions.  The selection follows a very simple heuristic that finds maximum absolute values of  the matrix elements of $U_{qp}^\dagger(k)$.  The heuristic does not guarantee against using the same eigenvalue more than once.
+
+
+
+%    elif ((control['method'] == 'spectral') | (control['method'] == 'band') | (control['method'] == 'dos') | (control['method'] == 'dos_qp')):
+%        postprocessing_comdmft()
+%    if (control['method']=='dos'):        
+%        options['mode']=2        
+%    elif (control['method']=='spectral'):        
+%        options['mode']=3
+%    elif (control['method']=='dos_qp'):        
+%        options['mode']=4        
+%    elif (control['method']=='band'):        
+%        options['mode']=5
+        
+%
+%!     'dos_qp' => cal_mode 4 => delta imag qp hamiltonian: output exactly the same as cal_mode = 5
+%% wannier_band_qp_interpolated.dat, wannier_band_non_interpolated.dat,  wannier_band_qp_interpolated_orb.dat, wannier_band_non_interpolated_orb.dat
+%
+%!     'band' => cal_mode 5 => delta imag path qp hamiltonian
+%!       This postprocessing shows quasiparticle bands without doing analytic continuation. ! no analytic continuation, produces qp spectra, does not produce a DOS or A(k,omega)
+%% Output: wannier_band_non_interpolated.dat, wannier_band_qp_interpolated.dat, wannier_band_qp_interpolated_orb.dat, wannier_band_non_interpolated_orb.dat
+%! line 2613 (calls to pfit) look like construction of a qp hamiltonian sig0, zinv_m1_imp
+
+\section{Notes on: Obtain Wannier functions $\langle b \vec{k} |W(\vec{k})\rangle$ }
+This is copied from WannierMatrixElementsDesign.tex
+
+This discussion is about the work that would be necessary to get Wannier functions (local orbitals) for the 2021 code.  For the comsuite version of flapwmbpt Wannier functions are already available.
+
+There are at least three options available:
+\subsection{Sang's ansatz for Wannier functions}
+% in wannier_orbital [called before before wannier_setup]:
+% ubin_num is 1 if dft or 4 if qp
+% z_wan_bnd is z_qp
+% znew is z_wan_bnd after sym_z_0 has been applied to it
+% wfn_mt0 is some kind of sum over znew
+% wfn_mt1 is the rot_matrix * wfn_mt0
+% cal_overlapmax_bandprojection_to_mtorb_low_rmode produces coeff_radial
+%proj is the dot product of coeff_radial with wfn_mt1.
+% wannier_orbital calculates [weight_in_froz_win, weight_total, weight_Low] from proj.  It then uses these to select orbitals to be wannier orbitals,  and writes this info out to orb_for_froz_win.dat and wannier.inip, and decides the value of num_wann.
+% immediately  after wannier_orbital saves out the .inip file, it is read back in with read_wann_inip, which initializes nalimj, alimj, alimj_coeff, alimj_xaxis, etc.
+\begin{itemize}
+\item Port (from comsuite to the 2021 version of rspflapw)  Sang's code for creating Wannier functions.  The code is in the routine named cal\_overlapmax\_bandprojection\_to\_mtorb\_low, and is about 400 lines long.
+\begin{itemize}
+\item There are three different versions of this routine in Sang's code.  Which of the three is determined by an rmode parameter.  In the official 2021 release of comsuite rmode is hard-coded to 0.  In the version of comsuite released at the 2021 school rmode is equal to 0 for dft+dmft calculations and 2 for qsgw+dmft calculations.  In the following I discuss only rmode=0.  The rmode=2 version involves Sang running radial solver code to get some home-grown (Sang-grown) muffin-tin orbitals.
+\item Wannier functions $ | W^{als} \rangle $ are calculated separately for each value of atomic index $a$, spin $s$, and $l$ quantum number.
+% iatom and loop over sorts is, l , ispin, and iival but this only if irel.eq.2 . li=l+1 if irel.le.1 .  jjval  used only during nrel.eq.2.   What are l,ispin,dim_radial(l,1,iatom)?
+%   allocate(coeff_radial(100,0:maxb,nrel,natom))
+%      coeff_radial=0.0d0
+%      allocate(dim_radial(0:maxb,nrel,natom)).  The first index is for l.
+ %     dim_radial=0
+% for a specific (l,isort) ntle(l,isort) is the number of muffin-tin orbitals.
+% dim_radial_orb is a weighted sum of all of the orbitals counted in ntle(l,isort).   If augm(ie,l,isort) is LOC the weight is 1, otherwise the weight is 2.
+
+% get overlap from ffsmt
+
+% diagonalize overlap; the eigenvalues  e are diag and the eigenvectors v are overlap.
+% t0(:,i) = v(:,i) * e(i)^{1/2} = sqrt(overlap)
+% shalf =  t0 * v^\dagger
+
+
+% t0(:,i) = overlap(:,i) / e(i)^{1/2} = 1/sqrt(overlap)
+% smhalf = t0 * v^\dagger
+ 
+ % t0(:,i) = overlap(:,i) / e(i) = 1/overlap
+% sinv = t0 * v^\dagger
+
+
+\item Sang's code always produces wave-functions for ALL values of $m$ within a given shell specified by $a , l, s$. These have the exact same values of $W^{als}$.
+\item todo discuss dim\_radial\_orb, the size of the overlap matrix and of the wannier functions: % dim_radial_orb is a weighted sum of all of the orbitals counted in ntle(l,isort).   If augm(ie,l,isort) is LOC the weight is 1, otherwise the weight is 2.
+\item $\langle o_3 | U^{als} | o_4 \rangle = \frac{1}{N_k} \sum_{\vec{k}, m, o_1, o_2, b, \epsilon_l \le E_{b \vec{k}} \le \epsilon_h} \langle o_3 | \sqrt{O} | o_1 \rangle  \langle m  o_1 | b \vec{k} \rangle \; n_{FD}((E_{b \vec{k}} - \mu)/T)  \; \langle b \vec{k} | m o_2 \rangle \langle o_2 | \sqrt{O} | o_4 \rangle $, where:
+\begin{itemize}
+\item $O$ is the overlap matrix for muffin-tin orbitals.
+\item The $o$'s are indices over all orbitals with given $a,l,s$ (todo and m?) %todo the r's vs. the km's? 
+\item $b$ is a band index and $|b \vec{k} \rangle$ is the  bands. If doing a qsgw calculation these are quasiparticle bands. Only bands inside the energy interval $\left[ \epsilon_l, \epsilon_h \right] $ are included.  
+\item The bands are symmetrized using the sym\_z\_0 routine.  There is something very similar in Andrey's 2021 code named symz.F, so porting the symmetrization should not be too hard. What these routines do is map the wave-function on one atom to the wave-function on symmetry-equivalent atoms.  This includes a rotation that mixes the $m$ quantum number and depends on the k-point, and multiplication by a phase.
+% symmetrize z_wan_bnd and get znew, using sym_z_0
+\item the values of $\mu$ and $T$ are hard-coded and never change.
+\end{itemize} 
+% partial_proj(r3,r4) = N_k^{-1}  \sum_{k, bands inside an energy window, m, and km1/radind1, km2/radind2 which are indices over all muffin-tin-orbitals at (l,isort) including m-value and the 1 or 2 from augm  } shalf(r3,r1) * znew(km1,b) znew^*(km2, b) shalf(r2,r4) *   f(E(b), mu=?, T=?)
+ \item Next we diagonalize $U^{als}$ and find eigenvalues $e_U$ and eigenvector $v_U$; $U^{als} = v_U^\dagger e_U v_U$.  From this, the only thing that we use is the last eigenvector, $ | v_{nU} \rangle $.
+% diagonalize partial_proj; the eigenvalues e are partial_proj_eigval and the eigenvectors v are partial_proj
+  \item Next we create the proposed Wannier function $ | W^{als} \rangle = \sqrt{O} | s v_{nU} \rangle $.  Since $\sqrt{O}$ is a matrix and $ | v_{nU} \rangle $ is a vector, $W$ is also a vector.
+ % coeff_radial_orb = shalf * v
+\item An occupation for this Wannier orbital is calculated: $occ^{als} = \frac{1}{N_k} \sum_{\vec{k}, m, o_1, o_2, b}   \langle W | b \vec{k} \rangle \; n_{FD}((E_{b \vec{k}} - \mu)/T)  \; \langle b \vec{k} | W \rangle $.  Note that all bands are included in this sum.  The occupation is printed out but never used.
+ % occ = N_k^{-1}  \sum_{k, all bands, m, and km1/radind1, km2/radind2 which are indices over all muffin-tin-orbitals at (l,isort) including m-value and the 1 or 2 from augm  }  coeff_radial_orb^*(r1) * znew(km1,b) znew^*(km2, b) coeff_radial_orb(r2)  *  f(E(b), mu=?, T=?)
+\item A weight for this Wannier orbital is calculated: $weight^{als}  = \frac{1}{N_k} \sum_{\vec{k}, m, o_1, o_2, b, \epsilon_l \le E_{b \vec{k}} \le \epsilon_h} \langle W | b \vec{k} \rangle \langle b \vec{k} |  W \rangle $.  This weight is used to determine whether this particular Wannier orbital is in the right energy range and should be computed by wannier90, or whether it should be left out because its energy is wrong.
+       % weight = N_k^{-1}  \sum_{k, bands inside an energy window, m, and km1/radind1, km2/radind2 which are indices over all muffin-tin-orbitals at (l,isort) including m-value and the 1 or 2 from augm  }  coeff_radial_orb^*(r1) * znew(km1,b) znew^*(km2, b) coeff_radial_orb(r2)   
+\item    Also an array named bound\_radfun is calculated and printed out in a file named radial\_function\_Fe\_1.dat, for example.  This is equal to $ \langle r | O^{-1}  | W^{als} \rangle $, where $r$ is the radial coordinate inside the muffin tin.
+\end{itemize}
+\item Port Sang's code for  projecting the Wannier functions onto the bands. This code is in the routine named poorman\_wan\_proj, and is about 500 lines long. % 170 + (sym_z_0  = 100) + (rotmat_wan_proj = 250 but this is completely portable)
+\begin{itemize}
+\item This routine's job is to project the proposed Wanniers onto the bands, and then normalize the resulting projector.
+\item The wanniers are indexed by $a$ the atomic index, angular momentum $l,m$, and (implicitly) spin $s$.
+\item Each atom has a local $x$ axis and a local $z$ axis.  The user can change these from their default values using a file named local\_axis.dat.  When computing the wanniers associated with atom $a$, the bands are  rotated by a rotation matrix $R$ which is determined by the $x$ and $z$ axis. $R$ mixes $m$-values of the muffin-tin states.  The code for the rotation should be completely portable to Andrey's new code.
+% symmetrize z_wan_bnd and get znew, using sym_z_0
+\item  $P_k =  \langle b \vec{k} | R | W \rangle $.  As before, the bands are symmetrized by sym\_z\_0, which is like symz.F in  Andrey's 2021 code.
+\item Next the projector is renormalized in exactly the same way as Ran does his normalization.  The final Wannier functions are $P_k N$, where $N = \frac{1}{\sqrt{P_k^\dagger P_k}}$.
+\end{itemize}
+% loop over spin, k, bands, wanniers, [orbitals range from 1 to 1] [nalimj(iwan) ], wanniers+orbitals->alimj->iatom/isort, llval,mjval.
+% nalimj=1 , alimj_coeff is always 1, the iorb index is always 1.
+% rot_matrix is set by rotmat_wan_proj from alimj_xaxis and alimj_zaxis
+% copy znew - all m values at given l -  into wfn_mt0
+% wfn_mt1= rot_matrix * wfn_mt0 : rotates m  values
+% proj_poor_old = coeff_radial^\dagger |o_1\rangle \langle o_1 | wfn_mt1 
+
+
+
+%in wannier_interface/poorman_wan_proj: [called just before wannier_mmn and then wannier_run]
+% ubi_num is 1 if dft or 4 if qp
+% z_wan_bnd is z_qp
+% znew is z_wan_bnd after sym_z_0 has been applied to it
+% wfn_mt0 is some kind of sum over znew
+% wfn_mt1 is the rot_matrix * wfn_mt0
+% cal_overlapmax_bandprojection_to_mtorb_low_rmode produces coeff_radial.  It is unchanged since the call to wannier_orbital.
+% proj_poor_old is the dot product of coeff_radial with wfn_mt1. 
+% poorman_wan_proj calculates a_matrix, the projection of the num_wann trial orbitals onto num_bands Bloch states.  This encapsulates the trial orbitals.
+% The only difference between proj and  proj_poor_old is that the latter is calculated only for the orbitals which have been selected to be wannier orbitals.
+
+
+\item Notice that when doing a qsgw calculation Sang uses quasiparticle bands, not the bands of the static hamiltonian, to define his ansatz.  Probably we want to do the same.
+\item Finally Sang's symmetric\_orthonormalization massages $\langle i \vec{k} | t (l,m) \rangle $ so that it contains orthonormal states that are the wannier functions.  This code can be simply copied without changes.
+% This just does the same orthonormalization that Ran's code does in  CalculateP.
+\end{itemize}
+
+\subsection{Wannier90 functions}
+This option would require all the work from Sang's ansatz, plus one additional work item: Port Sang's code for calculating the overlaps between article bands at different k-points. This is a subroutine named wannier\_mmn, and is about 350 lines long. % 80 + ( integral_band_pw_band_wan = 80) + (sym_a_2 = 70) + (fifi_j_prepare_onepoint = 50) + (bessr = 70) + ( integral_band_pw_band_mt_wan =?) 
+% * todo: where does the vmatrix come from, exactly?
+\begin{itemize}
+\item This time not only the muffin-tin sector of the bands must be symmetrized using sym\_z\_0; also the interstitial part must be symmetrized  using sym\_a\_0.  sym\_a\_0's equivalent in Andrey's 2021 code is sym\_a.F.
+\item wannier\_mmn iterates over every pair of neighboring k-points.
+\item Inside the loop over pairs, wannier\_mmn calculates the overlap matrix between muffin-tin orbitals, using the fifi\_j\_prepare\_onepoint and integral\_band\_pw\_band\_wan and integral\_band\_pw\_band\_mt\_wan routines.
+\begin{itemize}
+\item fifi\_j\_prepare\_onepoint is responsible for doing the radial integral $\int {dr} \;r^2 \; f(r) \; g(r) \; J_l(r)$, where $f$ and $g$ are the muffin-tin functions at different k-points, and $J_l$ is a bessel function.  Andrey's 2021 code has a similar routine named fifi\_j\_prepare.
+\item integral\_band\_pw\_band\_mt\_wan is responsible for angular variables, using clebsch-gordan coefficients.  Andrey's 2021 code has a similar routine named wan\_wan\_pw\_0.
+% fifi_j_prepare_onepoint ->  fifi_j_prepare, also check on psi_psi_pw_full
+%integral_band_pw_band_mt_wan -> wan_wan_pw_0
+% sym_a_2 -> sym_a
+% integral_band_pw_band_wan ->  psi_psi_pw_prepare
+% the m_matrix is like the psi_psi_pw matrix, which is used by [susceptibility_gw->response_static_00_zz->vertex_pol_pw_static_gw->k0_bnd_static_pw] , [susceptibility_gw->response_dynamic_pw->xi_eps1_00_pw_dynamic_gw]
+%
+%last_dft (Integrals for PW-susceptibilities),gw_loop-> psi_psi_pw_red->  psi_psi_pw_prepare -> fifi_j_prepare, wan_wan_pw_0 -> used to create an interstitial contribution to psi_psi_pw .  used by  susceptibility_gw->esponse_static_00_zz->vertex_pol_pw_static_gw->k0_bnd_static_pw, susceptibility_gw->response_dynamic_pw->xi_eps1_00_pw_dynamic_gw.  Comments hint that it is used to get vertex corrections to the polarizability.
+%
+%gw_loop->update_sc (gf2,psi,bsp)-> uu_prepare_bc -> fifi_j_prepare, wan_wan_pw_0, used to prepare psps_bc which is used at the very end of update_sc->add_sigma_vertex_bands's calculation of sc_bb
+\end{itemize}
+\item Inside the loop, wannier\_mmn calculates overlaps between bands using the  integral\_band\_pw\_band\_wan routine.  This is easy to understand and should be easy to port.
+\end{itemize}
+
+
+
+
+\subsection{Ran's ansatz}
+Portobello creates projectors in two steps.  The first step chooses specific muffin-tin orbitals that will be the candidate Wannier functions, and matrices enforcing symmetries between those orbitals:
+\begin{itemize}
+\item The OrbitalsDefinition object  makes a list of all of flapwmbpt's muffin-tin orbitals, and determines which of these match the user's requirements; for instance iron 3d-shell muffin-tin orbitals. For each of these it generates candidate Wannier functions. It keeps track of  $n,l,m$ quantum numbers, so that a full d-shell would have five candidate Wannier functions.  
+\begin{itemize}
+\item There may be several distinct muffin-tin orbitals at specific $n,l,m$, corresponding to different LAPW states.  Portobello ignores orbitals which are derivatives; these are not used as candidate Wannier functions. 
+\item Orbitals with $l > 2$ are ignored unless they are marked by the user as correlated.  
+\item Corey implemented subshells.  
+\end{itemize}
+\item Portobello analyzes the crystal symmetry.  It  identifies which atoms are equivalent under crystal symmetry, while keeping track of magnetism and antiferromagnetism. 
+\item Based on this analysis the SetRotMatrixAndRep routine calculates linear combinations of the muffin-tin orbitals, which are expressed using variables named orbs.rotation and orbs.subM.  Equivalent atoms are not mixed together.
+\item The final candidate Wannier functions are expressed by a matrix $V = $ orbs.rotation $\times$ orbs.subM $\times \frac{1}{\sqrt{\langle i | O | i \rangle}}$ .  The matrix element $\langle i | O | i \rangle$ is a diagonal element of the overlap matrix between muffin-tin-orbitals; it is the normalization factor of a muffin tin orbital.
+\begin{itemize}
+\item The overlap matrix $O$ is stored by the GetLAPWBasisImp routine.
+\end{itemize}
+\item All this information - the selected Wannier function candidates, the symmetrization matrix $V$, and more - are stored in a file named projector.h5.
+\end{itemize}
+
+The second step occurs when it is time to project the chosen muffin-tin orbitals onto bands:
+\begin{itemize}
+\item Portobello reads in projector.h5, with all its information about muffin-tin orbitals and their symmetries. This info is encapsulated in the V matrix, which has a size equal to the number of wannier functions.
+\item Portobello selects a subset of the bands which fit into an energy window.  These are packaged in a matrix named $Z_k$, which depends on the k-point $k$.
+\begin{itemize}
+\item The candidate wannier functions have only muffin-tin components, not interstitial components.  Therefore $Z_k$ needs only muffin-tin components of the bands.
+\end{itemize}
+\item The rest of the projection work  is performed in the CalculateP routine.
+\item Next it calculates $P_k = Z_k O V$.  $Z_k$ is the bands in the energy window, $O$ is the overlap matrix between muffin-tin orbitals, and $V$ is the candidate Wannier functions.  $P_k$'s dimensions are num\_bands $\times$ num\_wann; it maps from wannier functions to bands.
+\item The Wannier functions are not yet orthogonal, so portobello orthogonalizes them with a matrix $N = \frac{1}{\sqrt{P_k^\dagger P_k}}$.  
+\item The final Wannier functions are: $P_k N$.  
+% * in portobello wannier.py wraps comwann and wannier90 * see CalculateP in ProjectorEmbedder which creates the initial guess for the wanneir functions, also see orbitals.py
+\end{itemize}
+
+Conclusions:   If I omit the symmetrization logic in portobello, then the remainder of its calculation of Wanniers is simpler and more portable [to Andrey's 2021 code] than Sang's calculation of Wanniers.     Even if we did include the work of porting the symmetrization logic, it would still be relatively easy to port.
+
+% If we have .V, then CalculateP does the rest of the work and it just needs a list of bands.  V = (diag(mo_overlap))^{-1/2}
+% I just need to port GetLAPWBasisImp
+
+% orbitals.py : shellanalyzer used by OrbitalsDefinition, lapwrec used by orbitalsdefinition, symmetrizedshell used by orbitalsdefinition, orbitalsdefinition used by projectorembedder.defineprojector, orbitalsdefinition also used by multiimpurityembeder which is used by projectorembedder.defineprojector and several other scripts.
+
+%orbs.dim
+%orbs.equiv_atoms contains (j, _atom)
+%i0 = orbs.lapw_indices[j*d]
+%
+%% flapw_driver.f90/GetLAPWBasisImp initializes lapw_basis.  It initializes mo_overlap by copying/summing elements of ffsmt.
+%* mo_Overlap is used in orbitals.py/OrbitalsDefinition/__init__ to calculate self.V
+%
+%1 = KS.Z^\dagger * mo_overlap * KS.Z  + KS.A^\dagger * pw_overlap * KS.A 
+%
+
+
+%A. choose wannier functions (broken into correlated and uncorrelated), expressed in the bands basis [ both sang's ansatz, and wannier90, and maybe ran's ansatz.  what is required to transfer to flapwmbpt2021? how to do symmetrization? ] 
+%A1. Fourier transform wanniers to momentum space [ check the math of the fourier transforms, also what about unfolding momentum? ]
+
+
+% alternatives to MLWFs: Sang's ansatz, Ran's solution, CASTEP local orbitals, Marc Schilfgaarde's orbitals.  How does Andrey choose a product basis set, and what can be done for wannier functions there?
+
+
+
+
+\section{About: ComWann, wannier90, and wannier-related portions of comcoulomb\label{ComWann}}
+Copied from Documentation of UOptimization.tex.
+
+\subsection{Flowchart}
+\begin{itemize}
+\item Based on an energy window  [ dis\_win\_min and dis\_win\_max ]  supplied by the user in comwann.ini, comwann completely excludes bands outside that window from contributing to wannier functions.
+\item comwann chooses wave-functions inside the muffin tins with specific values of angular momentum quantum number $l,m$.  These are named $|t_i \rangle$.  The coeff\_radial  orbitals $|t_i \rangle$ are functions of $r$ only.  They are a kind of average of the radial structure of bands, for all bands whose energy $E(n,k)$ are inside [ dis\_froz\_min,  dis\_froz\_max].  
+\item Based on $|t_i \rangle$'s overlap with the bands from rspflapw, and on user configuration parameters, comwann selects which atomic shells should have corresponding wannier functions, and thus arrives at a total number of wannier functions.  It writes to disk a file named seedname.inip which contains information about each of the wannier functions: which atom, the $l,m$ angular momentum quantum numbers, and the local $x$ and $z$ axis.
+\item Starting with the overlap matrix $\langle \psi_{nk} | t_i \rangle$  between bands and the chosen muffin-tin orbitals, comwann orthogonalizes this to get trial wannier functions, i.e. proposals to wannier90 for the wannier functions.  
+\item comwann calls wannier90, passing in the trial wannier functions and several user control parameters from comwann.ini.  wannier90 disentangles the desired bands from bands outside an energy window, and minimizes the spatial spread, and returns the resulting wannier matrices to comwann.
+\item comwann prints out diagnostic information and saves wannier.dat, which contains information about the wanniers that will be used by other parts of comsuite.
+\item If the write\_wan user configuration parameter in comwann.ini is set to 1, then comwann interpolates the wannier functions on to a cartesian mesh and saves this to .xsf files so that the xcrysden viewer can be used to view the wanniers.  It also computes its own estimate of the spatial spreads and centers of the wannier functions.
+\item In comcoulomb.ini the user tells comsuite which of the wannier orbitals are correlated and which are not.  comcoulomb uses this information to calculate the cRPA screened interaction.  It calculates the full polarizability and subtracts the correlated polarizability to obtain the cRPA polarizability.  There are four schemes for using the user's designation of correlated orbitals, along with the information in wannier.dat and seedname.inip and certain user configuration parameters in comcoulomb.ini, to calculate  different versions of the correlated polarizability.
+\item comcoulomb uses the wannier information in wannier.dat to calculate products of wannier functions, and then takes matrix elements of the screened interaction with respect to these products.
+\item Using the matrix elements and information from wannier.inip about which orbitals are in which atomic shell, comcoulomb calculates the Slater integrals for each atomic shell and saves them to disk.  These are used for the double counting calculation and the dmft calculation.
+\end{itemize}
+
+\subsection{Inputs}
+\begin{itemize}
+\item local\_axis.dat
+\item comwann.ini
+\item comcoulomb.ini
+\item files from rspflapw, including info.rst, info2.rst, seedname.rst.
+\end{itemize}
+
+\subsubsection{local\_axis.dat}
+comwann uses the axis information  from local\_axis.dat (atom\_xaxis and atom\_zaxis for each atom type)  to:
+  \begin{itemize}
+  \item Rotate muffin-tin functions (inside of bands from rspflapw).  This is done inside of wannier\_orbital, as part of calculating proj, which helps choose wannier orbitals.  proj is  the overlap of the rotated muffin-tin functions with the coeff\_radial array.  coeff\_radial contains trial orbitals $|t_i \rangle$ with distinct angular momentum character sitting on  each atom.  The coeff\_radial  orbitals $|t_i \rangle$ are functions of $r$ only.  They are a kind of average of the radial structure of bands, for all bands whose energy $E(n,k)$ are inside [ dis\_froz\_min,  dis\_froz\_max].
+  \item Create seedname.inip which contains info about each wannier orbital.
+  \item Rotate muffin-tin functions (inside of bands from rspflapw).  This is done inside of poorman\_wan\_proj, as part of calculating a\_matrix which tells wannier90 what the initial trial wannier orbitals to start with.  These trial orbitals are called $|g_i \rangle $.    a\_matrix is  computed by taking the overlap of the rotated muffin-tin functions  inside the rspflapw bands with the coeff\_radial array, and then orthonormalizing the overlap matrix.    coeff\_radial contains trial orbitals $|t_i \rangle$ with distinct angular momentum character sitting on  each atom.  So if $\langle \psi_{nk} | $ is the bands, then a\_matrix $|g_i \rangle $. is calculated by forming the matrix   $\langle \psi_{nk} | |t_i \rangle$ and then orthonormalizing it.  The coeff\_radial  orbitals $|t_i \rangle$ are functions of $r$ only.  They are a kind of average of the radial structure of bands, for all bands whose energy $E(n,k)$ are inside [ dis\_froz\_min,  dis\_froz\_max].
+  \end{itemize}
+  
+  If local\_axis.dat doesn't exist, then atom\_xaxis = $\hat{x}$ and atom\_zaxis = $\hat{z}$.
+  
+  local\_axis is not used for anything else in comsuite.  comwann is the only program that uses it.
+  
+  The docs for ComWann say that axis rotation is not implemented for systems with spin-orbit coupling.
+
+\subsubsection{comwann.ini}
+comwann.ini is written to by comrisb.py and  comdmft.py.
+\begin{itemize}
+        \item dis\_win\_min and dis\_win\_max :
+        \begin{itemize}
+        \item Passed on to wannier90, where it will be used as the outer energy window for disentangling bands. In wannier90 states outside of this window are left entirely out of the wannier functions.   In eV. % Passed via wannier.win.  
+        \item        Used by comwann as an energy window - bands outside of this window are removed entirely from consideration, are not passed on to wannier90, and make no contribution to the wannier functions. todo: I don't like this since wannier90 does its own disentanglement, so have an option to turn it off or to make comwann's window larger than wannier90's window.  However the meaning of this cutoff in wannier90 is  the same as in comwann, so maybe it's OK to use it twice.  Still it seems like overkill because comwann does something that wannier90 would do anyway.
+%   cal_num_bands decides num_bands, ind_low, ind_high based on dis_win_max, dis_win_min, irel, and eigenvalues ( this is the only use of dis_win_max, dis_win_min ) (ind_low, ind_high are used for exclude_bands and then include_bands which goes in wannier.dat).  
+        \end{itemize}
+\item dis\_froz\_max and dis\_froz\_min : 
+        \begin{itemize}
+        \item ComWann adjusts dis\_froz\_max; see the call to reset\_dis\_froz\_max.
+        \item dis\_froz\_min is used to decide the value of weight\_low, which in turn is used to select which shells will be included as wannier functions.
+%                          if (eigenvalues(ibnd,irk) .lt. dis_froz_min) then
+ %                   weight_low(llval,1,isort)
+%     $                =weight_low(llval,1,isort)
+%     $                +cdabs(proj(llval,1,mjind,iatom,ibnd,ind_k))**2
+%     $                /dble(nqdiv)/sort_degen(isort)
+%                  endif
+        \item dis\_froz\_max and dis\_froz\_min are passed on to wannier90, where they will be used as the inner (frozen) energy window for disentangling bands.  Inside this window wannier90 makes sure that it uses the exact bands and energies from rspflapw. In eV.  % Passed via wannier.win.
+        \item dis\_froz\_max and dis\_froz\_min are used as input into the routine that is responsible for calculating weight\_in\_froz\_win and coeff\_radial.  % That routine is named cal_overlapmax_bandprojection_to_mtorb_low_rmode.   
+        coeff\_radial contains trial orbitals $|t_i \rangle$ with distinct angular momentum character sitting on  each atom.  The coeff\_radial  orbitals $|t_i \rangle$ are functions of $r$ only.  They are a kind of average of the radial structure of bands, for all bands whose energy $E(n,k)$ are inside [ dis\_froz\_min,  dis\_froz\_max].
+        \end{itemize}
+      \item   num\_iter : Passed on to wannier90, where it limits the number of iterations in the search for wannier functions which optimize the spatial spreads. % Passed via wannier.win.
+      \item   dis\_num\_iter : Passed on to wannier90, where it limits the number of iterations in the disentanglement procedure. % Passed via wannier.win.    
+\item cut\_low :  Used only to select  atomic shells (atom number + angular momentum number $l$)  to be included in the wannier functions.  Shells are not included in the wannier functions unless (weight\_low .le. cut\_low).  weight\_low  is  the  overlap between coeff\_radial and the muffin-tin sector of those bands from rspflapw which have eigenvalues less than dis\_froz\_min.   coeff\_radial contains trial orbitals $|t_i \rangle$ with distinct angular momentum character sitting on  each atom.    So if $\langle \psi_{nk} | $ is the bands, then proj    $ = \langle \psi_{nk} | |t_i \rangle$. The coeff\_radial  orbitals $|t_i \rangle$ are functions of $r$ only.  They are a kind of average of the radial structure of bands, for all bands whose energy $E(n,k)$ are inside [ dis\_froz\_min,  dis\_froz\_max].
+\item cut\_froz : Used only to select atomic shells (atom number + angular momentum number $l$) to be included in the wannier functions.  Shells are not included in the wannier functions unless (weight\_in\_froz\_win .ge. cut\_froz).
+ \item rmode and mt\_fac are used as input into the routine that is responsible for calculating weight\_in\_froz\_win and coeff\_radial.   These user configuration parameters have been removed in comsuite version 2.1. % That routine is named cal_overlapmax_bandprojection_to_mtorb_low_rmode.
+  coeff\_radial contains trial orbitals $|t_i \rangle$ with distinct angular momentum character sitting on  each atom. 
+  \item cut\_total is never used.
+  \item writewan : If this is true, then comwann constructs and saves representations of the wannier functions on grid and calculates and prints their spreads and center.  It also  saves out .xsf files containing these wanniers.  These .xsf files are in a format for the xcrysden viewer, and could possibly could be used by pymatgen.
+  \item rstpath : a path telling where to find files from rspflapw.
+\item ubi\_txt  : depending on whether it is 'dft' or 'qp' decides whether commwann/wannier90 will use dft or qp eigenvalues and bands.    
+\end{itemize}
+
+\subsubsection{comcoulomb.ini}
+
+Except for wanpath, all of the following should be moved into comwann.ini:
+\begin{itemize}
+\item wanpath : the path to wannier.dat and seedname.inip.
+\item u\_mode  : selects the crpa scheme for calculating the correlated polarizability.  The possible values are wnds, gtop,  bnse, and enpj. And maybe edmf but that seems to be commented out.
+\item projemin, projemax assist are an energy window that is used to control the crpa calculation of the correlated polarizability.  Not used if u\_mode = enpj.  In eV.
+\item enpj\_emin, enpj\_emax are an energy window that is used to control the crpa calculation of the correlated polarizability.  Used only if u\_mode = enpj.  In eV.
+\item num\_orb\_cor, wan\_correlated : specify which of the wannier orbitals should be considered to be correlated.  Not used if u\_mode = enpj, in which case all wannier orbitals are considered to be correlated.
+\item p\_low\_mode : should always be set to 1.
+\end{itemize}
+
+
+ 
+
+
+\subsection{Control of wannier90}
+
+Passed into wannier\_setup, wannier\_run, and also via wannier.win:
+\begin{itemize}
+\item ndiv, from rspflapw, called mp\_grid by wannier90, in .chk file
+\item nqdiv, from rspflapw, called num\_kpts by wannier90
+\item transpose(rbas)*par*bohr, from rspflapw, called real\_lattice by wannier90, in .chk file
+\item transpose(gbas)*2.0d0*pi/par/bohr, from rspflapw, called recip\_lattice by wannier90, in .chk file
+\item kpt\_latt, from rspflapw, in .chk file
+\item natom, from rspflapw
+\item atom\_symbols, from rspflapw
+\item eigenvalues, from rspflapw and reduced by comwann
+\item num\_iter, from comwann.ini
+\item dis\_num\_iter,  from comwann.ini
+\item dis\_win\_max,  from comwann.ini
+\item dis\_win\_min,  from comwann.ini
+\item dis\_froz\_max,  from comwann.ini
+\item dis\_froz\_min,  from comwann.ini
+\item bands\_plot, from comwann
+\item bands\_num\_points, from comwann
+\item  bands\_plot\_format,  from comwann
+\item kpoint\_path,  from comwann
+\item tau*par*bohr, from rspflapw, called atoms\_cart by wannier90
+\item nbndf, from rspflapaw, called num\_bands\_tot by wannier90
+\item gamma\_only, always false
+\item spinors, always false
+\item
+\item nntot, received from wannier\_setup, fed into wannier\_run
+\item num\_bands, from comwann, in .chk file
+\item num\_wann,    from comwann, in .chk file
+\item exclude\_bands, from comwann, goes to wannier.win and wannier\_run, not the same as exclude\_bands(i) in .chk file.
+\item M\_matrix,  from comwann, in .chk file
+\item A\_Matrix,  from comwann
+\item restart=plot, to tell comwann to use the .chk file.
+\item write\_hr for writing out  ham\_r,nrpts,irvec,ndegen.
+\item write\_u\_matrices for writing out files with u\_matrix, u\_matrix\_opt.
+\end{itemize}
+
+Additional variables needed for the .chk file.  All of these variables are written by wannier90.  However comwann will want to alter u\_matrix incorporating the unitaries that are generated by optimization and also the permutation matrix, header (Date and time), chkpt.  The w90chk2chk utility will be necessary.
+\begin{itemize}
+\item num\_exclude\_bands 
+\item exclude\_bands(i)
+\item have\_disentangled, should always be true
+\item u\_matrix
+\item  u\_matrix\_opt
+\item  lwindow
+\item  header
+\item  nntot
+\item  chkpt
+\item  omega\_invariant
+\item  ndimwin
+\item  wannier\_centres
+\item  wannier\_spreads
+\end{itemize}
+
+
+Other variables received from wannier\_setup, necessary for comwann's preparation for wannier\_run:
+\begin{itemize}
+\item nntot
+\item nnlist
+\item nncell
+\end{itemize}
+
+
+\subsection{Output to comsuite}
+
+At present comwann does not properly handle spin polarized calculations.  comwann gets the number of spins, nspin, from info.rst. If this number is 2, i.e. if doing a spin polarized calculation, then comwann does first spin=1 and saves out wannier.dat and seedname.inip.  Next it does spin=2 and saves out wannier.dat and seedname.inip, overwriting the values from spin=1.
+
+\subsubsection{wannier.dat}
+\begin{itemize}
+\item transpose(rbas)*par*bohr, from rspflapw, called real\_lattice by wannier90, in .chk file
+\item transpose(gbas)*2.0d0*pi/par/bohr, from rspflapw, called recip\_lattice by wannier90, in .chk file
+\item ndiv, from rspflapw, called mp\_grid by wannier90, in .chk file
+\item kpt\_latt, from rspflapw, in .chk file
+\item nrpts, can be obtained from wannier90: plot\_main/hamiltonian\_write\_hr writes out ham\_r,nrpts,irvec,ndegen to a file, if write\_hr
+\item irvec, can be obtained from wannier90: plot\_main/hamiltonian\_write\_hr writes out ham\_r,nrpts,irvec,ndegen to a file, if write\_hr
+\item ndegen, can be obtained from wannier90: plot\_main/hamiltonian\_write\_hr writes out ham\_r,nrpts,irvec,ndegen to a file, if write\_hr
+\item ham\_r, can be obtained from wannier90: plot\_main/hamiltonian\_write\_hr writes out ham\_r,nrpts,irvec,ndegen to a file, if write\_hr
+\item have\_disentangled, should always be true
+\item u\_matrix , from wannier90, in .chk file, can also be obtained from seedname\_u.mat, Written if write\_u\_matrices = .TRUE.
+\item  u\_matrix\_opt , from wannier90, in .chk file, can also be obtained from seedname\_u\_dis.mat, Written if write\_u\_matrices = .TRUE.
+\item  lwindow , from wannier90, in .chk file, todo can this be dumped out in any other way?
+\item
+\item num\_bands, from comwann, in .chk file
+\item num\_wann,    from comwann, in .chk file
+\item include\_bands, from comwann      
+\item  v\_matrix, from wannier90 via comwann,  v\_matrix = u\_matrix * u\_matrix\_opt 
+ \item eigenvalues, from rspflapw, reduced by comwann
+ \item todo: z\_wan\_bnd and ev\_wan\_bnd should be saved here - otherwise the clients of wannier.dat have to reconstruct this info, and can go wrong.  
+\item ham\_k , generated by comwann from u\_matrix, u\_matrix\_opt, eigenvalues, etc.
+\end{itemize}
+
+\subsubsection{seedname.inip File}
+Comwann chooses wannier orbitals that will be computed, and writes this info to seedname.inip.
+
+For each wannier orbital, the .inip file tells its atom number, its angular momentum $l,m$ numbers, and also atom\_xaxis and atom\_zaxis.  
+
+The angular momentum $l,m$ numbers specify "real spherical harmonics" which are related to the usual ones by taking the real and imaginary parts.    See https://en.wikipedia.org/wiki/Table\_of\_spherical\_harmonics\#Real\_spherical\_harmonics . See also https://en.wikipedia.org/wiki/Spherical\_harmonics .   
+
+In the p shell, the $m=-1$ harmonic is oriented along the y axis, $m=0$ along the z axis, and $m=1$ along the x axis.  In the d shell, the $m=-2$ harmonic is the $d_{xy}$ orbital, $m=-1$ is the $d_{yz}$ orbital, $m=0$ is the $d_{z^2}$ orbital, $m=1$ is the $d_{zx}$ orbital, and $m=2$ is the $d_{x^2 -y^2}$ orbital.
+
+The axis information is taken from local\_axis.dat which is supplied by the user and contains atom\_xaxis and atom\_zaxis for each atom type. If local\_axis.dat doesn't exist, then atom\_xaxis = $\hat{x}$ and atom\_zaxis = $\hat{z}$.
+
+\subsubsection{ Additional Output that should be handled by ComWann, not inside ComCoulomb as done now}
+Probably this info should go in comwann.dat. The code that generates it is located inside of ComCoulomb, and should be moved into ComWann.
+\begin{itemize}
+\item The states and energies that will be used to build the Green's function and the polarizability.  Represented in the bands basis.  Also a count of these states.
+% The code for this  is mostly in wan2\_pb but also in the Green's function implementations.
+% num\_orb\_cor is used in chi0_from_g_correlated, correlated_atoms.F, projector_renormalization, wan2\_pb for setting up band weights etc. for the different schemes.
+%wan\_correlated is used in correlated\_atoms.F and in projector\_renormalization
+%* if using enpj, just select which bands using the energy window
+%* if using bnse, select bands using a mask based on proj\_renorm and the specification of which bands are correlated
+%* if using wnds, use new bands q\_qp\_dis (in the bands basis) and new energies e\_qp\_dis.  In a certain limit q\_qp\_dis is, I think, just the wannier functions.  Aryasetiawan advocates a similar scheme.
+%* if following spex, use the bands and energies, but weight them.  This could just multiply the bands so they are no longer normalized.
+%* if using gtop, use new  bands which are the qsgw bands projected onto the space of correlated wannier orbitals.
+\item The pseudo-unitary matrix named proj\_renorm which is used to construct Wannier functions.  % supply proj\_renorm, including permutation, ready made. comcoulomb should be supplied with a filename where these should be found.  See projector\_renormalization\_simplified.
+\item Information about the Wannier functions: itinerant vs. correlated, which atom they are associated with, their angular momentum numbers $l,m$, the $x$ and $z$ axis associated with their atom.
+\item The supporting information which is required for calculating Slater integrals.
+% * supply all info required to calculate slater integrals: which wannier orbitals are which, etc. This comes through  correlated\_atoms.F.  % wannier_info,block_boundaries,  natom_ciw, iatom_ciw(iat), is(iatom) !  get and save the rotation matrix as a function of l=0:3, both relativistic and no:  !  get  and save the sli_coeffs as a function of l,  l=0:3
+% * wannier.inip goes into variables including the characters 'alimj', and these are used only in correlated\_atoms.F
+\end{itemize}
+
+
+    
+
+\subsubsection{Slater integral files from comcoulomb}
+These contain the Slater integrals, as a function of frequency, for U, V, and W.  They are printed out for each shell that has been designated as correlated.  They are used by ComDC, CTQMC, and probably also ComLowH.
+
+\subsubsection{Output that is never used by other parts of comsuite}
+\begin{itemize}
+\item ComWann computes atom\_wan, atom\_wan\_distance, distance,tempvec,tempvec2, which atom each wannier is centered at, distances between wanniers - this is printed out but not saved anywhere or used by anything.   % In this connection see seedname_wsvec.dat
+ \item ComWann calculate and print out overlaps between initial trial orbitals and wanniers. overlap  = v\_matrix$^\dagger$ * a\_matrix
+\item if the writewan flag in comwann.ini is on, ComWann\\wannier\_realgrid constructs and saves representations of the wanniers on grid and calculates and prints their spreads and center.  It also  saves out .xsf files containing these wanniers.  These .xsf files are in a format for the xcrysden viewer, and could possibly could be used by pymatgen.
+ % * wannier_run gives wann_centers (used for printing out nearest neighbors and shift vectors  and atom_wan_distance and to compare against the realgrid calculation)
+ \item wannier90 produces output in wannier.wout and a .chk file that can be used by others.  wannier.wout contains wannier\_centres and wannier\_spreads.
+ \item ComWann produces weight\_trial.dat, occ\_trial.dat, orb\_for\_Froz\_win.dat, weight\_final.dat, occ\_final.dat, radial\_function\_zzz.dat
+\end{itemize}
+
+
+% * wannier_setup uses info from wannier.win (but really only the info from rspflapw), and decides (nntot,nnlist,nncell) which tell about which overlaps in k-space need to be computed.  The rest of the info from wannier_setup (num_bands,num_wann, and a bunch of information suggesting what the orbitals should look like) is basically ignored.   exclude_bands seems to be used only to print out include_bands, exclude_bands, oh and also it decides include_bands which goes in wannier.dat.
+ 
+ %* poorman_wan_proj finishes the calculation of the trial orbitals
+ 
+% *  wannier_mmn calculates overlap matrix
+ 
+% * wannier_run passes in the rspflapw info, num_bands, num_wann, (nntot,nnlist,nncell),  m_matrix, a_matrix, eigenvalues, (restart_wannier90,u_matrix_from_file,) are parameters that I added) and gets back :
+% U_matrix,U_matrix_opt,lwindow (saved in wannier.dat and also used for calculating v_matrix,ham_k in wannier.dat and wan_g_overlap which is printed out), wann_centers (used for printing out nearest neighbors and shift vectors  and atom_wan_distance and to compare against the realgrid calculation) , wann_spreads (not used) , spread (not used).
+% * seedname_u.mat, Written if write_u_matrices = .TRUE.
+% * seedname_u_dis.mat, Written if write_u_matrices = .TRUE.
+% ** ?? how do I get lwindow, or do I supply it?
+
+
+\subsection{Other}
+
+
+
+   Other functionalities that we might want to add:
+\begin{itemize}
+\item The latest wannier90 has a feature for preserving crystal symmetry during wannier optimization, but it requires additional info from comwann.
+\item Wannier90 has  a mechanism for suggesting to comwann what the trial orbitals will be.
+\item  Take advantage of seedname\_band.kpt , allowing band structure plots to have flexible user specified paths through k-space, instead of the hardcoded 11 paths that Andrei has implemented.  seedname\_band.kpt is written if bands\_plot=.TRUE.; The k-points used for the interpolated band structure, in units of the reciprocal lattice vectors. This file can be used to generate a comparison band structure from a first-principles code.
+\item Get comwann to work properly with spin polarized calculations.  % I also ran into a bug where it crashed when calculating the overlap matrix, actually when doing a check on the overlap matrix, for spin-polarized iron.
+\end{itemize}
+
+     Additional notes:
+     \begin{itemize}
+  \item comwann quits if magn=2, i.e. if doing a noncollinear calculation.
+\item comwann tells wannier90 that the wavefunctions are not spinors.
+     \end{itemize}
+     
+
+       
+
+
+\end{document}
+
+
